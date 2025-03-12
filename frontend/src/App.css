@@ -1,0 +1,177 @@
+.App {
+  text-align: center;
+}
+
+.App-logo {
+  height: 40vmin;
+  pointer-events: none;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .App-logo {
+    animation: App-logo-spin infinite 20s linear;
+  }
+}
+
+.App-header {
+  background-color: #282c34;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: calc(10px + 2vmin);
+  color: white;
+}
+
+.App-link {
+  color: #61dafb;
+}
+
+@keyframes App-logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+
+
+:root {
+  --primary-blue: #4d4351;
+  --secondary-blue: rgb(96, 96, 182);
+
+  --text-primary-light: black;
+  --text-primary-dark: white;
+
+  --text-secondary-light: rgb(70, 70, 70);
+  --text-secondary-dark: rgb(160, 160, 160);
+
+  --bg-primary-light: white;
+  --bg-primary-dark: black;
+
+  --bg-secondary-light: rgb(212, 212, 212);
+  --bg-secondary-dark: rgb(34, 34, 34);
+
+  --bg-navbar-light: #958c9b;
+  --bg-navbar-dark: #41304a;
+}
+
+.white {
+  --text-primary: var(--text-primary-light);
+  --text-secondary: var(--text-secondary-light);
+  --bg-primary: var(--bg-primary-light);
+  --bg-secondary: var(--bg-secondary-light);
+  --bg-navbar: var(--bg-navbar-light);
+}
+
+.dark {
+  --text-primary: var(--text-primary-dark);
+  --text-secondary: var(--text-secondary-dark);
+  --bg-primary: var(--bg-primary-dark);
+  --bg-secondary: var(--bg-secondary-dark);
+  --bg-navbar: var(--bg-navbar-dark);
+}
+
+/* Light Theme */
+.white .navbar {
+    background-color: var(--bg-navbar-light) !important;
+}
+
+.white .navbar-brand,
+.white .nav-link {
+    color: var(--text-primary-light) !important;
+}
+
+/* Dark Theme */
+.dark .navbar {
+    background-color: var(--bg-navbar-dark) !important;
+}
+
+.dark .navbar-brand,
+.dark .nav-link {
+    color: var(--text-primary-dark) !important;
+}
+
+/* Navbar Toggle Button (Hamburger) */
+.dark .navbar-toggler {
+    border-color: white !important;
+}
+
+.dark .navbar-toggler-icon {
+    filter: invert(1); /* Makes it white */
+}
+
+/* Navbar Toggle Button (Hamburger) */
+.white .navbar-toggler {
+    border-color: black !important;
+}
+
+.white .navbar-toggler-icon {
+    filter: invert(1); /* Makes it white */
+}
+
+/* FOOTER */
+.dark .footer {
+    background-color: var(--bg-navbar-dark) !important;
+    color: white !important;
+}
+
+.white .footer {
+    background-color: var(--bg-navbar-light) !important;
+    color: black !important;
+}
+
+.white .header {
+    background-color: cornflowerblue !important;
+    color: black !important;
+}
+
+.white .background-main {
+    background-color: white !important;
+    color: black !important;
+}
+
+.dark .background-main {
+    background-color: #2a2929 !important;
+    color: white !important;
+}
+
+
+/* Stylizacja scrollbara */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #222;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.58);
+
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #000000;
+}
+
+::-webkit-scrollbar-button {
+  display: none;
+}
+
+
+/*.white ::-webkit-scrollbar-track {*/
+/*  background: #cbcbcb;*/
+/*}*/
+
+/*.white ::-webkit-scrollbar-thumb {*/
+/*  background: #9f9f9f;*/
+
+/*}*/
+
+/*.white ::-webkit-scrollbar-thumb:hover {*/
+/*  background: #818181;*/
+/*}*/

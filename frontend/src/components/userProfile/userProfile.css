@@ -1,0 +1,8 @@
+.modal-open{
+    padding-right: 0 !important;
+    overflow: auto !important;
+}
+
+.navbar-toggler{
+    margin-right: 0 !important;
+}
