@@ -1,26 +1,71 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files
 
-#config files
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Editor directories and settings
 /.idea
+.vscode/
 
-# dependencies
+# Node.js dependencies
 /node_modules
 /.pnp
 .pnp.js
 
-# testing
-/coverage
+# Python bytecode and cache files
+__pycache__/
+*.py[cod]
+*$py.class
 
-# production
-/build
+# Virtual environment directories
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
 
-# misc
-.DS_Store
+# Distribution / packaging
+build/
+dist/
+.eggs/
+*.egg-info/
+*.egg
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Testing and coverage reports
+.coverage
+.coverage.*
+.cache
+.tox/
+.nox/
+.pytest_cache/
+nosetests.xml
+coverage.xml
+
+# Django specific files (adjust if you use another framework)
+*.log
+local_settings.py
+db.sqlite3
+
+# Flask specific (if applicable)
+/instance
+.webassets-cache
+
+# Documentation builds
+docs/_build/
+
+# Misc
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment variables files
+.env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
-
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
