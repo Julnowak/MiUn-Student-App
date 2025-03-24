@@ -1,62 +1,91 @@
-import React from 'react';
-import {useState, useEffect} from "react";
-import {Card} from "react-bootstrap";
-import {isUserAuthenticated} from "../../AuthContext"
+import React, { useState, useEffect } from 'react';
+import { isUserAuthenticated } from "../../AuthContext";
 import { Navigate } from 'react-router-dom';
 
-const sensorsMockData = [
-    {id: 1, type: "temperature", value: 22.5, unit: "°C"},
-    {id: 2, type: "humidity", value: 55, unit: "%"},
-    {id: 3, type: "light", value: 300, unit: "lx"},
-];
 
 const Main = () => {
-    const [sensors, setSensors] = useState(sensorsMockData);
-    const [ledState, setLedState] = useState(false);
+    const [groups, setGroups] = useState([]);
+    const [calendarEvents, setCalendarEvents] = useState([]);
+    const [recommendations, setRecommendations] = useState([]);
+    const [loading, setLoading] = useState(false);
 
     useEffect(() => {
-        // Symulacja aktualizacji danych z czujników
-        const interval = setInterval(() => {
-            setSensors((prevSensors) =>
-                prevSensors.map((sensor) => ({
-                    ...sensor,
-                    value: sensor.value + (Math.random() - 0.5) * 2, // Symulowana zmiana wartości
-                }))
-            );
-        }, 5000);
-        return () => clearInterval(interval);
+        if (isUserAuthenticated()) {
+            // Przykładowe dane
+            setGroups([
+                { id: 1, name: 'Group 1' },
+                { id: 2, name: 'Group 2' },
+                { id: 3, name: 'Group 3' }
+            ]);
+            setCalendarEvents([
+                { id: 1, date: '2025-03-25', name: 'Event 1' },
+                { id: 2, date: '2025-03-26', name: 'Event 2' }
+            ]);
+            setRecommendations([
+                { id: 1, title: 'Recommendation 1' },
+                { id: 2, title: 'Recommendation 2' }
+            ]);
+            setLoading(false);
+        }
     }, []);
-
 
     if (!isUserAuthenticated()) {
         // Redirect to login page if no token exists
         return <Navigate to="/login" />;
     }
 
+    if (loading) {
+        return <div>Loading...</div>;
+    }
+
     return (
-        <div className="container min-vh-100 bg-dark text-white py-5 text-center">
-            <h1 className="mb-4">Panel Zarządzania Czujnikami</h1>
-            <div className="row justify-content-center">
-                {sensors.map((sensor) => (
-                    <div key={sensor.id} className="col-md-4 mb-4" whileHover={{scale: 1.05}}>
-                        <Card className="bg-secondary text-white p-3 shadow-lg">
-                            <Card.Body className="d-flex align-items-center">
-                                <div className="me-3">{sensor.icon}</div>
-                                <div>
-                                    <Card.Title className="h5">{sensor.type}</Card.Title>
-                                    <Card.Text className="h4">{sensor.value.toFixed(1)} {sensor.unit}</Card.Text>
-                                </div>
-                            </Card.Body>
-                        </Card>
-                    </div>
-                ))}
-            </div>
-            <div
-                className="mt-4 p-3 bg-secondary text-white rounded shadow-lg d-flex align-items-center justify-content-center">
-                {/*<Lightbulb className={ledState ? "text-warning me-3" : "text-muted me-3"}/>*/}
-                <span className="h5">LED Control</span>
-                {/*<Switch className="ms-3" checked={ledState} onCheckedChange={setLedState}/>*/}
-            </div>
+        <div className="container mt-4">
+            <h1 className="mb-4">Welcome to Your Dashboard</h1>
+
+            <section className="mb-5">
+                <h2>Your Groups</h2>
+                {groups.length === 0 ? (
+                    <p>You are not part of any groups.</p>
+                ) : (
+                    <ul className="list-group">
+                        {groups.map(group => (
+                            <li key={group.id} className="list-group-item">
+                                <a href={`/groups/${group.id}`}>{group.name}</a>
+                            </li>
+                        ))}
+                    </ul>
+                )}
+            </section>
+
+            <section className="mb-5">
+                <h2>Mini Calendar</h2>
+                {calendarEvents.length === 0 ? (
+                    <p>No upcoming events.</p>
+                ) : (
+                    <ul className="list-group">
+                        {calendarEvents.map(event => (
+                            <li key={event.id} className="list-group-item">
+                                <strong>{event.date}</strong>: {event.name}
+                            </li>
+                        ))}
+                    </ul>
+                )}
+            </section>
+
+            <section>
+                <h2>Recommendations</h2>
+                {recommendations.length === 0 ? (
+                    <p>No recommendations at the moment.</p>
+                ) : (
+                    <ul className="list-group">
+                        {recommendations.map(rec => (
+                            <li key={rec.id} className="list-group-item">
+                                {rec.title}
+                            </li>
+                        ))}
+                    </ul>
+                )}
+            </section>
         </div>
     );
 };

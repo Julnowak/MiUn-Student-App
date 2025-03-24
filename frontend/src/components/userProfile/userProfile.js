@@ -49,7 +49,7 @@ export default function UserProfile() {
     const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
     const [crop, setCrop] = useState({x: 0, y: 0});
     const [zoom, setZoom] = useState(1);
-    const [croppedImage, setCroppedImage] = useState("/images/basic/user_no_picture.png");
+    const [croppedImage, setCroppedImage] = useState(null);
     const [showCropModal, setShowCropModal] = useState(false);
     const token = localStorage.getItem("access");
 
@@ -106,30 +106,42 @@ export default function UserProfile() {
     };
 
     const handleCropSave = async () => {
-        if (!imageSrc || !croppedAreaPixels) {
-            console.error("Brak obrazu lub danych przycięcia.");
-            return;
-        }
+    if (!imageSrc || !croppedAreaPixels) {
+        console.error("Brak obrazu lub danych przycięcia.");
+        return;
+    }
 
-        try {
-            const croppedBlob = await getCroppedImg(imageSrc, croppedAreaPixels);
-            const croppedImageUrl = URL.createObjectURL(croppedBlob);
-            setCroppedImage(croppedImageUrl);
-            setUser({...user, profile_picture: croppedImageUrl});
-            setShowCropModal(false);
-        } catch (error) {
-            console.error("Błąd przycinania:", error);
-        }
-    };
+    try {
+        const croppedBlob = await getCroppedImg(imageSrc, croppedAreaPixels);
+        const imageType = croppedBlob.type || "image/png"; // Default to PNG
+        const fileExtension = imageType === "image/png" ? "png" : "jpg";
+        const croppedFile = new File([croppedBlob], `profile_picture.${fileExtension}`, { type: imageType });
+        const formData = new FormData();
+        formData.append("profile_picture", croppedFile); // Match Django field name
+
+        const response = await client.post(API_BASE_URL + "user/", formData, {
+            headers: {
+                Authorization: `Bearer ${token}`,
+                "Content-Type": "multipart/form-data", // Let browser handle boundaries
+            },
+        });
+
+        console.log("Updated user profile:", response.data);
+
+        setCroppedImage(response.data.profile_picture.toString().slice(15)); // Update frontend state
+        setUser({ ...user, profile_picture: response.data.profile_picture.toString().slice(15) }); // Update user data
+        localStorage.setItem("image_set", response.data.profile_picture.toString().slice(15))
+        setShowCropModal(false);
+    } catch (error) {
+        console.error("Error cropping or uploading:", error);
+    }
+};
 
 
     return (
         <div style={{maxWidth: 1000, margin: "auto"}}>
             <div style={{maxWidth: 1000, padding: 20}}>
                 <h1 style={{textAlign: "left"}}>Profil użytkownika</h1>
-                <Button onClick={() => setIsEditing(!isEditing)} className="mb-3">
-                    {isEditing ? "Wyłącz edycję" : "Włącz edycję"}
-                </Button>
                 <div className="position-relative d-flex align-items-center bg-light p-4" style={{
                     minHeight: "150px",
                     borderBottomLeftRadius: 100, borderTopLeftRadius: 100
@@ -142,7 +154,11 @@ export default function UserProfile() {
                         style={{left: "0", top: "50%", transform: "translateY(-50%)", cursor: "pointer",}}
                     >
                         <img
-                            src={croppedImage || user.profile_picture}
+                            src={croppedImage
+                            ? croppedImage
+                            : user.profile_picture
+                                ? user.profile_picture.toString().slice(15)
+                                : "/images/basic/user_no_picture.png"}
                             alt="Profil"
                             className="rounded-circle"
                             width="188"
@@ -201,16 +217,38 @@ export default function UserProfile() {
                         <Form.Control type="text" name="lastName" value={user.surname} onChange={handleChange}
                                       disabled={!isEditing}/>
                     </Form.Group>
-                    <Button variant="primary" className="w-100 mb-2" disabled={!isEditing}>Zapisz zmiany</Button>
-                    <Button variant="danger" className="w-100" onClick={handleDeleteAccount}>Usuń konto</Button>
+                    <Form.Group className="mb-3">
+                        <Form.Label>Numer telefonu</Form.Label>
+                        <Form.Control type="text" name="telephone" value={user.telephone} onChange={handleChange}
+                                      disabled={!isEditing}/>
+                    </Form.Group>
+                    <Form.Group className="mb-3">
+                        <Form.Label>Adres</Form.Label>
+                        <Form.Control type="text" name="address" value={user.address} onChange={handleChange}
+                                      disabled={!isEditing}/>
+                    </Form.Group>
+                    <Button variant="primary" onClick={() => setIsEditing(!isEditing)} className="w-100 mb-2" >{isEditing?"Zapisz zmiany": "Edytuj"}</Button>
+
                 </Form>
             </div>
+            <h3>
+                Usuwanie konta
+            </h3>
+            <p>
+                Lorejkjkfnasknfaksfnsknkanfksfnask
+            </p>
+                <Button variant="danger" style={{maxWidth: 200}} onClick={handleDeleteAccount}>Usuń konto</Button>
+            <div>
+
+            </div>
+
+
             {/* Crop Modal */}
             <Modal show={showCropModal} onHide={() => setShowCropModal(false)} centered>
                 <Modal.Header closeButton>
                     <Modal.Title>Przytnij zdjęcie</Modal.Title>
                 </Modal.Header>
-                <Modal.Body >
+                <Modal.Body>
                     <div style={{position: "relative", height: 300, background: "#333"}}>
                         {imageSrc && (
                             <Cropper

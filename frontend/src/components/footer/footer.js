@@ -5,7 +5,7 @@ import { Link } from "react-router-dom"; // Użyj jeśli masz routing w aplikacj
 
 const Footer = () => {
   return (
-    <footer className="footer bg-dark text-white py-4">
+    <footer className="footer text-white py-4" style={{ backgroundColor: "black"}}>
       <div className="container text-center text-md-start">
         <div className="row">
           {/* Sekcja linków */}

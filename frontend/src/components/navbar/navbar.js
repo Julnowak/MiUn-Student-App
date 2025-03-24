@@ -1,16 +1,15 @@
 import React, {useContext, useEffect, useState} from 'react';
-import {Container, Nav, Navbar, NavDropdown} from "react-bootstrap";
-import {ThemeContext} from "../../Theme";
+import {Container, Nav, Navbar} from "react-bootstrap";
 import "./navbar.css"
 import HomeRoundedIcon from '@mui/icons-material/HomeRounded';
 import LoginRoundedIcon from '@mui/icons-material/LoginRounded';
+import AccountCircleRoundedIcon from '@mui/icons-material/AccountCircleRounded';
 import {AuthContext} from "../../AuthContext";
 import {LogoutRounded} from "@mui/icons-material";
 import client from "../../client";
 import {API_BASE_URL} from "../../config";
 
 const CustomNavbar = () => {
-    const {theme, toggleTheme} = useContext(ThemeContext);
     const {isAuthenticated} = useContext(AuthContext);
     const [image, setImage] = useState(null);
     const token = localStorage.getItem("access");
@@ -48,14 +47,11 @@ const CustomNavbar = () => {
     return (
         <div>
             {/* Navbar */}
-            <Navbar expand="md" className="shadow-sm">
+            <Navbar expand="lg" variant="dark" className="shadow-sm"  style={{ backgroundColor: "black"}}>
                 <Container>
                     <Navbar.Brand className="text-primary fw-bold">
                         <Nav.Link href="/">
-                            <img style={{display: "inline", marginRight: 10}} width={50} src={"/images/doggo_big.png"}/>
-                            <div style={{display: "inline"}}>
-                                Dwello
-                            </div>
+                            <img style={{display: "inline", marginRight: 10}} width={50} src={"/icons/kitty.ico"}/>
                         </Nav.Link>
                     </Navbar.Brand>
                     <Navbar.Toggle aria-controls=" basic-navbar-nav"/>
@@ -66,39 +62,22 @@ const CustomNavbar = () => {
                                 :
                                 <Nav.Link href="/main" className="text-white"><HomeRoundedIcon/></Nav.Link>
                             }
-                            <div className="header-toggle-buttons">
-                                <button style={{width: 70, height: 40}} onClick={() => toggleTheme()} >{theme}</button>
-                            </div>
-
-                            {!isAuthenticated ?
-                                null
-                                :
-                                <NavDropdown title="Zarządzaj" id="basic-nav-dropdown">
-                                    <NavDropdown.Item href="/myHomes">
-                                        Moje lokacje
-                                    </NavDropdown.Item>
-                                    <NavDropdown.Item href="/myDevices">
-                                        Moje urządzenia
-                                    </NavDropdown.Item>
-                                    <NavDropdown.Item href="/myRooms">
-                                        Moje pomieszczenia
-                                    </NavDropdown.Item>
-                                    <NavDropdown.Divider/>
-                                    <NavDropdown.Item href="/rules">
-                                        Reguły
-                                    </NavDropdown.Item>
-                                </NavDropdown>
-                            }
 
 
                             {/*<Nav.Link as={Link} to="/manage" className="text-white">Zarządzaj</Nav.Link>*/}
 
                             {!isAuthenticated ?
-                                null
+                                <>
+                                    <Nav.Link href="/about" className="text-white">O nas</Nav.Link>
+                                    <Nav.Link href="/contact" className="text-white">Kontakt</Nav.Link>
+                                </>
                                 :
                                 <>
-                                    <Nav.Link href="/dashboard" className="text-white">Wykresy</Nav.Link>
-                                    <Nav.Link href="/history" className="text-white">Historia</Nav.Link>
+                                    <Nav.Link href="/pierogi" className="text-white">Progi punktowe</Nav.Link>
+                                    <Nav.Link href="/calendar" className="text-white">Kalendarz</Nav.Link>
+                                    <Nav.Link href="/community" className="text-white">Społeczność</Nav.Link>
+                                    <Nav.Link href="/localizations" className="text-white">Lokacje</Nav.Link>
+                                    <Nav.Link href="/learning" className="text-white">Nauka</Nav.Link>
                                 </>
                             }
 
@@ -106,7 +85,7 @@ const CustomNavbar = () => {
                                 null
                                 :
                                 <Nav.Link href="/userProfile" className="text-white">
-                                    <img width={35} style={{borderRadius: 17}} src={image}/>
+                                    <AccountCircleRoundedIcon width={35} className="text-white"/>
                                 </Nav.Link>
                             }
 

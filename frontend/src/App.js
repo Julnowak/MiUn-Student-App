@@ -4,18 +4,22 @@ import Homepage from "./components/homepage/homepage";
 import Login from "./components/login/login";
 import CustomNavbar from "./components/navbar/navbar";
 import Footer from "./components/footer/footer";
-import { ThemeContext } from "./Theme";
 import React, {useContext} from "react";
 import UserProfile from "./components/userProfile/userProfile";
 import Main from "./components/main/main";
 import {AuthProvider} from "./AuthContext";
 import Logout from "./components/logout/logout";
+import Community from "./components/community/community";
+import MyCalendar from "./components/myCalendar/myCalendar";
+import ProgiPunktowe from "./components/progiPunktowe/progiPunktowe";
+import About from "./components/about/about";
+import Contact from "./components/contact/contact";
+import Locations from "./components/locations/locations";
+import Learning from "./components/learning/learning";
 
 function App() {
-    const { theme } = useContext(ThemeContext);
-
     return (
-        <div className={`App ${theme}`}>
+        <div className={`App`}>
             <BrowserRouter>
                 <AuthProvider>
                 {/* Navbar */}
@@ -28,6 +32,16 @@ function App() {
                         <Route path="/login" element={<Login/>}/>
                         <Route path="/logout" element={<Logout/>}/>
                         <Route path="/main" element={<Main/>}/>
+
+                        <Route path="/community" element={<Community/>}/>
+                        <Route path="/calendar" element={<MyCalendar/>}/>
+                        <Route path="/pierogi" element={<ProgiPunktowe/>}/>
+                        <Route path="/localizations" element={<Locations/>}/>
+                        <Route path="/learning" element={<Learning/>}/>
+
+                        <Route path="/about" element={<About/>}/>
+                        <Route path="/contact" element={<Contact/>}/>
+
                     </Routes>
                 </div>
                 {/* Routes */}
@@ -35,7 +49,6 @@ function App() {
 
                 {/* Footer */}
                 <Footer/>
-                {/*<CookieConsent/>*/}
                 </AuthProvider>
             </BrowserRouter>
         </div>

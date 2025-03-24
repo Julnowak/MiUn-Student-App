@@ -1,0 +1,13 @@
+  .responsive-image {
+    width: 100%;
+    max-width: 640px;
+    margin: 0 auto;
+    display: block;
+  }
+
+  /* When the screen size is below 300px */
+  @media (max-width: 300px) {
+    .responsive-image {
+      max-width: 200px;  /* You can adjust this size as needed */
+    }
+  }
