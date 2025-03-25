@@ -8,6 +8,7 @@ Thumbs.db
 /.idea
 .vscode/
 /.node_modules
+/frontend/node_modules
 
 # Node.js dependencies
 /node_modules
