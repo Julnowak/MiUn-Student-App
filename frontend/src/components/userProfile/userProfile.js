@@ -106,59 +106,53 @@ export default function UserProfile() {
     };
 
     const handleCropSave = async () => {
-    if (!imageSrc || !croppedAreaPixels) {
-        console.error("Brak obrazu lub danych przycięcia.");
-        return;
-    }
+        if (!imageSrc || !croppedAreaPixels) {
+            console.error("Brak obrazu lub danych przycięcia.");
+            return;
+        }
 
-    try {
-        const croppedBlob = await getCroppedImg(imageSrc, croppedAreaPixels);
-        const imageType = croppedBlob.type || "image/png"; // Default to PNG
-        const fileExtension = imageType === "image/png" ? "png" : "jpg";
-        const croppedFile = new File([croppedBlob], `profile_picture.${fileExtension}`, { type: imageType });
-        const formData = new FormData();
-        formData.append("profile_picture", croppedFile); // Match Django field name
+        try {
+            const croppedBlob = await getCroppedImg(imageSrc, croppedAreaPixels);
+            const imageType = croppedBlob.type || "image/png"; // Default to PNG
+            const fileExtension = imageType === "image/png" ? "png" : "jpg";
+            const croppedFile = new File([croppedBlob], `profile_picture.${fileExtension}`, {type: imageType});
+            const formData = new FormData();
+            formData.append("profile_picture", croppedFile); // Match Django field name
 
-        const response = await client.post(API_BASE_URL + "user/", formData, {
-            headers: {
-                Authorization: `Bearer ${token}`,
-                "Content-Type": "multipart/form-data", // Let browser handle boundaries
-            },
-        });
+            const response = await client.post(API_BASE_URL + "user/", formData, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    "Content-Type": "multipart/form-data", // Let browser handle boundaries
+                },
+            });
 
-        console.log("Updated user profile:", response.data);
+            console.log("Updated user profile:", response.data);
 
-        setCroppedImage(response.data.profile_picture.toString().slice(15)); // Update frontend state
-        setUser({ ...user, profile_picture: response.data.profile_picture.toString().slice(15) }); // Update user data
-        localStorage.setItem("image_set", response.data.profile_picture.toString().slice(15))
-        setShowCropModal(false);
-    } catch (error) {
-        console.error("Error cropping or uploading:", error);
-    }
-};
+            setCroppedImage(response.data.profile_picture.toString().slice(15)); // Update frontend state
+            setUser({...user, profile_picture: response.data.profile_picture.toString().slice(15)}); // Update user data
+            localStorage.setItem("image_set", response.data.profile_picture.toString().slice(15))
+            setShowCropModal(false);
+        } catch (error) {
+            console.error("Error cropping or uploading:", error);
+        }
+    };
 
 
     return (
-        <div style={{maxWidth: 1000, margin: "auto"}}>
-            <div style={{maxWidth: 1000, padding: 20}}>
-                <h1 style={{textAlign: "left"}}>Profil użytkownika</h1>
-                <div className="position-relative d-flex align-items-center bg-light p-4" style={{
-                    minHeight: "150px",
-                    borderBottomLeftRadius: 100, borderTopLeftRadius: 100
-                }}>
-                    {/* Profile Image */}
+        <div style={{maxWidth: 1000, margin: "auto", marginTop: 120}}>
+            <div className={"grid-container"} style={{backgroundColor: "#c1c1c1", margin: 40, borderRadius: 20}}>
+                <div className={"item1"} style={{maxWidth: 1000, padding: 20, height: 200}}>
                     <div
-                        className="rounded-circle position-absolute"
                         onMouseEnter={() => setHover(true)}
                         onMouseLeave={() => setHover(false)}
-                        style={{left: "0", top: "50%", transform: "translateY(-50%)", cursor: "pointer",}}
+                        style={{left: "0", top: "50%", width: 188, margin: "auto", transform: "translateY(-60%)", cursor: "pointer",}}
                     >
                         <img
                             src={croppedImage
-                            ? croppedImage
-                            : user.profile_picture
-                                ? user.profile_picture.toString().slice(15)
-                                : "/images/basic/user_no_picture.png"}
+                                ? croppedImage
+                                : user.profile_picture
+                                    ? user.profile_picture.toString().slice(15)
+                                    : "/images/basic/user_no_picture.png"}
                             alt="Profil"
                             className="rounded-circle"
                             width="188"
@@ -190,87 +184,103 @@ export default function UserProfile() {
                                 />
                             </>
                         )}
-                    </div>
-                    {/* User Info */}
-                    <div style={{marginLeft: 80}}>
-                        <Form.Group>
-                            <Form.Label>Nazwa użytkownika</Form.Label>
-                            <Form.Control style={{marginLeft: 110, maxWidth: 300}} type="text" name="username"
-                                          value={user.username} onChange={handleChange} disabled={!isEditing}/>
-                        </Form.Group>
-                        <Form.Group className="">
-                            <Form.Label>Email</Form.Label>
-                            <Form.Control style={{marginLeft: 110, maxWidth: 300}} type="email" name="email"
-                                          value={user.email} onChange={handleChange} disabled={!isEditing}/>
-                        </Form.Group>
+
+                    <h3 style={{position: "absolute", margin: "auto", top: "100%", transform: "translate(-50%, 50%)",
+                                        left: "50%", cursor: "pointer",}}>{user.username}</h3>
+
+                    <h6 style={{position: "absolute", margin: "auto", top: "100%", transform: "translate(-50%, 300%)",
+                                        left: "50%", cursor: "pointer",}}>{user.email}</h6>
                     </div>
                 </div>
 
-                <Form>
-                    <Form.Group className="mb-3">
-                        <Form.Label>Imię</Form.Label>
-                        <Form.Control type="text" name="firstName" value={user.name} onChange={handleChange}
-                                      disabled={!isEditing}/>
+                {/* User Info */}
+                <div style={{backgroundColor: "rgba(255,255,255,0.41)", borderRadius: 20}}>
+                    <Form.Group className="">
+                        <Form.Label>Email</Form.Label>
+                        <Form.Control style={{maxWidth: 300}} type="email" name="email"
+                                      value={user.email} onChange={handleChange} disabled={!isEditing}/>
                     </Form.Group>
-                    <Form.Group className="mb-3">
-                        <Form.Label>Nazwisko</Form.Label>
-                        <Form.Control type="text" name="lastName" value={user.surname} onChange={handleChange}
-                                      disabled={!isEditing}/>
-                    </Form.Group>
-                    <Form.Group className="mb-3">
-                        <Form.Label>Numer telefonu</Form.Label>
-                        <Form.Control type="text" name="telephone" value={user.telephone} onChange={handleChange}
-                                      disabled={!isEditing}/>
-                    </Form.Group>
-                    <Form.Group className="mb-3">
-                        <Form.Label>Adres</Form.Label>
-                        <Form.Control type="text" name="address" value={user.address} onChange={handleChange}
-                                      disabled={!isEditing}/>
-                    </Form.Group>
-                    <Button variant="primary" onClick={() => setIsEditing(!isEditing)} className="w-100 mb-2" >{isEditing?"Zapisz zmiany": "Edytuj"}</Button>
+                </div>
 
-                </Form>
+                <div>
+                    <Form>
+                        <Form.Group className="mb-3">
+                            <Form.Label>Imię</Form.Label>
+                            <Form.Control type="text" name="firstName" value={user.name} onChange={handleChange}
+                                          disabled={!isEditing}/>
+                        </Form.Group>
+                        <Form.Group className="mb-3">
+                            <Form.Label>Nazwisko</Form.Label>
+                            <Form.Control type="text" name="lastName" value={user.surname} onChange={handleChange}
+                                          disabled={!isEditing}/>
+                        </Form.Group>
+                        <Form.Group className="mb-3">
+                            <Form.Label>Numer telefonu</Form.Label>
+                            <Form.Control type="text" name="telephone" value={user.telephone} onChange={handleChange}
+                                          disabled={!isEditing}/>
+                        </Form.Group>
+                        <Form.Group className="mb-3">
+                            <Form.Label>Adres</Form.Label>
+                            <Form.Control type="text" name="address" value={user.address} onChange={handleChange}
+                                          disabled={!isEditing}/>
+                        </Form.Group>
+                        <Button variant="primary" onClick={() => setIsEditing(!isEditing)}
+                                className="w-100 mb-2">{isEditing ? "Zapisz zmiany" : "Edytuj"}</Button>
+
+                    </Form>
+                </div>
+
+
+                {/* Crop Modal */}
+                <Modal show={showCropModal} onHide={() => setShowCropModal(false)} centered>
+                    <Modal.Header closeButton>
+                        <Modal.Title>Przytnij zdjęcie</Modal.Title>
+                    </Modal.Header>
+                    <Modal.Body>
+                        <div style={{position: "relative", height: 300, background: "#333"}}>
+                            {imageSrc && (
+                                <Cropper
+                                    image={imageSrc}
+                                    crop={crop}
+                                    zoom={zoom}
+                                    aspect={1}
+                                    onCropChange={setCrop}
+                                    onZoomChange={setZoom}
+                                    onCropComplete={onCropComplete}
+                                    cropShape="round"
+                                    showGrid={false}
+                                />
+                            )}
+                        </div>
+                    </Modal.Body>
+                    <Modal.Footer>
+                        <Button variant="secondary" onClick={() => setShowCropModal(false)}>Anuluj</Button>
+                        <Button variant="primary" onClick={handleCropSave}>Zapisz</Button>
+                    </Modal.Footer>
+                </Modal>
+
             </div>
-            <h3>
-                Usuwanie konta
-            </h3>
-            <p>
-                Lorejkjkfnasknfaksfnsknkanfksfnask
-            </p>
-                <Button variant="danger" style={{maxWidth: 200}} onClick={handleDeleteAccount}>Usuń konto</Button>
-            <div>
 
+            <div style={{borderRadius: 20, padding: 20, backgroundColor: "#bbcfff", margin: 40}}>
+                <h3>
+                    Kawka
+                </h3>
+                <p>
+                    Lorejkjkfnasknfaksfnsknkanfksfnask
+                </p>
+                <Button variant="outline-dark" style={{maxWidth: 200}} onClick={handleDeleteAccount}>Postaw kawę</Button>
+                <Button variant="outline-dark" style={{maxWidth: 200}} onClick={handleDeleteAccount}>Dotacja</Button>
             </div>
 
-
-            {/* Crop Modal */}
-            <Modal show={showCropModal} onHide={() => setShowCropModal(false)} centered>
-                <Modal.Header closeButton>
-                    <Modal.Title>Przytnij zdjęcie</Modal.Title>
-                </Modal.Header>
-                <Modal.Body>
-                    <div style={{position: "relative", height: 300, background: "#333"}}>
-                        {imageSrc && (
-                            <Cropper
-                                image={imageSrc}
-                                crop={crop}
-                                zoom={zoom}
-                                aspect={1}
-                                onCropChange={setCrop}
-                                onZoomChange={setZoom}
-                                onCropComplete={onCropComplete}
-                                cropShape="round"
-                                showGrid={false}
-                            />
-                        )}
-                    </div>
-                </Modal.Body>
-                <Modal.Footer>
-                    <Button variant="secondary" onClick={() => setShowCropModal(false)}>Anuluj</Button>
-                    <Button variant="primary" onClick={handleCropSave}>Zapisz</Button>
-                </Modal.Footer>
-            </Modal>
-
+            <div style={{borderRadius: 20, padding: 20, backgroundColor: "#bbcfff", margin: 40}}>
+                <h3>
+                    Usuwanie konta
+                </h3>
+                <p>
+                    Lorejkjkfnasknfaksfnsknkanfksfnask
+                </p>
+                <Button variant="outline-dark" style={{maxWidth: 200}} onClick={handleDeleteAccount}>Usuń konto</Button>
+            </div>
         </div>
     );
 }

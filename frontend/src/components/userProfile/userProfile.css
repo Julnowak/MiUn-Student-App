@@ -6,3 +6,16 @@
 .navbar-toggler{
     margin-right: 0 !important;
 }
+
+.item1 {
+  grid-area: myArea;
+}
+
+.grid-container {
+  display: grid;
+  grid-template-areas: 'myArea myArea'
+  'myArea myArea';
+  grid-gap: 10px;
+  background-color: #2196F3;
+  padding: 10px;
+}

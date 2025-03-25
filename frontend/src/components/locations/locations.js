@@ -160,7 +160,7 @@ const Locations = () => {
                                 </Popup>
                             </Marker>
                         ))}
-                        {/*<MapWithRoute /> /!* Add the MapWithRoute component *!/*/}
+                        <MapWithRoute /> {/* Add the MapWithRoute component */}
                     </MapContainer>
 
 

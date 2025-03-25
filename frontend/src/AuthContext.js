@@ -1,5 +1,6 @@
 import { createContext, useState, useEffect } from "react";
-import { getUser, login, logout } from "./api";
+import { getUser, login, logout, register } from "./api";
+import {useNavigate} from "react-router-dom";
 
 export const AuthContext = createContext();
 
@@ -10,6 +11,8 @@ export const isUserAuthenticated = () => {
 
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
+    const [errmess, setErrmess] = useState(null);
+    const navigate = useNavigate()
 
     useEffect(() => {
         const fetchUser = async () => {
@@ -19,12 +22,41 @@ export const AuthProvider = ({ children }) => {
         fetchUser();
     }, []);
 
-    const loginUser = async (username, password) => {
-        await login(username, password);
-        const userData = await getUser();
-        setUser(userData);
-        setIsAuthenticated(true);
+    const loginUser = async (email, password) => {
+        try {
+            const userData = await login(email, password);
+            setUser(userData);
+            setIsAuthenticated(true);
+            setErrmess(null);
+            if (!errmess) navigate("/main")
+        } catch (error) {
+            if (error.response && error.response.data.error) {
+                setErrmess(error.response.data.error);
+            } else {
+                setErrmess("Błąd logowania. Sprawdź swoje dane.");
+            }
+        }
     };
+
+    const registerUser = async (username, email, password, passwordSecond) => {
+    try {
+            await register(username, email, password, passwordSecond);
+
+            const userData = await getUser();
+            setUser(userData);
+            setIsAuthenticated(true);
+            setErrmess(null);  // Clear errors on success
+            if (!errmess) navigate("/main")
+    } catch (error) {
+        console.log(error)
+            if (error.response && error.response.data.error) {
+                setErrmess(error.response.data.error);
+            } else {
+                setErrmess("Błąd rejestracji. Spróbuj ponownie.");
+            }
+        }
+    };
+
 
     const logoutUser = () => {
         logout();
@@ -38,7 +70,7 @@ export const AuthProvider = ({ children }) => {
     );
 
     return (
-        <AuthContext.Provider value={{ isAuthenticated, user, loginUser, logoutUser }}>
+        <AuthContext.Provider value={{ isAuthenticated, user, loginUser, logoutUser, registerUser, errmess, setErrmess }}>
             {children}
         </AuthContext.Provider>
     );

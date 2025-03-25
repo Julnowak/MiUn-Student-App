@@ -18,21 +18,19 @@ class UserRegister(APIView):
     permission_classes = (permissions.AllowAny,)
 
     def post(self, request):
-        validated_data = request.data
 
-        if AppUser.objects.filter(username=validated_data['username'].lower()):
-            return Response({"error": "Wybrana nazwa użytkownika już istnieje."}, status=status.HTTP_401_UNAUTHORIZED)
-        if AppUser.objects.filter(email=validated_data['email']):
-            return Response({"error": "Istnieje już konto powiązane z tym adresem email."},status.HTTP_401_UNAUTHORIZED)
-        if len(validated_data['password']) < 8:
-            return Response({"error": "Hasło powinno mieć minimum 8 znaków."}, status=status.HTTP_401_UNAUTHORIZED)
-        if validated_data['password'] != validated_data['confirmPassword']:
-            return Response({"error": "Hasła nie są ze sobą zgodne."}, status=status.HTTP_401_UNAUTHORIZED)
+        if AppUser.objects.filter(username=request.data['username']).exists():
+            return Response({"error": "Wybrana nazwa użytkownika już istnieje."}, status=status.HTTP_400_BAD_REQUEST)
+        if AppUser.objects.filter(email=request.data['email']).exists():
+            return Response({"error": "Istnieje już konto powiązane z tym adresem email."}, status=status.HTTP_400_BAD_REQUEST)
+        if len(request.data['password']) < 8:
+            return Response({"error": "Hasło powinno mieć minimum 8 znaków."}, status=status.HTTP_400_BAD_REQUEST)
+        if request.data['password'] != request.data['passwordSecond']:
+            return Response({"error": "Hasła nie są ze sobą zgodne."}, status=status.HTTP_400_BAD_REQUEST)
 
-        serializer = UserRegisterSerializer(data=validated_data)
+        serializer = UserRegisterSerializer(data=request.data)
         if serializer.is_valid(raise_exception=True):
-            user = serializer.create(validated_data)
-            user.user_type = validated_data['user_type']
+            user = serializer.create(request.data)
             user.save()
 
             if user:
@@ -44,7 +42,7 @@ class UserLogin(APIView):
     permission_classes = [permissions.AllowAny,]  # Allow any user to access this view
 
     def post(self, request):
-        email = request.data.get("username")
+        email = request.data.get("email")
         password = request.data.get("password")
 
         print(request.data)
@@ -64,7 +62,7 @@ class UserLogin(APIView):
         return Response({
             "access": str(refresh.access_token),
             "refresh": str(refresh),
-        })
+        }, status=status.HTTP_200_OK)
 
 
 class UserLogout(APIView):
