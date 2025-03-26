@@ -4,6 +4,7 @@ from django.db import models
 from django.contrib.auth.base_user import BaseUserManager
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 
+
 # Create your models here.
 class AppUserManager(BaseUserManager):
     def create_user(self, email, username, password=None):
@@ -50,3 +51,17 @@ class AppUser(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return self.username
+
+
+class Building(models.Model):
+    id = models.AutoField(primary_key=True)
+    name = models.CharField(max_length=300)
+    address = models.CharField(max_length=500, null=True, blank=True)
+    symbol = models.CharField(max_length=100, null=True, blank=True)
+    abbreviation = models.CharField(max_length=100, null=True, blank=True) # new symbol
+    function = models.CharField(max_length=100, null=True, blank=True)
+    longitude = models.FloatField(null=True, blank=True)
+    latitude = models.FloatField(null=True, blank=True)
+
+    def __str__(self):
+        return f"Budynek ID-{self.id}: {self.name}"

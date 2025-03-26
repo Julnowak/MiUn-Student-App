@@ -261,7 +261,7 @@ export default function UserProfile() {
 
             </div>
 
-            <div style={{borderRadius: 20, padding: 20, backgroundColor: "#bbcfff", margin: 40}}>
+            <div style={{borderRadius: 20, padding: 20, backgroundColor: "#6f71fd", margin: 40}}>
                 <h3>
                     Kawka
                 </h3>
@@ -272,7 +272,7 @@ export default function UserProfile() {
                 <Button variant="outline-dark" style={{maxWidth: 200}} onClick={handleDeleteAccount}>Dotacja</Button>
             </div>
 
-            <div style={{borderRadius: 20, padding: 20, backgroundColor: "#bbcfff", margin: 40}}>
+            <div style={{borderRadius: 20, padding: 20, backgroundColor: "rgba(255,0,128,0.56)", margin: 40}}>
                 <h3>
                     Usuwanie konta
                 </h3>

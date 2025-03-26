@@ -3,7 +3,9 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import "./locations.css";
-import 'leaflet-routing-machine'; // Import leaflet-routing-machine
+import 'leaflet-routing-machine';
+import client from "../../client";
+import {API_BASE_URL} from "../../config"; // Import leaflet-routing-machine
 
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -12,12 +14,36 @@ L.Icon.Default.mergeOptions({
     shadowUrl: require("leaflet/dist/images/marker-shadow.png"),
 });
 
-const locations = [
-    {id: 1, name: "Kraków", latitude: 50.064496663386926, longitude: 19.92334282951794, description: "A-0"},
-];
+// const locations = [
+//     {id: 1, name: "Kraków", latitude: 50.064496663386926, longitude: 19.92334282951794, description: "A-0"},
+// ];
 
 const Locations = () => {
     const [userLocation, setUserLocation] = useState(null);
+    const [locations, setLocations] = useState(null);
+
+    const token = localStorage.getItem("access");
+
+
+    useEffect(() => {
+        const fetchLocations = async () => {
+            try {
+                const response = await client.get(API_BASE_URL + "buildings/", {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                });
+                setLocations(response.data);
+                console.log(response.data);
+            } catch (error) {
+                console.log("Nie udało się zalogować");
+            }
+        };
+
+        if (token) {
+            fetchLocations();
+        }
+    }, [token]);
 
     useEffect(() => {
         // Get user's current position
@@ -57,6 +83,32 @@ const Locations = () => {
 
         return null; // No need to render anything from this component
     }
+
+
+const handleOpenRoute = (endCoords) => {
+  // Sprawdzamy dostępność geolokalizacji
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        // Pobieramy współrzędne użytkownika
+        const startCoords = `${position.coords.latitude},${position.coords.longitude}`;
+        const endCoords = "50.064496663386926,19.92334282951794"; // Współrzędne punktu docelowego (np. Wrocław)
+
+        // Tworzymy URL do Google Maps z trasą
+        const url = `https://www.google.com/maps/dir/${startCoords}/${endCoords}`;
+
+        // Otwieramy link w nowym oknie
+        window.open(url, "_blank");
+      },
+      (error) => {
+        alert("Nie udało się pobrać lokalizacji.");
+      }
+    );
+  } else {
+    alert("Geolokalizacja nie jest dostępna w tej przeglądarce.");
+  }
+};
+
 
     return (
         <div className="p-4">
@@ -138,13 +190,13 @@ const Locations = () => {
                             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                         />
-                        {locations.map((loc) => (
+                        {locations?.map((loc) => (
                             <Marker
                                 key={loc.id}
                                 position={[loc.latitude, loc.longitude]}
                             >
                                 <Popup>
-                                    <h4
+                                    <h5
                                         style={{
                                             borderBottom: "2px solid black",
                                             paddingBottom: "5px",
@@ -152,20 +204,28 @@ const Locations = () => {
                                             color: "#ff7329",
                                         }}
                                     >
-                                        Hotel Weles {loc.name}
-                                    </h4>
+                                        {loc.name}
+                                    </h5>
+                                    <h6>
+                                        {loc.symbol} ({loc.abbreviation})
+                                    </h6>
                                     <p style={{fontSize: "14px", color: "black"}}>
-                                        {loc.description}
+                                        {loc.function}
+                                        <br></br>
+                                        {loc.address}
                                     </p>
                                 </Popup>
                             </Marker>
                         ))}
-                        <MapWithRoute /> {/* Add the MapWithRoute component */}
+                        {/*<MapWithRoute /> /!* Add the MapWithRoute component *!/*/}
                     </MapContainer>
 
 
                 </div>
             </div>
+
+
+            <button onClick={handleOpenRoute}>Wyznacz trasę</button>
 
             {/* Image Section */}
             <div className="mt-6 text-center">

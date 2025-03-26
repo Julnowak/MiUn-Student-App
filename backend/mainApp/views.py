@@ -9,8 +9,9 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from mainApp.models import AppUser
-from mainApp.serializers import UserRegisterSerializer, UserSerializer
+from mainApp.models import AppUser, Building
+from mainApp.serializers import UserRegisterSerializer, UserSerializer, BuildingSerializer
+
 UserModel = get_user_model()
 
 
@@ -75,4 +76,13 @@ class OneUserData(APIView):
 
     def get(self, request):
         serializer = UserSerializer(request.user)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class BuildingAllData(APIView):
+    permission_classes = (permissions.IsAuthenticated,)  # Only authenticated users can log out
+
+    def get(self, request):
+        buildings = Building.objects.all()
+        serializer = BuildingSerializer(buildings, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
