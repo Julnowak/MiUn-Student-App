@@ -10,4 +10,8 @@ urlpatterns = [
 
     path('user/', views.OneUserData.as_view(), name='user'),
     path('buildings/', views.BuildingAllData.as_view(), name='buildings'),
+
+    # New verification endpoints
+    path('request-verification/', views.RequestVerification.as_view(), name='request-verification'),
+    path('verify-code/', views.RequestVerification.as_view(), name='verify-code'),
 ]

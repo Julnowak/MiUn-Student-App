@@ -12,8 +12,21 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from mainApp.models import AppUser, Building
 from mainApp.serializers import UserRegisterSerializer, UserSerializer, BuildingSerializer
 
+from .utils import send_verification_email
+
 UserModel = get_user_model()
 
+class RequestVerification(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        student_id = request.data.get('student_id')
+
+        if not student_id or len(student_id) != 6 or not student_id.isdigit():
+            return Response({"error": "Invalid student ID."}, status=status.HTTP_400_BAD_REQUEST)
+
+        send_verification_email(request.user, student_id)
+        return Response({"message": "Verification code sent."}, status=status.HTTP_200_OK)
 
 class UserRegister(APIView):
     permission_classes = (permissions.AllowAny,)

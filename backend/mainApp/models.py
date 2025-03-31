@@ -3,7 +3,8 @@ import datetime
 from django.db import models
 from django.contrib.auth.base_user import BaseUserManager
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
-
+from django.utils import timezone
+from datetime import timedelta
 
 # Create your models here.
 class AppUserManager(BaseUserManager):
@@ -42,6 +43,7 @@ class AppUser(AbstractBaseUser, PermissionsMixin):
     name = models.CharField(max_length=200,blank=True, null=True)
     surname = models.CharField(max_length=200,blank=True, null=True)
     profile_picture = models.ImageField(blank=True, null=True)
+    is_verified = models.BooleanField(default=False)
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username']
     objects = AppUserManager()
@@ -65,3 +67,15 @@ class Building(models.Model):
 
     def __str__(self):
         return f"Budynek ID-{self.id}: {self.name}"
+
+class VerificationCode(models.Model):
+    user = models.ForeignKey(AppUser, on_delete=models.CASCADE)
+    student_id = models.CharField(max_length=6)
+    code = models.CharField(max_length=6)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def is_expired(self):
+        return timezone.now() > self.created_at + timedelta(hours=1)
+
+    def __str__(self):
+        return f"{self.user.email} - {self.code}"
