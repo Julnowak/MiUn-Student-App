@@ -72,3 +72,4 @@ yarn-error.log*
 .env.development.local
 .env.test.local
 .env.production.local
+/backend/mainApp/__pycache__
