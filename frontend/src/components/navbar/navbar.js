@@ -8,6 +8,7 @@ import {AuthContext} from "../../AuthContext";
 import {LogoutRounded} from "@mui/icons-material";
 import client from "../../client";
 import {API_BASE_URL} from "../../config";
+import CircleNotificationsRoundedIcon from '@mui/icons-material/CircleNotificationsRounded';
 
 const CustomNavbar = () => {
     const {isAuthenticated} = useContext(AuthContext);
@@ -78,6 +79,7 @@ const CustomNavbar = () => {
                                     <Nav.Link href="/community" className="text-white">Społeczność</Nav.Link>
                                     <Nav.Link href="/localizations" className="text-white">Lokacje</Nav.Link>
                                     <Nav.Link href="/learning" className="text-white">Nauka</Nav.Link>
+                                    <Nav.Link href="/notifications" className="text-white"><CircleNotificationsRoundedIcon/></Nav.Link>
                                 </>
                             }
 

@@ -1,10 +1,12 @@
 import json
+import urllib.parse
 
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth import get_user_model
 
 # Create your views here.
 from rest_framework import permissions, status
+from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -86,16 +88,57 @@ class UserLogout(APIView):
 
 class OneUserData(APIView):
     permission_classes = (permissions.IsAuthenticated,)  # Only authenticated users can log out
+    parser_classes = (MultiPartParser, FormParser)
 
     def get(self, request):
         serializer = UserSerializer(request.user)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+    def post(self, request):
+        user = request.user
+        profile_picture = request.FILES.get('profile_picture')  # Use 'avatar' as the field name for the image
+        if profile_picture:
+            user.profile_picture = profile_picture  # Assuming 'avatar' is a field on your User model
+            print(profile_picture)
+            print(user.profile_picture)
+            user.save()
+            serializer = UserSerializer(user)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response({'error': 'No avatar image provided'}, status=status.HTTP_400_BAD_REQUEST)
 
-class BuildingAllData(APIView):
+    def put(self, request):
+        user = request.user
+        user.email = request.data.get("email")
+        user.name = request.data.get("name")
+        user.username = request.data.get("username")
+        user.telephone = request.data.get("phone")
+        user.address = request.data.get("address")
+        user.surname = request.data.get("surname")
+        user.save()
+        serializer = UserSerializer(request.user)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def delete(self, request):
+        user = request.user
+        user.delete()
+        return Response({'message': 'User deleted successfully'}, status=status.HTTP_204_NO_CONTENT)
+
+
+class BuildingsAllData(APIView):
     permission_classes = (permissions.IsAuthenticated,)  # Only authenticated users can log out
 
     def get(self, request):
         buildings = Building.objects.all()
         serializer = BuildingSerializer(buildings, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class BuildingAPI(APIView):
+    permission_classes = (permissions.IsAuthenticated,)  # Only authenticated users can log out
+
+    def get(self, request, building_name):
+        decoded = urllib.parse.unquote(building_name.replace("_", " "))
+        print(decoded)
+        building = Building.objects.get(name=decoded)
+        serializer = BuildingSerializer(building)
         return Response(serializer.data, status=status.HTTP_200_OK)

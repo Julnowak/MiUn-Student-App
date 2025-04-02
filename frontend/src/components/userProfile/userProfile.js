@@ -5,6 +5,8 @@ import {API_BASE_URL} from "../../config";
 import {FaEdit} from "react-icons/fa";
 import Cropper from "react-easy-crop";
 import "./userProfile.css"
+import {navigate} from "react-big-calendar/lib/utils/constants";
+import {useNavigate} from "react-router-dom";
 
 // Utility function to crop image (to be implemented)
 async function getCroppedImg(imageSrc, croppedAreaPixels) {
@@ -52,6 +54,7 @@ export default function UserProfile() {
     const [croppedImage, setCroppedImage] = useState(null);
     const [showCropModal, setShowCropModal] = useState(false);
     const token = localStorage.getItem("access");
+    const navigate = useNavigate()
 
 
     useEffect(() => {
@@ -77,7 +80,19 @@ export default function UserProfile() {
 
     const handleDeleteAccount = () => {
         if (window.confirm("Czy na pewno chcesz usunąć swoje konto?")) {
-            console.log("Konto usunięte");
+            try {
+                const response = client.delete(API_BASE_URL + "user/", {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                });
+                // setUser(response.data);
+                console.log("Zalogowano");
+                console.log(response.data);
+                navigate("/")
+            } catch (error) {
+                console.log("Nie udało się zalogować");
+            }
         }
     };
 
@@ -140,18 +155,25 @@ export default function UserProfile() {
 
     return (
         <div style={{maxWidth: 1000, margin: "auto", marginTop: 120}}>
-            <div className={"grid-container"} style={{backgroundColor: "#c1c1c1", margin: 40, borderRadius: 20}}>
-                <div className={"item1"} style={{maxWidth: 1000, padding: 20, height: 200}}>
+            <div className={"grid-container"} style={{backgroundColor: "#c1c1c1", margin: 20, borderRadius: 20}}>
+                <div className={"item1"} style={{maxWidth: 1000, padding: 20, height: 150}}>
                     <div
                         onMouseEnter={() => setHover(true)}
                         onMouseLeave={() => setHover(false)}
-                        style={{left: "0", top: "50%", width: 188, margin: "auto", transform: "translateY(-60%)", cursor: "pointer",}}
+                        style={{
+                            left: "0",
+                            top: "50%",
+                            width: 188,
+                            margin: "auto",
+                            transform: "translateY(-60%)",
+                            cursor: "pointer",
+                        }}
                     >
                         <img
                             src={croppedImage
                                 ? croppedImage
-                                : user.profile_picture
-                                    ? user.profile_picture.toString().slice(15)
+                                : user?.profile_picture
+                                    ? user?.profile_picture.toString().slice(15)
                                     : "/images/basic/user_no_picture.png"}
                             alt="Profil"
                             className="rounded-circle"
@@ -185,51 +207,121 @@ export default function UserProfile() {
                             </>
                         )}
 
-                    <h3 style={{position: "absolute", margin: "auto", top: "100%", transform: "translate(-50%, 50%)",
-                                        left: "50%", cursor: "pointer",}}>{user.username}</h3>
+                        <h3 style={{
+                            position: "absolute", margin: "auto", top: "100%", transform: "translate(-50%, 50%)",
+                            left: "50%", cursor: "pointer",
+                        }}>{user?.username}</h3>
 
-                    <h6 style={{position: "absolute", margin: "auto", top: "100%", transform: "translate(-50%, 300%)",
-                                        left: "50%", cursor: "pointer",}}>{user.email}</h6>
+                    </div>
+                </div>
+
+
+                <div className="button-section"
+                     style={{gridColumn: "span 2", color: "black", width: "100%", textAlign: "center", margin: "auto", backgroundColor: "rgba(213,213,213,0.52)", borderRadius: 20}}>
+                    <div>
+                        <h6>Konto niezweryfikowane</h6>
+                        <p>
+                            Musisz zweryfikować swoje konto przy użycia e-maila uczelnianego, aby mieć dostęp do wszystkich funkcji aplikacji.
+                        </p>
+                        <Button variant={"dark"}>Zweryfikuj</Button>
                     </div>
                 </div>
 
                 {/* User Info */}
-                <div style={{backgroundColor: "rgba(255,255,255,0.41)", borderRadius: 20}}>
-                    <Form.Group className="">
-                        <Form.Label>Email</Form.Label>
-                        <Form.Control style={{maxWidth: 300}} type="email" name="email"
-                                      value={user.email} onChange={handleChange} disabled={!isEditing}/>
-                    </Form.Group>
-                </div>
 
-                <div>
+                <div
+                    style={{
+                        backgroundColor: "rgba(255,255,255,0.41)",
+                        borderRadius: 20,
+                        padding: 20,
+                    }}
+                >
                     <Form>
-                        <Form.Group className="mb-3">
-                            <Form.Label>Imię</Form.Label>
-                            <Form.Control type="text" name="firstName" value={user.name} onChange={handleChange}
-                                          disabled={!isEditing}/>
+                        <Form.Group className="mb-3 d-flex align-items-center">
+                            <Form.Label style={{width: "150px", marginRight: "10px"}}>Imię</Form.Label>
+                            <Form.Control
+                                type="text"
+                                name="firstName"
+                                value={user?.name}
+                                onChange={handleChange}
+                                disabled={!isEditing}
+                            />
                         </Form.Group>
-                        <Form.Group className="mb-3">
-                            <Form.Label>Nazwisko</Form.Label>
-                            <Form.Control type="text" name="lastName" value={user.surname} onChange={handleChange}
-                                          disabled={!isEditing}/>
-                        </Form.Group>
-                        <Form.Group className="mb-3">
-                            <Form.Label>Numer telefonu</Form.Label>
-                            <Form.Control type="text" name="telephone" value={user.telephone} onChange={handleChange}
-                                          disabled={!isEditing}/>
-                        </Form.Group>
-                        <Form.Group className="mb-3">
-                            <Form.Label>Adres</Form.Label>
-                            <Form.Control type="text" name="address" value={user.address} onChange={handleChange}
-                                          disabled={!isEditing}/>
-                        </Form.Group>
-                        <Button variant="primary" onClick={() => setIsEditing(!isEditing)}
-                                className="w-100 mb-2">{isEditing ? "Zapisz zmiany" : "Edytuj"}</Button>
 
+                        <Form.Group className="mb-3 d-flex align-items-center">
+                            <Form.Label style={{width: "150px", marginRight: "10px"}}>Nazwisko</Form.Label>
+                            <Form.Control
+                                type="text"
+                                name="lastName"
+                                value={user?.surname}
+                                onChange={handleChange}
+                                disabled={!isEditing}
+                            />
+                        </Form.Group>
+
+                        <Form.Group className="mb-3 d-flex align-items-center">
+                            <Form.Label style={{width: "150px", marginRight: "10px"}}>Email</Form.Label>
+                            <Form.Control
+                                type="email" name="email"
+                                value={user?.email}
+                                onChange={handleChange}
+                                disabled={!isEditing}
+                            />
+                        </Form.Group>
+
+                        <Form.Group className="mb-3 d-flex align-items-center">
+                            <Form.Label style={{width: "150px", marginRight: "10px"}}>Adres</Form.Label>
+                            <Form.Control
+                                type="text"
+                                name="address"
+                                value={user?.address}
+                                onChange={handleChange}
+                                disabled={!isEditing}
+                            />
+                        </Form.Group>
                     </Form>
                 </div>
 
+
+                <div
+                    style={{
+                        backgroundColor: "rgba(255,255,255,0.41)",
+                        borderRadius: 20,
+                        padding: 20,
+                    }}
+                >
+                    <Form.Group className="mb-3 d-flex align-items-center">
+                            <Form.Label style={{width: "150px", marginRight: "10px"}}>Wydział</Form.Label>
+                        <Form.Select
+                            name="faculty"
+                            value="EAIIB"
+                        />
+                    </Form.Group>
+
+                    <Form.Group className="mb-3 d-flex align-items-center">
+                            <Form.Label style={{width: "150px", marginRight: "10px"}}>Kierunek</Form.Label>
+                        <Form.Select
+                            name="field"
+                            value="AiR"
+                        />
+                    </Form.Group>
+
+                    <Form.Group className="mb-3 d-flex align-items-center">
+                            <Form.Label style={{width: "150px", marginRight: "10px"}}>Email uczelniany</Form.Label>
+                        <Form.Control
+                            name="student-email"
+                            value="student@aaa.edu.pl"
+                        />
+                    </Form.Group>
+                </div>
+
+                {/* Button Section (Merged Row) */}
+                <div className="button-section"
+                     style={{gridColumn: "span 2", textAlign: "center", width: 200, margin: "auto"}}>
+                    <Button style={{width: 200}} variant="dark" onClick={() => setIsEditing(!isEditing)}>
+                        {isEditing ? "Zapisz zmiany" : "Edytuj"}
+                    </Button>
+                </div>
 
                 {/* Crop Modal */}
                 <Modal show={showCropModal} onHide={() => setShowCropModal(false)} centered>
@@ -261,15 +353,16 @@ export default function UserProfile() {
 
             </div>
 
-            <div style={{borderRadius: 20, padding: 20, backgroundColor: "#6f71fd", margin: 40}}>
+            <div style={{borderRadius: 20, padding: 20, backgroundColor: "rgba(133,74,47,0.87)", margin: 40}}>
                 <h3>
                     Kawka
                 </h3>
                 <p>
-                    Lorejkjkfnasknfaksfnsknkanfksfnask
+                    Jeżeli podoba Ci się to, co robimy - postaw nam kawę :)
                 </p>
-                <Button variant="outline-dark" style={{maxWidth: 200}} onClick={handleDeleteAccount}>Postaw kawę</Button>
-                <Button variant="outline-dark" style={{maxWidth: 200}} onClick={handleDeleteAccount}>Dotacja</Button>
+                <Button variant="outline-dark" style={{maxWidth: 200}}>Postaw
+                    kawę</Button>
+                <Button variant="outline-dark" style={{maxWidth: 200}}>Dotacja</Button>
             </div>
 
             <div style={{borderRadius: 20, padding: 20, backgroundColor: "rgba(255,0,128,0.56)", margin: 40}}>
@@ -277,7 +370,7 @@ export default function UserProfile() {
                     Usuwanie konta
                 </h3>
                 <p>
-                    Lorejkjkfnasknfaksfnsknkanfksfnask
+                    W tym miejscu usuniesz swoje konto.
                 </p>
                 <Button variant="outline-dark" style={{maxWidth: 200}} onClick={handleDeleteAccount}>Usuń konto</Button>
             </div>

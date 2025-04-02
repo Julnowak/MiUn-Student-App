@@ -17,6 +17,7 @@ import Contact from "./components/contact/contact";
 import Locations from "./components/locations/locations";
 import Learning from "./components/learning/learning";
 import Register from "./components/register/register";
+import Notifications from "./components/notifications/notifications";
 
 function App() {
     return (
@@ -30,6 +31,7 @@ function App() {
                     <Routes>
                         <Route path="/" element={<Homepage/>}/>
                         <Route path="/userProfile" element={<UserProfile/>}/>
+                        <Route path="/notifications" element={<Notifications/>}/>
                         <Route path="/login" element={<Login/>}/>
                         <Route path="/register" element={<Register/>}/>
                         <Route path="/logout" element={<Logout/>}/>

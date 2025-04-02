@@ -9,7 +9,8 @@ urlpatterns = [
     path('token/refresh/', TokenRefreshView.as_view(), name='token-refresh'),
 
     path('user/', views.OneUserData.as_view(), name='user'),
-    path('buildings/', views.BuildingAllData.as_view(), name='buildings'),
+    path('buildings/', views.BuildingsAllData.as_view(), name='buildings'),
+    path('building/<str:building_name>', views.BuildingAPI.as_view(), name='building'),
 
     # New verification endpoints
     path('request-verification/', views.RequestVerification.as_view(), name='request-verification'),
