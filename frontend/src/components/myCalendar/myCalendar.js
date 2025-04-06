@@ -2,9 +2,17 @@ import React, { useState } from "react";
 import { Calendar, dateFnsLocalizer } from "react-big-calendar";
 import { format, parse, startOfWeek, getDay } from "date-fns";
 import "react-big-calendar/lib/css/react-big-calendar.css";
+
+import {
+  Modal,
+  Box,
+  TextField,
+  Button,
+  Typography,
+  MenuItem,
+} from "@mui/material";
 import "./myCalendar.css";
 
-// Localizer using date-fns
 const locales = {
   "en-US": require("date-fns/locale/en-US"),
 };
@@ -17,134 +25,165 @@ const localizer = dateFnsLocalizer({
   locales,
 });
 
+const modalStyle = {
+  position: "absolute",
+  top: "50%",
+  left: "50%",
+  transform: "translate(-50%, -50%)",
+  width: 400,
+  bgcolor: "background.paper",
+  borderRadius: 2,
+  boxShadow: 24,
+  p: 4,
+};
+
 const MyCalendar = () => {
   const [events, setEvents] = useState([]);
-  const [newEvent, setNewEvent] = useState({ title: "", start: "", end: "" });
-  const [isAddingEvent, setIsAddingEvent] = useState(false);
-  const [view, setView] = useState("month"); // Default view
-  const [currentDate, setCurrentDate] = useState(new Date()); // Store current date
+  const [newEvent, setNewEvent] = useState({
+    title: "",
+    start: "",
+    end: "",
+    color: "#3174ad",
+  });
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [error, setError] = useState("");
 
-  // Handle adding new event
+  const [view, setView] = useState("month");
+  const [currentDate, setCurrentDate] = useState(new Date());
+
   const handleAddEvent = () => {
+    setError("");
+
     if (!newEvent.title || !newEvent.start || !newEvent.end) {
-      alert("Please fill in all fields");
+      setError("Wszystkie pola są wymagane.");
+      return;
+    }
+
+    const start = new Date(newEvent.start);
+    const end = new Date(newEvent.end);
+
+    if (isNaN(start) || isNaN(end)) {
+      setError("Nieprawidłowe daty.");
+      return;
+    }
+
+    if (start >= end) {
+      setError("Data rozpoczęcia musi być wcześniejsza niż data zakończenia.");
       return;
     }
 
     const event = {
       title: newEvent.title,
-      start: new Date(newEvent.start),
-      end: new Date(newEvent.end),
+      start,
+      end,
+      color: newEvent.color,
     };
 
-    // Add the event to the events list
-    setEvents((prevEvents) => [...prevEvents, event]);
-
-    // Reset event creation form
-    setIsAddingEvent(false);
-    setNewEvent({ title: "", start: "", end: "" });
+    setEvents((prev) => [...prev, event]);
+    setNewEvent({ title: "", start: "", end: "", color: "#3174ad" });
+    setIsModalOpen(false);
   };
 
-  // Handle change in view (Day, Week, Month)
-  const handleViewChange = (view) => {
-    setView(view);
-  };
-
-  // Handle navigation (Previous/Next)
-  const handleNavigate = (date) => {
-    setCurrentDate(date);
-  };
+  const handleViewChange = (view) => setView(view);
+  const handleNavigate = (date) => setCurrentDate(date);
 
   return (
     <div className="calendar-container">
-      <h2 className="calendar-header">Mój kalendarz</h2>
+      <h2 className="calendar-header text-center my-4">Mój kalendarz</h2>
 
-      {isAddingEvent ? (
-        <div className="form-container">
-          <input
-            type="text"
-            placeholder="Event Title"
+      <div className="text-center mb-3">
+        <Button variant="contained" color="primary" onClick={() => setIsModalOpen(true)}>
+          Dodaj nowe wydarzenie
+        </Button>
+      </div>
+
+      <div className="d-flex justify-content-center gap-2 mb-3">
+        <button onClick={() => handleViewChange("day")} className="btn btn-outline-primary">
+          Dzień
+        </button>
+        <button onClick={() => handleViewChange("week")} className="btn btn-outline-primary">
+          Tydzień
+        </button>
+        <button onClick={() => handleViewChange("month")} className="btn btn-outline-primary">
+          Miesiąc
+        </button>
+      </div>
+
+      <Calendar
+        localizer={localizer}
+        events={events}
+        startAccessor="start"
+        endAccessor="end"
+        style={{ height: "600px", margin: "0 auto", maxWidth: "95%" }}
+        views={["month", "week", "day"]}
+        view={view}
+        onView={handleViewChange}
+        date={currentDate}
+        onNavigate={handleNavigate}
+        eventPropGetter={(event) => ({
+          style: {
+            backgroundColor: event.color,
+            color: "white",
+          },
+        })}
+      />
+
+      <Modal open={isModalOpen} onClose={() => setIsModalOpen(false)}>
+        <Box sx={modalStyle}>
+          <Typography variant="h6" component="h2" mb={2}>
+            Dodaj nowe wydarzenie
+          </Typography>
+
+          <TextField
+            label="Tytuł"
+            fullWidth
+            margin="normal"
             value={newEvent.title}
-            onChange={(e) =>
-              setNewEvent({ ...newEvent, title: e.target.value })
-            }
-            className="input"
+            onChange={(e) => setNewEvent({ ...newEvent, title: e.target.value })}
           />
-          <input
+          <TextField
+            label="Data rozpoczęcia"
             type="datetime-local"
+            fullWidth
+            margin="normal"
+            InputLabelProps={{ shrink: true }}
             value={newEvent.start}
-            onChange={(e) =>
-              setNewEvent({ ...newEvent, start: e.target.value })
-            }
-            className="input"
+            onChange={(e) => setNewEvent({ ...newEvent, start: e.target.value })}
           />
-          <input
+          <TextField
+            label="Data zakończenia"
             type="datetime-local"
+            fullWidth
+            margin="normal"
+            InputLabelProps={{ shrink: true }}
             value={newEvent.end}
-            onChange={(e) =>
-              setNewEvent({ ...newEvent, end: e.target.value })
-            }
-            className="input"
+            onChange={(e) => setNewEvent({ ...newEvent, end: e.target.value })}
           />
-          <div className="button-container">
-            <button onClick={handleAddEvent} className="button">
-              Add Event
-            </button>
-            <button
-              onClick={() => setIsAddingEvent(false)}
-              className="button-cancel"
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      ) : (
-        <button onClick={() => setIsAddingEvent(true)} className="add-button">
-          Create New Event
-        </button>
-      )}
+          <TextField
+            label="Kolor"
+            type="color"
+            fullWidth
+            margin="normal"
+            value={newEvent.color}
+            onChange={(e) => setNewEvent({ ...newEvent, color: e.target.value })}
+          />
 
-      <div className="calendar-container-inner">
-        <div className="toolbar">
-          <button
-            onClick={() => handleViewChange("day")}
-            className="view-button"
-          >
-            Day
-          </button>
-          <button
-            onClick={() => handleViewChange("week")}
-            className="view-button"
-          >
-            Week
-          </button>
-          <button
-            onClick={() => handleViewChange("month")}
-            className="view-button"
-          >
-            Month
-          </button>
-        </div>
+          {error && (
+            <Typography color="error" variant="body2" mt={1}>
+              {error}
+            </Typography>
+          )}
 
-        <Calendar
-          localizer={localizer}
-          events={events}
-          startAccessor="start"
-          endAccessor="end"
-          style={{ height: "500px" }}
-          views={["month", "week", "day"]} // Enable Day, Week, Month views
-          view={view} // Set current view
-          onView={handleViewChange} // Handle view change
-          date={currentDate} // Pass current date to Calendar
-          onNavigate={handleNavigate} // Handle navigation (prev/next)
-        />
-      </div>
-
-      <div>
-        <button className="btn btn-dark" style={{margin: 10}}>
-          Wczytaj plik...
-        </button>
-      </div>
+          <Box mt={3} display="flex" justifyContent="space-between">
+            <Button variant="contained" color="success" onClick={handleAddEvent}>
+              Dodaj
+            </Button>
+            <Button variant="outlined" onClick={() => setIsModalOpen(false)}>
+              Anuluj
+            </Button>
+          </Box>
+        </Box>
+      </Modal>
     </div>
   );
 };

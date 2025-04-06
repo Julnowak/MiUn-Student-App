@@ -5,7 +5,6 @@ import {API_BASE_URL} from "../../config";
 import {FaEdit} from "react-icons/fa";
 import Cropper from "react-easy-crop";
 import "./userProfile.css"
-import {navigate} from "react-big-calendar/lib/utils/constants";
 import {useNavigate} from "react-router-dom";
 
 // Utility function to crop image (to be implemented)
@@ -154,7 +153,7 @@ export default function UserProfile() {
 
 
     return (
-        <div style={{maxWidth: 1000, margin: "auto", marginTop: 120}}>
+        <div style={{maxWidth: 1000, margin: "auto", color: "black", marginTop: 120}}>
             <div className={"grid-container"} style={{backgroundColor: "#c1c1c1", margin: 20, borderRadius: 20}}>
                 <div className={"item1"} style={{maxWidth: 1000, padding: 20, height: 150}}>
                     <div
@@ -217,14 +216,21 @@ export default function UserProfile() {
 
 
                 <div className="button-section"
-                     style={{gridColumn: "span 2", color: "black", width: "100%", textAlign: "center", margin: "auto", backgroundColor: "rgba(213,213,213,0.52)", borderRadius: 20}}>
+                     style={{gridColumn: "span 2", color: "black", width: "100%", textAlign: "center", margin: "auto", backgroundColor: "rgba(248,248,248,0.52)", borderRadius: 20}}>
+                    {user?.is_verified?
                     <div>
+                        <h6>Konto zweryfikowane</h6>
+                    </div>
+                        :
+                    <div style={{margin: 20}}>
                         <h6>Konto niezweryfikowane</h6>
                         <p>
                             Musisz zweryfikować swoje konto przy użycia e-maila uczelnianego, aby mieć dostęp do wszystkich funkcji aplikacji.
                         </p>
                         <Button variant={"dark"}>Zweryfikuj</Button>
-                    </div>
+                    </div>}
+
+
                 </div>
 
                 {/* User Info */}
@@ -353,26 +359,40 @@ export default function UserProfile() {
 
             </div>
 
-            <div style={{borderRadius: 20, padding: 20, backgroundColor: "rgba(133,74,47,0.87)", margin: 40}}>
-                <h3>
-                    Kawka
-                </h3>
-                <p>
-                    Jeżeli podoba Ci się to, co robimy - postaw nam kawę :)
-                </p>
-                <Button variant="outline-dark" style={{maxWidth: 200}}>Postaw
-                    kawę</Button>
-                <Button variant="outline-dark" style={{maxWidth: 200}}>Dotacja</Button>
+            <div style={{margin: 20, padding: 10, borderRadius: 20, backgroundImage: "url(/images/basic/coffee.jpg)"}}>
+                <div style={{borderRadius: 20, margin: 20, padding: 20, backgroundColor: "rgba(255,214,193,0.89)",}}>
+                    <h3>
+                        Kawka
+                    </h3>
+
+
+                    <div>
+                        <svg style={{margin: "10px"}} xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor"
+                             className="bi bi-cup-hot-fill" viewBox="0 0 16 16">
+                            <path fill-rule="evenodd"
+                                  d="M.5 6a.5.5 0 0 0-.488.608l1.652 7.434A2.5 2.5 0 0 0 4.104 16h5.792a2.5 2.5 0 0 0 2.44-1.958l.131-.59a3 3 0 0 0 1.3-5.854l.221-.99A.5.5 0 0 0 13.5 6zM13 12.5a2 2 0 0 1-.316-.025l.867-3.898A2.001 2.001 0 0 1 13 12.5"/>
+                            <path
+                                d="m4.4.8-.003.004-.014.019a4 4 0 0 0-.204.31 2 2 0 0 0-.141.267c-.026.06-.034.092-.037.103v.004a.6.6 0 0 0 .091.248c.075.133.178.272.308.445l.01.012c.118.158.26.347.37.543.112.2.22.455.22.745 0 .188-.065.368-.119.494a3 3 0 0 1-.202.388 5 5 0 0 1-.253.382l-.018.025-.005.008-.002.002A.5.5 0 0 1 3.6 4.2l.003-.004.014-.019a4 4 0 0 0 .204-.31 2 2 0 0 0 .141-.267c.026-.06.034-.092.037-.103a.6.6 0 0 0-.09-.252A4 4 0 0 0 3.6 2.8l-.01-.012a5 5 0 0 1-.37-.543A1.53 1.53 0 0 1 3 1.5c0-.188.065-.368.119-.494.059-.138.134-.274.202-.388a6 6 0 0 1 .253-.382l.025-.035A.5.5 0 0 1 4.4.8m3 0-.003.004-.014.019a4 4 0 0 0-.204.31 2 2 0 0 0-.141.267c-.026.06-.034.092-.037.103v.004a.6.6 0 0 0 .091.248c.075.133.178.272.308.445l.01.012c.118.158.26.347.37.543.112.2.22.455.22.745 0 .188-.065.368-.119.494a3 3 0 0 1-.202.388 5 5 0 0 1-.253.382l-.018.025-.005.008-.002.002A.5.5 0 0 1 6.6 4.2l.003-.004.014-.019a4 4 0 0 0 .204-.31 2 2 0 0 0 .141-.267c.026-.06.034-.092.037-.103a.6.6 0 0 0-.09-.252A4 4 0 0 0 6.6 2.8l-.01-.012a5 5 0 0 1-.37-.543A1.53 1.53 0 0 1 6 1.5c0-.188.065-.368.119-.494.059-.138.134-.274.202-.388a6 6 0 0 1 .253-.382l.025-.035A.5.5 0 0 1 7.4.8m3 0-.003.004-.014.019a4 4 0 0 0-.204.31 2 2 0 0 0-.141.267c-.026.06-.034.092-.037.103v.004a.6.6 0 0 0 .091.248c.075.133.178.272.308.445l.01.012c.118.158.26.347.37.543.112.2.22.455.22.745 0 .188-.065.368-.119.494a3 3 0 0 1-.202.388 5 5 0 0 1-.252.382l-.019.025-.005.008-.002.002A.5.5 0 0 1 9.6 4.2l.003-.004.014-.019a4 4 0 0 0 .204-.31 2 2 0 0 0 .141-.267c.026-.06.034-.092.037-.103a.6.6 0 0 0-.09-.252A4 4 0 0 0 9.6 2.8l-.01-.012a5 5 0 0 1-.37-.543A1.53 1.53 0 0 1 9 1.5c0-.188.065-.368.119-.494.059-.138.134-.274.202-.388a6 6 0 0 1 .253-.382l.025-.035A.5.5 0 0 1 10.4.8"/>
+                        </svg>
+
+                        <p style={{margin: "20px"}}>
+                            Jeżeli podoba Ci się to, co robimy - postaw nam kawę :)
+                        </p>
+                    </div>
+
+                    <Button className={"brown-btn"} style={{maxWidth: 200}}>Postaw
+                        kawę</Button>
+                </div>
             </div>
 
-            <div style={{borderRadius: 20, padding: 20, backgroundColor: "rgba(255,0,128,0.56)", margin: 40}}>
+            <div style={{borderRadius: 20, color: "white", padding: 20, backgroundColor: "rgb(42,41,41)", margin: 20}}>
                 <h3>
                     Usuwanie konta
                 </h3>
                 <p>
                     W tym miejscu usuniesz swoje konto.
                 </p>
-                <Button variant="outline-dark" style={{maxWidth: 200}} onClick={handleDeleteAccount}>Usuń konto</Button>
+                <Button variant="danger" style={{maxWidth: 200}} onClick={handleDeleteAccount}>Usuń konto</Button>
             </div>
         </div>
     );

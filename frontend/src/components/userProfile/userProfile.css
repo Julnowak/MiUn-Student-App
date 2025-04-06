@@ -1,3 +1,4 @@
+
 .modal-open{
     padding-right: 0 !important;
     overflow: auto !important;
@@ -18,4 +19,14 @@
   grid-gap: 10px;
   background-color: #2196F3;
   padding: 10px;
+}
+
+.brown-btn {
+    background-color: rgba(133, 74, 47, 0.87);
+    border-color: rgba(104, 59, 36, 0.87);
+}
+
+.brown-btn:hover {
+    background-color: rgb(95, 59, 45);
+    border-color: #5f3b2d;
 }

@@ -1,46 +1,19 @@
-import React, { useState } from "react";
+import React, {useEffect, useRef, useState} from "react";
 import { Button, Form, ListGroup, InputGroup, Modal, Badge } from "react-bootstrap";
 import DateTimePicker from 'react-datetime-picker';
 import 'react-datetime-picker/dist/DateTimePicker.css';
 import 'react-calendar/dist/Calendar.css';
 import 'react-clock/dist/Clock.css';
 import "./notifications.css"
+import Paginator from "../../paginator/paginator";
+import client from "../../client";
+import {API_BASE_URL} from "../../config";
+
 
 
 const Notifications = () => {
   // Initial state with example notifications
-  const [notifications, setNotifications] = useState([
-    {
-      title: "New message from the administrator",
-      description: "You have a new message from the admin team.",
-      date: new Date().toLocaleString(),
-      read: false,
-    },
-    {
-      title: "Your reservation has been confirmed",
-      description: "Your hotel reservation for tomorrow has been confirmed.",
-      date: new Date().toLocaleString(),
-      read: false,
-    },
-    {
-      title: "App update available",
-      description: "A new update for the app is available.",
-      date: new Date().toLocaleString(),
-      read: false,
-    },
-    {
-      title: "Payment successfully processed",
-      description: "Your recent payment has been processed successfully.",
-      date: new Date().toLocaleString(),
-      read: true,
-    },
-    {
-      title: "Reminder: Meeting tomorrow at 10:00",
-      description: "You have a meeting scheduled for tomorrow at 10:00.",
-      date: new Date().toLocaleString(),
-      read: false,
-    },
-  ]);
+  const [notifications, setNotifications] = useState([]);
   const [search, setSearch] = useState("");
   const [newNotification, setNewNotification] = useState({
     title: "",
@@ -50,6 +23,31 @@ const Notifications = () => {
   });
 
   const [showModal, setShowModal] = useState(false);
+
+  const token = localStorage.getItem("access");
+
+
+
+  useEffect(() => {
+      const fetchNotifications = async () => {
+          try {
+              const response = await client.get(API_BASE_URL + "notifications/", {
+                  headers: {
+                      Authorization: `Bearer ${token}`,
+                  },
+              });
+
+              setNotifications(response.data)
+          } catch (error) {
+              console.log("Nie udało się zalogować");
+          }
+      };
+
+      if (notifications.length < 1 && token) {
+          fetchNotifications();
+      }
+  }, [notifications.length, token]);
+
 
   // Handle adding new notification
   const handleAddNotification = () => {
@@ -80,12 +78,12 @@ const Notifications = () => {
 
   return (
     <div className="container mt-5">
-      <h2 className="mb-4">Notifications</h2>
+      <h2 className="mb-4">Powiadomienia</h2>
 
       {/* Search bar */}
       <InputGroup className="mb-4">
         <Form.Control
-          placeholder="Search notifications..."
+          placeholder="Wyszukaj..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
@@ -93,7 +91,7 @@ const Notifications = () => {
 
       {/* Add new notification button */}
       <Button variant="primary" onClick={() => setShowModal(true)} className="mb-4">
-        Add Notification
+        +
       </Button>
 
       {/* Notifications list */}
@@ -108,7 +106,7 @@ const Notifications = () => {
                   <small>{notification.date}</small>
                 </div>
                 <div className="d-flex align-items-center">
-                  {!notification.read && (
+                  {!notification.isRead && (
                     <Badge pill bg="warning" className="me-2">
                       Unread
                     </Badge>
@@ -125,7 +123,7 @@ const Notifications = () => {
             </ListGroup.Item>
           ))
         ) : (
-          <ListGroup.Item>No notifications</ListGroup.Item>
+          <ListGroup.Item>Brak powiadomień</ListGroup.Item>
         )}
       </ListGroup>
 
@@ -174,6 +172,9 @@ const Notifications = () => {
           </Button>
         </Modal.Footer>
       </Modal>
+
+
+      <Paginator totalPages={10} setCurrentPage={1} currentPage={1}/>
     </div>
   );
 };

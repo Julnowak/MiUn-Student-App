@@ -18,6 +18,10 @@ import Locations from "./components/locations/locations";
 import Learning from "./components/learning/learning";
 import Register from "./components/register/register";
 import Notifications from "./components/notifications/notifications";
+import Donations from "./components/donations/donations";
+import Exchange from "./components/exchange/exchange";
+import AddOffer from "./components/exchange/addOffer";
+import MyOffers from "./components/exchange/myOffers";
 
 function App() {
     return (
@@ -45,6 +49,11 @@ function App() {
 
                         <Route path="/about" element={<About/>}/>
                         <Route path="/contact" element={<Contact/>}/>
+                        <Route path="/donations" element={<Donations/>}/>
+
+                        <Route path="/exchanges" element={<Exchange />} />
+                        <Route path="/add-offer" element={<AddOffer />} />
+                        <Route path="/my-offers" element={<MyOffers />} />
 
                     </Routes>
                 </div>

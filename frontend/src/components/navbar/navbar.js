@@ -1,5 +1,5 @@
 import React, {useContext, useEffect, useState} from 'react';
-import {Container, Nav, Navbar} from "react-bootstrap";
+import {Container, Nav, Navbar, NavDropdown} from "react-bootstrap";
 import "./navbar.css"
 import HomeRoundedIcon from '@mui/icons-material/HomeRounded';
 import LoginRoundedIcon from '@mui/icons-material/LoginRounded';
@@ -16,8 +16,23 @@ const CustomNavbar = () => {
     const token = localStorage.getItem("access");
     const image_set = localStorage.getItem("image_set")
     let flag = false;
+    const [isSmallScreen, setIsSmallScreen] = useState(false);
 
-    useEffect(() => {
+
+useEffect(() => {
+    const handleResize = () => {
+      setIsSmallScreen(window.innerWidth < 992); // You can adjust the threshold as needed
+    };
+
+    window.addEventListener('resize', handleResize);
+    handleResize(); // Set initial state
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
+
+useEffect(() => {
         const fetchUserData = async () => {
             try {
                 const response = await client.get(API_BASE_URL + "user/", {
@@ -25,8 +40,15 @@ const CustomNavbar = () => {
                         Authorization: `Bearer ${token}`,
                     },
                 });
-                setImage(response.data.profile_picture.slice(15));
-                localStorage.setItem("image_set", response.data.profile_picture.slice(15))
+                if (response.data.profile_picture){
+                    setImage(response.data.profile_picture.toString().slice(15));
+                    localStorage.setItem(response.data.profile_picture.toString().slice(15));
+                }
+                else {
+                    setImage("/images/basic/user_no_picture.png");
+                    localStorage.setItem("/images/basic/user_no_picture.png");
+                }
+
             } catch (error) {
                 console.log("Nie udało się zalogować");
             }
@@ -74,10 +96,24 @@ const CustomNavbar = () => {
                                 </>
                                 :
                                 <>
-                                    <Nav.Link href="/pierogi" className="text-white">Progi punktowe</Nav.Link>
-                                    <Nav.Link href="/calendar" className="text-white">Kalendarz</Nav.Link>
-                                    <Nav.Link href="/community" className="text-white">Społeczność</Nav.Link>
-                                    <Nav.Link href="/localizations" className="text-white">Lokacje</Nav.Link>
+                                    <Nav.Link href="/pierogi" className="text-white">Rekrutacja</Nav.Link>
+                                    <NavDropdown title="Planowanie">
+                                        <NavDropdown.Item href="/calendar">Kalendarz</NavDropdown.Item>
+                                        <NavDropdown.Item href="/localizations">
+                                          Lokalizacje
+                                        </NavDropdown.Item>
+                                    </NavDropdown>
+
+                                    <NavDropdown title="Społeczność">
+                                        <NavDropdown.Item href="/groups">Grupy</NavDropdown.Item>
+                                        <NavDropdown.Item href="/exchanges">
+                                          Wymiany
+                                        </NavDropdown.Item>
+                                        <NavDropdown.Item href="/forum">
+                                          Forum
+                                        </NavDropdown.Item>
+                                    </NavDropdown>
+
                                     <Nav.Link href="/learning" className="text-white">Nauka</Nav.Link>
                                     <Nav.Link href="/notifications" className="text-white"><CircleNotificationsRoundedIcon/></Nav.Link>
                                 </>
@@ -87,14 +123,22 @@ const CustomNavbar = () => {
                                 null
                                 :
                                 <Nav.Link href="/userProfile" className="text-white">
-                                    <AccountCircleRoundedIcon width={35} className="text-white"/>
+                                    <img width={35} style={{borderRadius: 17}} src={image}/>
                                 </Nav.Link>
                             }
 
-                            {!isAuthenticated ?
-                                <Nav.Link href="/login" className="text-white"><LoginRoundedIcon/></Nav.Link> :
-                                <Nav.Link href="/logout" className="text-white"><LogoutRounded/></Nav.Link>}
-
+                            {!isSmallScreen ? (
+                                // For small screens, show login/logout icon
+                                <Nav.Link href={isAuthenticated ? '/logout' : '/login'} className="text-white">
+                                  {isAuthenticated ? <LogoutRounded /> : <LoginRoundedIcon />}
+                                </Nav.Link>
+                              ) : (
+                                // For larger screens, show full text (Login / Logout)
+                                <Nav.Link href={isAuthenticated ? '/logout' : '/login'} className="text-white">
+                                    {isAuthenticated ? <div><span style={{marginRight: 10}}>Wyloguj</span><LogoutRounded /></div> :
+                                        <div><LoginRoundedIcon /><span style={{marginLeft: 10}}> Zaloguj</span></div>}
+                                </Nav.Link>
+                              )}
                         </Nav>
                     </Navbar.Collapse>
                 </Container>

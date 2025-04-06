@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
+  <component name="Black">
+    <option name="sdkName" value="Python 3.11 virtualenv at C:\Users\Julia\Desktop\Praca_magisterska\Dwello\backend\venv" />
+  </component>
   <component name="JavaScriptSettings">
     <option name="languageLevel" value="FLOW" />
   </component>
+  <component name="ProjectRootManager" version="2" project-jdk-name="Python 3.11 virtualenv at C:\Users\Julia\Desktop\Praca_magisterska\Dwello\backend\venv" project-jdk-type="Python SDK" />
 </project>
