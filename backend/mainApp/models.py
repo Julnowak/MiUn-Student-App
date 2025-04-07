@@ -91,13 +91,26 @@ class Faculty(models.Model):
         return f"Wydział ID-{self.id}: {self.name}"
 
 
+# Kierunek
 class Field(models.Model):
     id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=300)
     faculty = models.ForeignKey(Faculty, on_delete=models.CASCADE)
+    formula = models.TextField(max_length=1000, default='')
 
     def __str__(self):
         return f"Kierunek ID-{self.id}: {self.name}"
+
+
+class Round(models.Model):
+    id = models.AutoField(primary_key=True)
+    name = models.CharField(max_length=300)
+    field = models.ForeignKey(Field, on_delete=models.CASCADE)
+    min_threshold = models.IntegerField(default=0)
+    year = models.CharField(blank=True, null=True, max_length=100)
+
+    def __str__(self):
+        return f"Tura ID-{self.id}: {self.name} - {self.year}"
 
 
 class VerificationCode(models.Model):
