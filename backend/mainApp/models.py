@@ -7,6 +7,7 @@ from django.utils import timezone
 from datetime import timedelta
 from django.utils.crypto import get_random_string
 
+
 # Create your models here.
 class AppUserManager(BaseUserManager):
     def create_user(self, email, username, password=None):
@@ -43,7 +44,7 @@ class AppUser(AbstractBaseUser, PermissionsMixin):
     address = models.CharField(max_length=200,blank=True, null=True)
     name = models.CharField(max_length=200,blank=True, null=True)
     surname = models.CharField(max_length=200,blank=True, null=True)
-    profile_picture = models.ImageField(blank=True, null=True)
+    profile_picture = models.ImageField(blank=True, null=True, upload_to="images")
     is_verified = models.BooleanField(default=False)
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username']
@@ -97,7 +98,7 @@ class Field(models.Model):
     id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=300)
     faculty = models.ForeignKey(Faculty, on_delete=models.CASCADE)
-    formula = models.TextField(max_length=1000, default='')
+    formula = models.CharField(max_length=1000, default='')
 
     def __str__(self):
         return f"Kierunek ID-{self.id}: {self.name}"
@@ -193,6 +194,11 @@ AVAILABILTY_CHOICES = (
     ("PRIVATE", "only for me"),
 )
 
+SOURCE_TYPE_CHOICES = (
+    ("LINK", "link"),
+    ("FILE", "file"),
+)
+
 
 class Source(models.Model):
     id = models.AutoField(primary_key=True)
@@ -203,7 +209,9 @@ class Source(models.Model):
     date_added = models.DateTimeField(auto_now_add=True)
     verified = models.BooleanField(default=False)
     availability = models.CharField(choices=AVAILABILTY_CHOICES, max_length=20)
-    link = models.URLField()
+    type = models.CharField(max_length=100, default="LINK", choices=SOURCE_TYPE_CHOICES)
+    link = models.URLField(blank=True, null=True)
+    file = models.FileField(blank=True, null=True, upload_to="files")
 
     def __str__(self):
-        return f"Źródło ID-{self.id}"
+        return f"Źródło ID-{self.id}: {self.title}"

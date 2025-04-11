@@ -5,8 +5,8 @@ import { Link as RouterLink } from 'react-router-dom';
 
 const Footer = () => {
   return (
-    <Box sx={{ backgroundColor: '#111', color: 'white', mt: 8, pt: 6, pb: 4 }}>
-      <Box sx={{ maxWidth: 1200, mx: 'auto', px: 2 }}>
+    <Box sx={{ backgroundColor: '#111', color: 'white', pb: 4 }}>
+      <Box sx={{ maxWidth: 1200, mx: 'auto', px: 2, pt:6 }}>
         <Grid container spacing={4}>
           {/* Szybkie linki */}
           <Grid item xs={12} md={4}>

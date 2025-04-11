@@ -168,5 +168,6 @@ import os
 MEDIA_URL = '../frontend/public/images/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, '../frontend/public/images/media/')
 
+
 # EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 # DEFAULT_FROM_EMAIL = 'no-reply@example.com'
