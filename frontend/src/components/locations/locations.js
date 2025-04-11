@@ -6,7 +6,8 @@ import "./locations.css";
 import 'leaflet-routing-machine';
 import client from "../../client";
 import {API_BASE_URL} from "../../config";
-import {Alert} from "react-bootstrap"; // Import leaflet-routing-machine
+import Alert from '@mui/material/Alert';
+import {Autocomplete, TextField} from "@mui/material";
 
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -27,8 +28,8 @@ const Locations = () => {
     const [error, setError] = useState("");
     const [flag, setFlag] = useState(false);
     const token = localStorage.getItem("access");
-    const [suggestions, setSuggestions] = useState([]);
     const markerRef = useRef(null);
+    const [mapCenter, setMapCenter] = useState(null);
 
 
     useEffect(() => {
@@ -50,17 +51,6 @@ const Locations = () => {
             fetchLocations();
         }
     }, [token]);
-
-    useEffect(() => {
-        if (query.length > 0) {
-            const filtered = allLocations
-                .filter((loc) => loc.name.toLowerCase().includes(query.toLowerCase()))
-                .slice(0, 5);
-            setSuggestions(filtered);
-        } else {
-            setSuggestions([]);
-        }
-    }, [query, locations]);
 
     useEffect(() => {
         // Get user's current position
@@ -95,8 +85,7 @@ const Locations = () => {
         }
     };
 
-    async function findPlace(pin)
-    {
+    async function findPlace(pin) {
         setFlag(false)
         if (!pin) {
             setError("Proszę wpisać budynek.")
@@ -122,120 +111,88 @@ const Locations = () => {
         }
     }
 
-    const ChangeMapCenter = ({ lat, lon }) => {
+    const ChangeMapCenter = ({lat, lon}) => {
         const map = useMap();  // Access the map object using useMap hook
         if (lat && lon) {
-          map.setView([lat, lon], 16);  // Set new center with zoom level 16
-          markerRef.current?.openPopup();
+            map.setView([lat, lon], 16);  // Set new center with zoom level 16
+            markerRef.current?.openPopup();
         }
         return null; // This component doesn't need to render anything
-      };
+    };
 
 
-
+    useEffect(() => {
+        if (mapCenter && markerRef.current) {
+            // małe opóźnienie, żeby upewnić się, że marker już się pojawił
+            setTimeout(() => {
+                markerRef.current.openPopup();
+            }, 100);
+        }
+    }, [mapCenter]);
 
     return (
-        <div className="p-4">
-            <div style={{marginTop: 30, textAlign: "center", marginBottom: 160}}>
-                <h2 className="about-us-title" style={{fontSize: "2rem", fontWeight: "bold", color: "#ffffff"}}>
+        <div className="p-4" style={{color: "black"}}>
+            <div style={{textAlign: "center", marginBottom: 160}}>
+
+
+                {error ?
+                    <Alert style={{backgroundColor: "rgba(255,161,161,0.76)", marginBottom: 10}}
+                           severity="error">{error}</Alert>
+                    : null}
+
+                <h2 className="about-us-title" style={{fontSize: "2rem", fontWeight: "bold"}}>
                     Zagubiony? Pomożemy!
                 </h2>
 
-                <p style={{fontSize: "1rem", color: "#c8c8c8", marginBottom: "20px"}}>
+                <p style={{fontSize: "1rem", color: "#505050", marginBottom: "20px"}}>
                     Wybierz budynek na kampusie, który chcesz odnaleźć:
                 </p>
 
-                <div className="input-group mb-3"
-                     style={{width: "80%", maxWidth: "500px", margin: "0 auto", position: "relative"}}>
-                    <input
-                        type="text"
-                        className="form-control"
-                        placeholder="Wpisz nazwę budynku..."
-                        aria-label="Wyszukiwanie budynku"
-                        style={{
-                            padding: "10px",
-                            fontSize: "1rem",
-                            borderRadius: "5px",
-                            border: "1px solid #ddd",
-
-                        }}
-                        value={query}
-                        onChange={(e) => {
-                            setQuery(e.target.value)
-                            setFlag(true)
-                            setError(null)
-                        }}
-                    />
-                    {suggestions.length > 0 && flag && (
-                        <div
-                            style={{
-                                position: "absolute",
-                                top: "100%",
-                                left: 0,
-                                width: "100%",
-                                background: "white",
-                                border: "1px solid #ddd",
-                                borderRadius: "5px",
-                                zIndex: 10,
-                                padding: "5px",
-                            }}
-                        >
-                            {suggestions.map((loc, index) => (
-                                <div
-                                    key={index}
-                                    style={{
-                                        padding: "5px 10px",
-                                        color: "gray",
-                                        cursor: "pointer",
-                                    }}
-                                    onClick={() => {
-                                        setQuery(loc.name)
-                                        setFlag(false)
-                                    }}
-                                >
-                                    {loc.name}
-                                </div>
-                            ))}
-                        </div>
+                <Autocomplete
+                    freeSolo
+                    disableClearable
+                    id="free-solo-2-demo"
+                    options={allLocations?.map((option) => option.name)}
+                    onInputChange={(event, newInputValue) => {
+                        setQuery(newInputValue); // gdy użytkownik wpisuje ręcznie
+                    }}
+                    onChange={(event, value) => {
+                        setQuery(value); // gdy wybierze z listy
+                        setError(null)
+                    }}
+                    renderInput={(params) => (
+                        <TextField
+                            {...params}
+                            label="Search input"
+                            type="search"
+                        />
                     )}
+                    style={{maxWidth: 800, margin: "auto",}}
+                />
 
-             <button
-            type="button"
-            className="btn"
-            style={{
-              padding: "10px 20px",
-              fontSize: "1rem",
-              backgroundColor: "rgba(219,15,173,0.59)",
-              borderRadius: "5px",
-              cursor: "pointer",
-              display: "inline",
-              color: "white",
-            }}
-            onClick={() => {
-              const result = findPlace(query);
-              result && result.then(() => {
-                if (locations.length > 0) {
-                  const loc = locations[0];
-                  // Ensure that lat and lon are available before updating the map
-                  if (loc.latitude && loc.longitude) {
-                    return <ChangeMapCenter lat={loc.latitude} lon={loc.longitude} />;
-                  } else {
-                    console.error("Location data missing latitude or longitude");
-                  }
-                }
-              });
-            }}
-          >
-            Szukaj
-          </button>
-                </div>
-
-                {error?
-                    <Alert variant={"danger"}>
-                        {error}
-                    </Alert>
-                : null}
-
+                <button
+                    type="button"
+                    className="btn"
+                    style={{
+                        padding: "10px 20px",
+                        fontSize: "1rem",
+                        backgroundColor: "rgb(219,15,173)",
+                        borderRadius: "5px",
+                        cursor: "pointer",
+                        display: "inline",
+                        color: "white",
+                    }}
+                    onClick={() => {
+                        if (!query) return;
+                        findPlace(query)?.then((data) => {
+                            if (data?.latitude && data?.longitude) {
+                                setMapCenter({lat: data.latitude, lon: data.longitude});
+                            }
+                        });
+                    }}
+                >
+                    Szukaj
+                </button>
             </div>
 
             {/* Map Section */}
@@ -266,7 +223,7 @@ const Locations = () => {
                         />
                         {locations?.map((loc) => (
                             <Marker
-                                ref={locations.length < 2? markerRef: null}
+                                ref={markerRef}
                                 key={loc.id}
                                 position={[loc.latitude, loc.longitude]}
                             >
@@ -282,7 +239,7 @@ const Locations = () => {
                                         {loc.name}
                                     </h5>
                                     <h6>
-                                        {loc.symbol && loc.symbol !== "brak"? loc.symbol: null } {loc.symbol !== loc.abbreviation? `(${loc.abbreviation})` : null}
+                                        {loc.symbol && loc.symbol !== "brak" ? loc.symbol : null} {loc.symbol !== loc.abbreviation ? `(${loc.abbreviation})` : null}
                                     </h6>
                                     <p style={{fontSize: "14px", color: "black"}}>
                                         {loc.function}
@@ -291,15 +248,18 @@ const Locations = () => {
                                     </p>
 
                                     <p>
-                                        <button className={"btn btn-dark"} onClick={() => handleOpenRoute(`${loc.latitude},${loc.longitude}`)}>Wyznacz trasę</button>
+                                        <button className={"btn btn-dark"}
+                                                onClick={() => handleOpenRoute(`${loc.latitude},${loc.longitude}`)}>Wyznacz
+                                            trasę
+                                        </button>
                                     </p>
                                 </Popup>
                             </Marker>
                         ))}
 
-                        {locations.length > 0 && locations[0].latitude && locations[0].longitude && (
-                            <ChangeMapCenter lat={locations[0].latitude} lon={locations[0].longitude} />
-                      )}
+                        {mapCenter && (
+                            <ChangeMapCenter lat={mapCenter.lat} lon={mapCenter.lon}/>
+                        )}
                     </MapContainer>
                 </div>
             </div>

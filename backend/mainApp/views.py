@@ -11,8 +11,9 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from mainApp.models import AppUser, Building, Notification
-from mainApp.serializers import UserRegisterSerializer, UserSerializer, BuildingSerializer, NotificationSerializer
+from mainApp.models import AppUser, Building, Notification, Source
+from mainApp.serializers import UserRegisterSerializer, UserSerializer, BuildingSerializer, NotificationSerializer, \
+    SourceSerializer
 
 from .utils import send_verification_email
 
@@ -63,15 +64,20 @@ class UserLogin(APIView):
 
         print(request.data)
 
+        errors = {}
+
         # Ensure both fields are present
-        if not email or not password:
-            return Response({"error": "Email and password are required"}, status=status.HTTP_400_BAD_REQUEST)
+        if not email:
+            return Response({"error": "Email jest wymagany.", "type": "email"}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not password:
+            return Response({"error": "Hasło jest wymagane", "type": "password"}, status=status.HTTP_400_BAD_REQUEST)
 
         # Authenticate the user
         user = authenticate(request, email=email, password=password)
 
         if user is None:
-            return Response({"error": "Invalid credentials"}, status=status.HTTP_401_UNAUTHORIZED)
+            return Response({"error": "Invalid credentials", "type": "credentials"}, status=status.HTTP_401_UNAUTHORIZED)
 
         # Generate JWT tokens
         refresh = RefreshToken.for_user(user)
@@ -151,3 +157,13 @@ class NotificationsAPI(APIView):
         notifications = Notification.objects.filter(user=request.user)
         serializer = NotificationSerializer(notifications, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class SourceAPI(APIView):
+    permission_classes = (permissions.IsAuthenticated,)  # Only authenticated users can log out
+
+    def get(self, request):
+        sources = Source.objects.all() ##########################
+        serializer = SourceSerializer(sources, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+

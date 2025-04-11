@@ -1,48 +1,49 @@
 import React from 'react';
-import { FaFacebook, FaTwitter, FaInstagram, FaLinkedin } from "react-icons/fa";
-import { Link } from "react-router-dom"; // Użyj jeśli masz routing w aplikacji
-
+import { Box, Grid, Typography, Link as MUILink, IconButton, Divider } from '@mui/material';
+import { FaFacebook, FaTwitter, FaInstagram, FaLinkedin } from 'react-icons/fa';
+import { Link as RouterLink } from 'react-router-dom';
 
 const Footer = () => {
   return (
-    <footer className="footer text-white py-4" style={{ backgroundColor: "black"}}>
-      <div className="container text-center text-md-start">
-        <div className="row">
-          {/* Sekcja linków */}
-          <div className="col-md-4 mb-3">
-            <h5>Szybkie linki</h5>
-            <ul className="list-unstyled">
-              <li><Link to="/about" className="text-white text-decoration-none">O nas</Link></li>
-              <li><Link to="/contact" className="text-white text-decoration-none">Kontakt</Link></li>
-              <li><Link to="/privacy-policy" className="text-white text-decoration-none">Polityka prywatności</Link></li>
-            </ul>
-          </div>
+    <Box sx={{ backgroundColor: '#111', color: 'white', mt: 8, pt: 6, pb: 4 }}>
+      <Box sx={{ maxWidth: 1200, mx: 'auto', px: 2 }}>
+        <Grid container spacing={4}>
+          {/* Szybkie linki */}
+          <Grid item xs={12} md={4}>
+            <Typography variant="h6" gutterBottom>Szybkie linki</Typography>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+              <MUILink component={RouterLink} to="/about" color="inherit" underline="hover">O nas</MUILink>
+              <MUILink component={RouterLink} to="/contact" color="inherit" underline="hover">Kontakt</MUILink>
+              <MUILink component={RouterLink} to="/privacy-policy" color="inherit" underline="hover">Polityka prywatności</MUILink>
+            </Box>
+          </Grid>
 
-          {/* Sekcja kontaktu */}
-          <div className="col-md-4 mb-3">
-            <h5>Kontakt</h5>
-            <p>Email: <a href="mailto:kontakt@example.com" className="text-white">kontakt@example.com</a></p>
-            <p>Telefon: +48 123 456 789</p>
-          </div>
+          {/* Kontakt */}
+          <Grid item xs={12} md={4}>
+            <Typography variant="h6" gutterBottom>Kontakt</Typography>
+            <Typography variant="body2">Email: <MUILink href="mailto:kontakt@example.com" color="inherit" underline="hover">kontakt@example.com</MUILink></Typography>
+            <Typography variant="body2">Telefon: +48 123 456 789</Typography>
+          </Grid>
 
-          {/* Sekcja social media */}
-          <div className="col-md-4 mb-3">
-            <h5>Śledź nas</h5>
-            <div className="d-flex gap-3">
-              <a href="#" className="text-white fs-4"><FaFacebook /></a>
-              <a href="#" className="text-white fs-4"><FaTwitter /></a>
-              <a href="#" className="text-white fs-4"><FaInstagram /></a>
-              <a href="#" className="text-white fs-4"><FaLinkedin /></a>
-            </div>
-          </div>
-        </div>
-      </div>
+          {/* Social Media */}
+          <Grid item xs={12} md={4}>
+            <Typography variant="h6" gutterBottom>Śledź nas</Typography>
+            <Box sx={{ display: 'flex', gap: 1, justifyContent: { xs: 'center', } }}>
+              <IconButton href="#" color="inherit" aria-label="Facebook"><FaFacebook /></IconButton>
+              <IconButton href="#" color="inherit" aria-label="Twitter"><FaTwitter /></IconButton>
+              <IconButton href="#" color="inherit" aria-label="Instagram"><FaInstagram /></IconButton>
+              <IconButton href="#" color="inherit" aria-label="LinkedIn"><FaLinkedin /></IconButton>
+            </Box>
+          </Grid>
+        </Grid>
 
-      {/* Stopka z prawami autorskimi */}
-      <div className="text-center mt-3 border-top pt-3">
-        &copy; {new Date().getFullYear()} TwojaFirma. Wszelkie prawa zastrzeżone.
-      </div>
-    </footer>
+        <Divider sx={{ my: 4, backgroundColor: 'rgba(255, 255, 255, 0.2)' }} />
+
+        <Typography variant="body2" align="center" sx={{ opacity: 0.7 }}>
+          &copy; {new Date().getFullYear()} MiUn. Wszelkie prawa zastrzeżone.
+        </Typography>
+      </Box>
+    </Box>
   );
 };
 

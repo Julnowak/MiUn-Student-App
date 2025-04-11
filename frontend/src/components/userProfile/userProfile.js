@@ -1,11 +1,12 @@
 import {useCallback, useEffect, useState} from "react";
-import {Container, Card, Form, Button, Modal} from "react-bootstrap";
+import {Container, Card, Form, Modal} from "react-bootstrap";
 import client from "../../client";
 import {API_BASE_URL} from "../../config";
 import {FaEdit} from "react-icons/fa";
 import Cropper from "react-easy-crop";
 import "./userProfile.css"
 import {useNavigate} from "react-router-dom";
+import {Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle} from "@mui/material";
 
 // Utility function to crop image (to be implemented)
 async function getCroppedImg(imageSrc, croppedAreaPixels) {
@@ -151,6 +152,16 @@ export default function UserProfile() {
         }
     };
 
+    const [open, setOpen] = useState(false);
+
+    const handleClickOpen = () => {
+    setOpen(true);
+    };
+
+    const handleClose = () => {
+    setOpen(false);
+    };
+
 
     return (
         <div style={{maxWidth: 1000, margin: "auto", color: "black", marginTop: 120}}>
@@ -227,7 +238,7 @@ export default function UserProfile() {
                         <p>
                             Musisz zweryfikować swoje konto przy użycia e-maila uczelnianego, aby mieć dostęp do wszystkich funkcji aplikacji.
                         </p>
-                        <Button variant={"dark"}>Zweryfikuj</Button>
+                        <Button variant={"contained"}>Zweryfikuj</Button>
                     </div>}
 
 
@@ -324,7 +335,7 @@ export default function UserProfile() {
                 {/* Button Section (Merged Row) */}
                 <div className="button-section"
                      style={{gridColumn: "span 2", textAlign: "center", width: 200, margin: "auto"}}>
-                    <Button style={{width: 200}} variant="dark" onClick={() => setIsEditing(!isEditing)}>
+                    <Button style={{width: 200}} variant={"contained"}onClick={() => setIsEditing(!isEditing)}>
                         {isEditing ? "Zapisz zmiany" : "Edytuj"}
                     </Button>
                 </div>
@@ -352,8 +363,8 @@ export default function UserProfile() {
                         </div>
                     </Modal.Body>
                     <Modal.Footer>
-                        <Button variant="secondary" onClick={() => setShowCropModal(false)}>Anuluj</Button>
-                        <Button variant="primary" onClick={handleCropSave}>Zapisz</Button>
+                        <Button variant={"contained"} onClick={() => setShowCropModal(false)}>Anuluj</Button>
+                        <Button variant={"contained"} onClick={handleCropSave}>Zapisz</Button>
                     </Modal.Footer>
                 </Modal>
 
@@ -380,19 +391,38 @@ export default function UserProfile() {
                         </p>
                     </div>
 
-                    <Button className={"brown-btn"} style={{maxWidth: 200}}>Postaw
+                    <Button variant={"contained"} style={{maxWidth: 200}}>Postaw
                         kawę</Button>
                 </div>
             </div>
 
             <div style={{borderRadius: 20, color: "white", padding: 20, backgroundColor: "rgb(42,41,41)", margin: 20}}>
-                <h3>
-                    Usuwanie konta
-                </h3>
-                <p>
-                    W tym miejscu usuniesz swoje konto.
-                </p>
-                <Button variant="danger" style={{maxWidth: 200}} onClick={handleDeleteAccount}>Usuń konto</Button>
+
+                  <Button variant="outlined" onClick={handleClickOpen}>
+                    Usuń konto
+                  </Button>
+                    <Dialog
+                    open={open}
+                    onClose={handleClose}
+                    aria-labelledby="alert-dialog-title"
+                    aria-describedby="alert-dialog-description"
+                    >
+                    <DialogTitle id="alert-dialog-title">
+                      {"Czy na pewno chcesz usunąć konto?"}
+                    </DialogTitle>
+                    <DialogContent>
+                      <DialogContentText id="alert-dialog-description">
+                        Operacja jest nieodwracalna, a wszystkie
+                        Twoje dane zostaną usunięte! Czy chcesz kontynuować?
+                      </DialogContentText>
+                    </DialogContent>
+                    <DialogActions>
+                      <Button onClick={handleClose}>Anuluj</Button>
+                      <Button variant={"contained"}  onClick={handleDeleteAccount} autoFocus>
+                        Usuń konto
+                      </Button>
+                    </DialogActions>
+                    </Dialog>
             </div>
         </div>
     );

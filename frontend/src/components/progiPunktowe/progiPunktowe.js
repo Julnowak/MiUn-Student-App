@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Button, Form, Container, Row, Col, Card } from 'react-bootstrap';
+import {Button, Form, Container, Row, Col, Card, ToggleButton, ButtonGroup} from 'react-bootstrap';
+import {Box, Paper, Stack, styled, TextField, Typography} from "@mui/material";
 
 const ProgiPunktowe = () => {
   const [formData, setFormData] = useState({
@@ -9,6 +10,13 @@ const ProgiPunktowe = () => {
   });
   const [currentPage, setCurrentPage] = useState(1);
   const [calculationResult, setCalculationResult] = useState(null);
+  const [checked, setChecked] = useState(false);
+  const [radioValue, setRadioValue] = useState('1');
+
+  const radios = [
+    { name: 'Wybrany kierunek', value: '1' },
+    { name: 'Wszystkie kierunki', value: '2' },
+  ];
 
   // Funkcja do aktualizacji stanu formularza
   const handleInputChange = (e) => {
@@ -34,9 +42,85 @@ const ProgiPunktowe = () => {
     setCurrentPage(currentPage - 1);
   };
 
+  const Item = styled(Paper)(() => ({
+  backgroundColor: '#212529',
+  padding: 10,
+  color: "white"
+}));
+
+
   return (
       <Container className="my-5">
-        <h1 className="mb-4 text-center">Formularz Progi Punktowe</h1>
+        <h1 className="mb-4 text-center">Rekrutacja</h1>
+        <p>
+          Jakie progi chcesz sprawdzić?
+        </p>
+        <ButtonGroup>
+          {radios.map((radio, idx) => (
+            <ToggleButton
+              key={idx}
+              id={`radio-${idx}`}
+              type="radio"
+              variant={'outline-dark'}
+              name="radio"
+              value={radio.value}
+              checked={radioValue === radio.value}
+              onChange={(e) => setRadioValue(e.currentTarget.value)}
+            >
+              {radio.name}
+            </ToggleButton>
+          ))}
+        </ButtonGroup>
+
+        {
+          radioValue === '1'?
+              <div>
+                <p>Wprowadź swoje wyniki maturalne</p>
+                <Box style={{margin: "20px auto"}}
+                  component="form"
+                  sx={{ '& .MuiTextField-root': { m: 1, width: '25ch' } }}
+                  noValidate
+                  autoComplete="off"
+                >
+                <TextField
+                  id="outlined-number"
+                  label="G1"
+                  type="number"
+                  slotProps={{
+                    inputLabel: {
+                      shrink: true,
+                    },
+                  }}
+                />
+                <TextField
+                  id="outlined-number"
+                  label="G2"
+                  type="number"
+                  defaultValue="0"
+                  slotProps={{
+                    inputLabel: {
+                      shrink: true,
+                    },
+                  }}
+                />
+                </Box>
+              </div>
+              :
+              <div>
+                <Box sx={{ flexGrow: 1, overflow: 'hidden', px: 3 }}>
+                  <Item sx={{ my: 1, mx: 'auto', p: 2 }}>
+                    <Stack spacing={2} direction="row" sx={{ alignItems: 'center' }}>
+                      <Stack>
+                        Nazwa przedmiotu
+                      </Stack>
+                      <Stack sx={{ minWidth: 0}} >
+                        <Form.Control type={"number"} min={0} max={100} defaultValue={0}/>
+                      </Stack>
+                    </Stack>
+                  </Item>
+                </Box>
+              </div>
+        }
 
         <Card>
           <Card.Body>

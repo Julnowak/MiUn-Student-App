@@ -37,6 +37,8 @@ const modalStyle = {
   p: 4,
 };
 
+
+
 const MyCalendar = () => {
   const [events, setEvents] = useState([]);
   const [newEvent, setNewEvent] = useState({
@@ -84,6 +86,31 @@ const MyCalendar = () => {
     setIsModalOpen(false);
   };
 
+  const sampleEvents = [
+  {
+    title: "Spotkanie zespołu",
+    start: new Date(2025, 3, 10, 10, 0),
+    end: new Date(2025, 3, 10, 11, 0),
+    color: "#f44336",
+  },
+  {
+    title: "Prezentacja projektu",
+    start: new Date(2025, 3, 11, 14, 0),
+    end: new Date(2025, 3, 11, 15, 30),
+    color: "#4caf50",
+  },
+  {
+    title: "Warsztaty React",
+    start: new Date(2025, 3, 12, 9, 30),
+    end: new Date(2025, 3, 12, 12, 0),
+    color: "#2196f3",
+  },
+];
+
+const handleLoadSampleEvents = () => {
+  setEvents((prev) => [...prev, ...sampleEvents]);
+};
+
   const handleViewChange = (view) => setView(view);
   const handleNavigate = (date) => setCurrentDate(date);
 
@@ -91,9 +118,12 @@ const MyCalendar = () => {
     <div className="calendar-container">
       <h2 className="calendar-header text-center my-4">Mój kalendarz</h2>
 
-      <div className="text-center mb-3">
+      <div className="text-center mb-3 d-flex justify-content-center gap-2">
         <Button variant="contained" color="primary" onClick={() => setIsModalOpen(true)}>
           Dodaj nowe wydarzenie
+        </Button>
+        <Button variant="outlined" color="secondary" onClick={handleLoadSampleEvents}>
+          Odczyt z pliku
         </Button>
       </div>
 
@@ -108,25 +138,28 @@ const MyCalendar = () => {
           Miesiąc
         </button>
       </div>
+      <Box sx={{ p: 2, maxWidth: "95%", margin: "0 auto" }}>
+        <Calendar
+          localizer={localizer}
+          events={events}
+          startAccessor="start"
+          endAccessor="end"
+          style={{ height: "600px", margin: "0 auto", maxWidth: "95%" }}
+          views={["month", "week", "day"]}
+          view={view}
+          onView={handleViewChange}
+          date={currentDate}
+          onNavigate={handleNavigate}
+          eventPropGetter={(event) => ({
+            style: {
+              backgroundColor: event.color,
+              color: "white",
+            },
+          })}
+        />
+      </Box>
 
-      <Calendar
-        localizer={localizer}
-        events={events}
-        startAccessor="start"
-        endAccessor="end"
-        style={{ height: "600px", margin: "0 auto", maxWidth: "95%" }}
-        views={["month", "week", "day"]}
-        view={view}
-        onView={handleViewChange}
-        date={currentDate}
-        onNavigate={handleNavigate}
-        eventPropGetter={(event) => ({
-          style: {
-            backgroundColor: event.color,
-            color: "white",
-          },
-        })}
-      />
+
 
       <Modal open={isModalOpen} onClose={() => setIsModalOpen(false)}>
         <Box sx={modalStyle}>

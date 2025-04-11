@@ -9,6 +9,8 @@ import {LogoutRounded} from "@mui/icons-material";
 import client from "../../client";
 import {API_BASE_URL} from "../../config";
 import CircleNotificationsRoundedIcon from '@mui/icons-material/CircleNotificationsRounded';
+import {Avatar} from "@mui/material";
+import Badge from '@mui/material/Badge';
 
 const CustomNavbar = () => {
     const {isAuthenticated} = useContext(AuthContext);
@@ -96,6 +98,7 @@ useEffect(() => {
                                 </>
                                 :
                                 <>
+                                    <Nav.Link href="/actual-info" className="text-white">Aktualności</Nav.Link>
                                     <Nav.Link href="/pierogi" className="text-white">Rekrutacja</Nav.Link>
                                     <NavDropdown title="Planowanie">
                                         <NavDropdown.Item href="/calendar">Kalendarz</NavDropdown.Item>
@@ -115,7 +118,11 @@ useEffect(() => {
                                     </NavDropdown>
 
                                     <Nav.Link href="/learning" className="text-white">Nauka</Nav.Link>
-                                    <Nav.Link href="/notifications" className="text-white"><CircleNotificationsRoundedIcon/></Nav.Link>
+                                    <Nav.Link href="/notifications" className="text-white">
+                                        <Badge badgeContent={4} color="primary">
+                                          <CircleNotificationsRoundedIcon/>
+                                        </Badge>
+                                    </Nav.Link>
                                 </>
                             }
 
@@ -123,7 +130,7 @@ useEffect(() => {
                                 null
                                 :
                                 <Nav.Link href="/userProfile" className="text-white">
-                                    <img width={35} style={{borderRadius: 17}} src={image}/>
+                                    <Avatar src={image}/>
                                 </Nav.Link>
                             }
 

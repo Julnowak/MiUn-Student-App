@@ -1,53 +1,87 @@
 import React from 'react';
+import { Container, Typography, Button, Box, Paper, Stack, useMediaQuery } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 import { CheckCircle, ChatDots, Calendar, Book } from "react-bootstrap-icons";
 
 const features = [
   {
-    icon: <CheckCircle className="text-primary fs-1" />,
+    icon: <CheckCircle size={48} color="#1976d2" />,
     title: "Bezproblemowa rekrutacja",
-    description: "Sprawdź progi punktowe, znajdź idealny kierunek i śledź ważne terminy. Dzięki MiUn rekrutacja staje się prostsza niż kiedykolwiek! W jednym miejscu znajdziesz wszystkie kluczowe informacje, dzięki czemu podejmiesz najlepszą decyzję."
+    description: "Sprawdź progi punktowe, znajdź idealny kierunek i śledź ważne terminy. Dzięki MiUn rekrutacja staje się prostsza niż kiedykolwiek!"
   },
   {
-    icon: <ChatDots className="text-success fs-1" />,
+    icon: <ChatDots size={48} color="#2e7d32" />,
     title: "Forum studenckie",
-    description: "Poznaj innych studentów, wymieniaj się doświadczeniami i ogłoszeniami. Dyskutuj na tematy akademickie, organizuj wspólne wyjścia i dziel się poradami dotyczącymi życia studenckiego."
+    description: "Poznaj innych studentów, wymieniaj się doświadczeniami i ogłoszeniami. Organizuj wspólne wyjścia i dziel się poradami."
   },
   {
-    icon: <Calendar className="text-warning fs-1" />,
+    icon: <Calendar size={48} color="#f9a825" />,
     title: "Plan zajęć i powiadomienia",
-    description: "Synchronizuj swój harmonogram, otrzymuj przypomnienia o egzaminach i organizuj studenckie życie. Z MiUn nie przegapisz żadnego ważnego wydarzenia!"
+    description: "Synchronizuj harmonogram, otrzymuj przypomnienia o egzaminach i nie przegap żadnego wydarzenia."
   },
   {
-    icon: <Book className="text-danger fs-1" />,
+    icon: <Book size={48} color="#d32f2f" />,
     title: "Baza materiałów",
-    description: "Korzystaj z notatek, dziel się wiedzą i przygotowuj się do sesji z pomocą społeczności MiUn. Znajdziesz tu zbiory zadań, opracowania i przydatne wskazówki od starszych roczników."
+    description: "Korzystaj z notatek, dziel się wiedzą i przygotowuj się do sesji z pomocą społeczności MiUn."
   }
 ];
 
 const Homepage = () => {
-return (
-    <div className="container text-center py-5" style={{ maxWidth: 1000}}>
-      <h1 className="display-4 fw-bold">MiUn – Twoje studia pod kontrolą</h1>
-      <p className="lead mb-5" style={{color: "white"}}>
-        Aplikacja stworzona z myślą o studentach i kandydatów na studia.
-        Organizuj swój plan zajęć, poznawaj ludzi i miej dostęp do najważniejszych informacji w jednym miejscu.
-        Dołącz do społeczności, która ułatwia życie akademickie i daje dostęp do wszystkiego, czego potrzebujesz, by skutecznie studiować.
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
-      </p>
-    <button className="btn btn-primary btn-lg">Dołącz do MiUn</button>
+  return (
+    <Box
+      sx={{
+        minHeight: '100vh',
+        background: 'linear-gradient(16deg,rgba(112, 198, 212, 0.4) 0%, rgba(219, 72, 212, 0.37) 100%)',
+        py: 8,
+        px: 2
+      }}
+    >
+      <Container maxWidth="md">
+        <Typography variant={isMobile ? 'h4' : 'h3'} fontWeight="bold" textAlign="center" gutterBottom>
+          MiUn – Twoje studia pod kontrolą
+        </Typography>
 
-      {features.map((feature, index) => (
-        <div key={index} className="my-4 py-5 bg-light d-flex flex-column align-items-center">
-          {feature.icon}
-          <h2 className="fw-bold mt-3">{feature.title}</h2>
-          <p className="text-muted w-50">{feature.description}</p>
-        </div>
-      ))}
+        <Typography variant="h6" color="text.secondary" paragraph textAlign="center">
+          Aplikacja stworzona z myślą o studentach i kandydatów na studia. Organizuj swój plan zajęć, poznawaj ludzi i miej dostęp do najważniejszych informacji w jednym miejscu.
+        </Typography>
 
+        <Box display="flex" justifyContent="center" my={4}>
+          <Button variant="contained" size="large" sx={{ px: 4, py: 1.5 }}>
+            Dołącz do MiUn
+          </Button>
+        </Box>
 
-    </div>
+        <Stack spacing={4}>
+          {features.map((feature, index) => (
+            <Paper
+              key={index}
+              elevation={3}
+              sx={{
+                p: 4,
+                textAlign: 'center',
+                transition: 'transform 0.3s, box-shadow 0.3s',
+                '&:hover': {
+                  transform: 'scale(1.02)',
+                  boxShadow: 6
+                }
+              }}
+            >
+              <Box mb={2}>{feature.icon}</Box>
+              <Typography variant="h5" fontWeight="bold" gutterBottom>
+                {feature.title}
+              </Typography>
+              <Typography variant="body1" color="text.secondary">
+                {feature.description}
+              </Typography>
+            </Paper>
+          ))}
+        </Stack>
+      </Container>
+    </Box>
   );
-}
-
+};
 
 export default Homepage;

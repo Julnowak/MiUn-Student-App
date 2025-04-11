@@ -5,6 +5,7 @@ from django.contrib.auth.base_user import BaseUserManager
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.utils import timezone
 from datetime import timedelta
+from django.utils.crypto import get_random_string
 
 # Create your models here.
 class AppUserManager(BaseUserManager):
@@ -102,6 +103,26 @@ class Field(models.Model):
         return f"Kierunek ID-{self.id}: {self.name}"
 
 
+class FieldByYear(models.Model):
+    id = models.AutoField(primary_key=True)
+    field = models.ForeignKey(Field, on_delete=models.CASCADE)
+    start_date = models.DateField()
+    end_date = models.DateField()
+
+    def __str__(self):
+        return f"Kierunek ID-{self.id}: {self.name} {str(self.start_date.year)}"
+
+
+class Semester(models.Model):
+    id = models.AutoField(primary_key=True)
+    field_by_year = models.ForeignKey(FieldByYear, on_delete=models.CASCADE)
+    number = models.IntegerField()
+    ECTS_required = models.IntegerField(default=30)
+
+    def __str__(self):
+        return f"Semestr {self.number}, ID-{self.id}: {self.field_by_year.field.name}"
+
+
 class Round(models.Model):
     id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=300)
@@ -124,3 +145,65 @@ class VerificationCode(models.Model):
 
     def __str__(self):
         return f"{self.user.email} - {self.code}"
+
+
+class Course(models.Model):
+    id = models.AutoField(primary_key=True)
+    name = models.CharField(max_length=300)
+    field = models.ManyToManyField(Field)
+    semester = models.ManyToManyField(Semester)
+    ECTS = models.IntegerField(default=1)
+    test_type = models.CharField(max_length=300, default="egzamin")
+    additional_info = models.TextField(blank=True, null=True)
+    lecturer = models.CharField(max_length=300, blank=True, null=True)
+
+    def __str__(self):
+        return f"Kurs ID-{self.id}: {self.name}"
+
+
+class Event(models.Model):
+    id = models.AutoField(primary_key=True)
+    name = models.CharField(max_length=300)
+    start = models.DateTimeField()
+    end = models.DateTimeField()
+    color = models.CharField(max_length=300)
+    additional_info = models.TextField(blank=True, null=True)
+    recurrent = models.BooleanField(default=False)
+    recurrency_details = models.JSONField(blank=True, null=True) # {'num': 2, 'type': "days", until: DATE}
+    user = models.ForeignKey(AppUser, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return f"Wydarzenie ID-{self.id}: {self.name}"
+
+
+class Group(models.Model):
+    id = models.AutoField(primary_key=True)
+    name = models.CharField(max_length=300)
+    fieldByYear = models.ForeignKey(FieldByYear, on_delete=models.CASCADE)
+    admin = models.ForeignKey(AppUser, on_delete=models.CASCADE, blank=True, null=True)
+    code = models.CharField(max_length=300, default=get_random_string(32))
+
+    def __str__(self):
+        return f"Grupa ID-{self.id}: {self.name}"
+
+
+AVAILABILTY_CHOICES = (
+    ("PUBLIC", "for all users"),
+    ("RESTRICTED", "for me and my group-mates"),
+    ("PRIVATE", "only for me"),
+)
+
+
+class Source(models.Model):
+    id = models.AutoField(primary_key=True)
+    title = models.CharField(max_length=500)
+    field = models.ForeignKey(Field, on_delete=models.CASCADE)
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, null=True, blank=True)
+    added_by = models.ForeignKey(AppUser, on_delete=models.CASCADE)
+    date_added = models.DateTimeField(auto_now_add=True)
+    verified = models.BooleanField(default=False)
+    availability = models.CharField(choices=AVAILABILTY_CHOICES, max_length=20)
+    link = models.URLField()
+
+    def __str__(self):
+        return f"Źródło ID-{self.id}"

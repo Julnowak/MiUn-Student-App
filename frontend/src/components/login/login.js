@@ -1,11 +1,13 @@
 import React, { useContext, useState } from 'react';
 import { Link } from "react-router-dom";
-import { Container, Button, Form, Card, Alert } from "react-bootstrap";
+import { Container, Form, Card} from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../../AuthContext";
+import {Box, Button, TextField} from "@mui/material";
+import Alert from "@mui/material/Alert";
 
 const Login = () => {
-    const { loginUser, errmess, setErrmess } = useContext(AuthContext);
+    const { loginUser, errmess, setErrmess, errtype, setErrtype } = useContext(AuthContext);
     const navigate = useNavigate();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
@@ -27,28 +29,16 @@ const Login = () => {
                 <h3 className="text-center text-primary">Login</h3>
 
                 {/* Display error message if login fails */}
-                {errmess && <Alert variant="danger" className="text-center">{errmess}</Alert>}
+                {errmess && errtype === "credentials" && <Alert variant="danger" className="text-center">{errmess}</Alert>}
 
                 <Form onSubmit={submitLogin}>
-                    <Form.Group className="mb-3" controlId="email">
-                        <Form.Label>Email</Form.Label>
-                        <Form.Control
-                            value={email}
-                            onChange={handleInputChange(setEmail)}
-                            type="email"
-                            placeholder="Wprowadź email"
-                        />
-                    </Form.Group>
-                    <Form.Group className="mb-3" controlId="password">
-                        <Form.Label>Hasło</Form.Label>
-                        <Form.Control
-                            value={password}
-                            onChange={handleInputChange(setPassword)}
-                            type="password"
-                            placeholder="Wprowadź hasło"
-                        />
-                    </Form.Group>
-                    <Button variant="primary" type="submit" className="w-100">
+                    <Box className="mb-3" controlId="email">
+                        <TextField error={!!(errmess && errtype === "email")} helperText={errmess && errtype == "email"? errmess: null} id="outlined-basic" type={"email"} onChange={handleInputChange(setEmail)} value={email} label="Email" variant="outlined" />
+                    </Box>
+                    <Box className="mb-3" controlId="email">
+                        <TextField error={!!(errmess && errtype === "password")} helperText={errmess && errtype == "password"? errmess: null} id="outlined-basic" type={"password"} onChange={handleInputChange(setPassword)} value={password} label="Hasło" variant="outlined" />
+                    </Box>
+                    <Button type="submit" variant="contained">
                         Zaloguj się
                     </Button>
                 </Form>

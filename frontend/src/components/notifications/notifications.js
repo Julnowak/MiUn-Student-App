@@ -1,18 +1,17 @@
-import React, {useEffect, useRef, useState} from "react";
-import { Button, Form, ListGroup, InputGroup, Modal, Badge } from "react-bootstrap";
+import React, { useEffect, useState } from "react";
+import { Box, Chip, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, Fab, IconButton, InputAdornment, List, ListItem, ListItemIcon, ListItemText, Pagination, TextField, Badge, Button } from "@mui/material";
+import LinkIcon from "@mui/icons-material/Link";
+import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
+import AddIcon from "@mui/icons-material/Add";
 import DateTimePicker from 'react-datetime-picker';
 import 'react-datetime-picker/dist/DateTimePicker.css';
 import 'react-calendar/dist/Calendar.css';
 import 'react-clock/dist/Clock.css';
-import "./notifications.css"
-import Paginator from "../../paginator/paginator";
 import client from "../../client";
-import {API_BASE_URL} from "../../config";
-
-
+import { API_BASE_URL } from "../../config";
+import MailIcon from '@mui/icons-material/Mail';
 
 const Notifications = () => {
-  // Initial state with example notifications
   const [notifications, setNotifications] = useState([]);
   const [search, setSearch] = useState("");
   const [newNotification, setNewNotification] = useState({
@@ -21,35 +20,31 @@ const Notifications = () => {
     reminderDate: new Date(),
     read: false,
   });
-
   const [showModal, setShowModal] = useState(false);
+  const [page, setPage] = useState(1);
+  const [perPage] = useState(5); // Set the number of notifications per page
 
   const token = localStorage.getItem("access");
 
-
-
   useEffect(() => {
-      const fetchNotifications = async () => {
-          try {
-              const response = await client.get(API_BASE_URL + "notifications/", {
-                  headers: {
-                      Authorization: `Bearer ${token}`,
-                  },
-              });
-
-              setNotifications(response.data)
-          } catch (error) {
-              console.log("Nie udało się zalogować");
-          }
-      };
-
-      if (notifications.length < 1 && token) {
-          fetchNotifications();
+    const fetchNotifications = async () => {
+      try {
+        const response = await client.get(API_BASE_URL + "notifications/", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        setNotifications(response.data);
+      } catch (error) {
+        console.log("Nie udało się zalogować");
       }
+    };
+
+    if (notifications.length < 1 && token) {
+      fetchNotifications();
+    }
   }, [notifications.length, token]);
 
-
-  // Handle adding new notification
   const handleAddNotification = () => {
     if (newNotification.title.trim() && newNotification.description.trim()) {
       setNotifications([newNotification, ...notifications]);
@@ -63,118 +58,122 @@ const Notifications = () => {
     }
   };
 
-  // Handle read/unread status of notification
   const handleReadStatus = (index) => {
     const updatedNotifications = [...notifications];
     updatedNotifications[index].read = !updatedNotifications[index].read;
     setNotifications(updatedNotifications);
   };
 
-  // Filter notifications based on search query
   const filteredNotifications = notifications.filter((notification) =>
     notification.title.toLowerCase().includes(search.toLowerCase()) ||
     notification.description.toLowerCase().includes(search.toLowerCase())
   );
+
+  // Pagination logic
+  const startIndex = (page - 1) * perPage;
+  const endIndex = startIndex + perPage;
+  const paginatedNotifications = filteredNotifications.slice(startIndex, endIndex);
+  const totalPages = Math.ceil(filteredNotifications.length / perPage);
 
   return (
     <div className="container mt-5">
       <h2 className="mb-4">Powiadomienia</h2>
 
       {/* Search bar */}
-      <InputGroup className="mb-4">
-        <Form.Control
-          placeholder="Wyszukaj..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-      </InputGroup>
-
-      {/* Add new notification button */}
-      <Button variant="primary" onClick={() => setShowModal(true)} className="mb-4">
-        +
-      </Button>
+      <TextField
+        label="Wyszukaj..."
+        variant="outlined"
+        fullWidth
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        InputProps={{
+          endAdornment: (
+            <InputAdornment position="end">
+              <IconButton edge="end">
+                {/* Optional search icon can be added here */}
+              </IconButton>
+            </InputAdornment>
+          ),
+        }}
+        sx={{ mb: 4 }}
+      />
 
       {/* Notifications list */}
-      <ListGroup>
-        {filteredNotifications.length > 0 ? (
-          filteredNotifications.map((notification, index) => (
-            <ListGroup.Item key={index} className={notification.read ? "bg-light" : ""}>
-              <div className="d-flex justify-content-between align-items-center">
-                <div>
-                  <h5>{notification.title}</h5>
-                  <p>{notification.description}</p>
-                  <small>{notification.date}</small>
-                </div>
-                <div className="d-flex align-items-center">
-                  {!notification.isRead && (
-                    <Badge pill bg="warning" className="me-2">
-                      Unread
-                    </Badge>
-                  )}
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => handleReadStatus(index)}
-                  >
-                    {notification.read ? "Mark as Unread" : "Mark as Read"}
-                  </Button>
-                </div>
-              </div>
-            </ListGroup.Item>
+      <List>
+        {paginatedNotifications.length > 0 ? (
+          paginatedNotifications.map((notification, index) => (
+            <ListItem key={index} button className={notification.read ? "bg-light" : ""}>
+              <ListItemIcon>
+                <Badge color={"secondary"} variant="dot" invisible={false} >
+                  <MailIcon />
+                </Badge>
+              </ListItemIcon>
+              <ListItemText
+                primary={notification.title}
+                secondary={notification.description || "Brak opisu"}
+              />
+              <Chip label={notification.reminderDate} color="primary" />
+              <Button variant="outlined" size="small" onClick={() => handleReadStatus(index)}>
+                {notification.read ? "Mark as Unread" : "Mark as Read"}
+              </Button>
+            </ListItem>
           ))
         ) : (
-          <ListGroup.Item>Brak powiadomień</ListGroup.Item>
+          <ListItem>Brak powiadomień</ListItem>
         )}
-      </ListGroup>
+      </List>
 
       {/* Modal for adding new notification */}
-      <Modal show={showModal} onHide={() => setShowModal(false)}>
-        <Modal.Header closeButton>
-          <Modal.Title>Add Notification</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <Form>
-            <Form.Group className="mb-3">
-              <Form.Label>Title</Form.Label>
-              <Form.Control
-                type="text"
-                value={newNotification.title}
-                onChange={(e) => setNewNotification({ ...newNotification, title: e.target.value })}
-                placeholder="Enter title"
-              />
-            </Form.Group>
-            <Form.Group className="mb-3">
-              <Form.Label>Description</Form.Label>
-              <Form.Control
-                as="textarea"
-                rows={3}
-                value={newNotification.description}
-                onChange={(e) => setNewNotification({ ...newNotification, description: e.target.value })}
-                placeholder="Enter description"
-              />
-            </Form.Group>
-            <Form.Group className="mb-3">
-              <Form.Label>Reminder Date and Time</Form.Label>
-              <DateTimePicker
-                onChange={(date) => setNewNotification({ ...newNotification, reminderDate: date })}
-                value={newNotification.reminderDate}
-
-              />
-            </Form.Group>
-          </Form>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowModal(false)}>
+      <Dialog open={showModal} onClose={() => setShowModal(false)}>
+        <DialogTitle>Dodaj Powiadomienie</DialogTitle>
+        <DialogContent>
+          <TextField
+            label="Title"
+            variant="outlined"
+            fullWidth
+            value={newNotification.title}
+            onChange={(e) => setNewNotification({ ...newNotification, title: e.target.value })}
+            sx={{ mb: 2 }}
+          />
+          <TextField
+            label="Description"
+            variant="outlined"
+            fullWidth
+            multiline
+            rows={3}
+            value={newNotification.description}
+            onChange={(e) => setNewNotification({ ...newNotification, description: e.target.value })}
+            sx={{ mb: 2 }}
+          />
+          <DateTimePicker
+            onChange={(date) => setNewNotification({ ...newNotification, reminderDate: date })}
+            value={newNotification.reminderDate}
+            sx={{ mb: 2 }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setShowModal(false)} color="secondary">
             Cancel
           </Button>
-          <Button variant="primary" onClick={handleAddNotification}>
+          <Button onClick={handleAddNotification} color="primary">
             Add
           </Button>
-        </Modal.Footer>
-      </Modal>
+        </DialogActions>
+      </Dialog>
 
+      {/* Pagination */}
+      <Box display="flex" justifyContent="center" mt={3}>
+        <Pagination
+          count={totalPages}
+          page={page}
+          onChange={(e, value) => setPage(value)}
+        />
+      </Box>
 
-      <Paginator totalPages={10} setCurrentPage={1} currentPage={1}/>
+      {/* Floating action button */}
+      <Fab color="secondary" aria-label="add" sx={{ position: 'fixed', bottom: 20, right: 20 }} onClick={() => setShowModal(true)}>
+        <AddIcon />
+      </Fab>
     </div>
   );
 };

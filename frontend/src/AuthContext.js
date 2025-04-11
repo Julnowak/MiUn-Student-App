@@ -12,6 +12,7 @@ export const isUserAuthenticated = () => {
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [errmess, setErrmess] = useState(null);
+    const [errtype, setErrtype] = useState(null);
     const navigate = useNavigate()
 
     useEffect(() => {
@@ -28,10 +29,12 @@ export const AuthProvider = ({ children }) => {
             setUser(userData);
             setIsAuthenticated(true);
             setErrmess(null);
-            if (!errmess) navigate("/main")
+            setErrtype(null);
+            if (!errmess && !errtype) navigate("/main")
         } catch (error) {
             if (error.response && error.response.data.error) {
                 setErrmess(error.response.data.error);
+                setErrtype(error.response.data.type);
             } else {
                 setErrmess("Błąd logowania. Sprawdź swoje dane.");
             }
@@ -70,7 +73,7 @@ export const AuthProvider = ({ children }) => {
     );
 
     return (
-        <AuthContext.Provider value={{ isAuthenticated, user, loginUser, logoutUser, registerUser, errmess, setErrmess }}>
+        <AuthContext.Provider value={{ isAuthenticated, user, loginUser, logoutUser, registerUser, errmess, errtype, setErrtype, setErrmess }}>
             {children}
         </AuthContext.Provider>
     );

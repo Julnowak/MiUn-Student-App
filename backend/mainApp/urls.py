@@ -12,6 +12,7 @@ urlpatterns = [
     path('buildings/', views.BuildingsAllData.as_view(), name='buildings'),
     path('building/<str:building_name>', views.BuildingAPI.as_view(), name='building'),
     path('notifications/', views.NotificationsAPI.as_view(), name='notifications'),
+    path('sources/', views.SourceAPI.as_view(), name='sources'),
 
     # New verification endpoints
     path('request-verification/', views.RequestVerification.as_view(), name='request-verification'),

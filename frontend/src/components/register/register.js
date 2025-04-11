@@ -1,8 +1,9 @@
 import React, { useContext, useState } from 'react';
 import { Link } from "react-router-dom";
-import { Container, Button, Form, Card, Alert } from "react-bootstrap";
+import { Container, Form, Card, Alert } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../../AuthContext";
+import {Box, Button, TextField} from "@mui/material";
 
 const Register = () => {
     const { registerUser, errmess, setErrmess } = useContext(AuthContext);
@@ -32,43 +33,23 @@ const Register = () => {
                 {errmess && <Alert variant="danger" className="text-center">{errmess}</Alert>}
 
                 <Form onSubmit={submitRegistration}>
-                    <Form.Group className="mb-3" controlId="username">
-                        <Form.Label>Nazwa użytkownika</Form.Label>
-                        <Form.Control
-                            value={username}
-                            onChange={handleInputChange(setUsername)}
-                            type="text"
-                            placeholder="Wprowadź nazwę użytkownika"
-                        />
-                    </Form.Group>
-                    <Form.Group className="mb-3" controlId="email">
-                        <Form.Label>Email</Form.Label>
-                        <Form.Control
-                            value={email}
-                            onChange={handleInputChange(setEmail)}
-                            type="email"
-                            placeholder="Wprowadź email"
-                        />
-                    </Form.Group>
-                    <Form.Group className="mb-3" controlId="password">
-                        <Form.Label>Hasło</Form.Label>
-                        <Form.Control
-                            value={password}
-                            onChange={handleInputChange(setPassword)}
-                            type="password"
-                            placeholder="Wprowadź hasło"
-                        />
-                    </Form.Group>
-                    <Form.Group className="mb-3" controlId="password_second">
-                        <Form.Label>Powtórz hasło</Form.Label>
-                        <Form.Control
-                            value={passwordSecond}
-                            onChange={handleInputChange(setPasswordSecond)}
-                            type="password"
-                            placeholder="Wprowadź hasło"
-                        />
-                    </Form.Group>
-                    <Button variant="primary" type="submit" className="w-100">Zarejestruj się</Button>
+                    <Box className="mb-3" controlId="username">
+                        <TextField id="outlined-basic" type={"text"} onChange={handleInputChange(setUsername)} value={username} label="Nazwa użytkownika" variant="outlined" />
+                    </Box>
+
+                    <Box className="mb-3" controlId="email">
+                        <TextField id="outlined-basic" type={"email"} onChange={handleInputChange(setEmail)} value={email} label="Email" variant="outlined" />
+                    </Box>
+
+                    <Box className="mb-3" controlId="password">
+                        <TextField id="outlined-basic" type={"password"} onChange={handleInputChange(setPassword)} value={password} label="Hasło" variant="outlined" />
+                    </Box>
+
+                    <Box className="mb-3" controlId="password_second">
+                        <TextField id="outlined-basic" type={"password"} onChange={handleInputChange(setPasswordSecond)} value={passwordSecond} label="Potwierdź hasło" variant="outlined" />
+                    </Box>
+
+                    <Button variant="contained" type="submit">Zarejestruj się</Button>
                 </Form>
 
                 <p className="text-center mt-3">

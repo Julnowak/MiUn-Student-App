@@ -22,6 +22,8 @@ import Donations from "./components/donations/donations";
 import Exchange from "./components/exchange/exchange";
 import AddOffer from "./components/exchange/addOffer";
 import MyOffers from "./components/exchange/myOffers";
+import Groups from "./components/groups/groups";
+import Actualities from "./components/actualities/actualities";
 
 function App() {
     return (
@@ -54,6 +56,8 @@ function App() {
                         <Route path="/exchanges" element={<Exchange />} />
                         <Route path="/add-offer" element={<AddOffer />} />
                         <Route path="/my-offers" element={<MyOffers />} />
+                        <Route path="/groups" element={<Groups />} />
+                        <Route path="/actual-info" element={<Actualities />} />
 
                     </Routes>
                 </div>
