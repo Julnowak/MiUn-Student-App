@@ -4,6 +4,80 @@ import operator
 from excel_to_dict import excel_to_dict
 
 
+def calc_G(value: int) -> int:
+    if value >= 80:
+        return value + 100
+    elif value >= 60:
+        return value * 2 + abs(value-60)
+    elif value >= 30:
+        return value * 2 - abs(value-60)
+    else:
+        return value
+
+
+def calc_score(scores: dict) -> float:
+    """
+    Budowa scores:
+        - "M" - wynik z matury z matmy podstawowej
+        - "G1" - wynik z pierwszego rozszerzonego przedmiotu
+        - "G2" - wynik z drugiego rozszerzonego przedmiotu
+        - "formula" - wzór, taki sam dla każdego kierunku w postaci "2*M+3*G1+G2"
+    """
+    formula = scores["formula"]
+
+    if "G1" in scores.keys() and "G2" in scores.keys():
+        scores["G1"], scores["G2"] = calc_G(scores["G1"]), calc_G(scores["G2"])
+
+    for score_name, score_value in scores.items():
+        formula = formula.replace(score_name, str(score_value))
+
+    # Utworzenie bezpiecznego środowiska do ewaluacji
+    def safe_eval(expr):
+        # Pozwolone operatory
+        operators = {
+            ast.Add: operator.add,
+            ast.Sub: operator.sub,
+            ast.Mult: operator.mul,
+            ast.Div: operator.truediv,
+            ast.Pow: operator.pow,
+            ast.USub: operator.neg,  # Unary minus
+        }
+
+        def eval_node(node):
+            # Liczby
+            if isinstance(node, ast.Constant):
+                return node.value
+            # Operatory binarne (np. +, -, *, /)
+            elif isinstance(node, ast.BinOp):
+                left = eval_node(node.left)
+                right = eval_node(node.right)
+                for op_type, op_func in operators.items():
+                    if isinstance(node.op, op_type):
+                        return op_func(left, right)
+                else:
+                    raise TypeError(f"Nieobsługiwany operator: {type(node.op)}")
+            # Unary operators (np. -)
+            elif isinstance(node, ast.UnaryOp):
+                operand = eval_node(node.operand)
+                for op_type, op_func in operators.items():
+                    if isinstance(node.op, op_type):
+                        return op_func(operand)
+                else:
+                    raise TypeError(f"Nieobsługiwany operator unarny: {type(node.op)}")
+            else:
+                raise TypeError(f"Nieobsługiwany typ węzła: {node}")
+
+        return eval_node(ast.parse(expr, mode="eval").body)
+
+        # Oblicz wynik
+    try:
+        result = safe_eval(formula)
+        print(f"Oblicozna ilość punktów to: {result}")
+        return result
+    except Exception as e:
+        raise ValueError(f"Błąd obliczania formuły '{formula}': {str(e)}")
+
+
 def calc_score_for_course(scores: dict) -> int:
     course = search_course_data(data_dict)
     if "formula" not in course.keys():
@@ -125,5 +199,12 @@ def search_course_data(data_dict, course_name="Automatyka i Robotyka") -> dict:
 
 # Przykład użycia
 if __name__ == "__main__":
-    data_dict = excel_to_dict()
-    calc_score_for_course(scores={"G1": 100, "G2": 100})
+    # data_dict = excel_to_dict()
+    # calc_score_for_course(scores={"G1": 100, "G2": 100})
+
+    calc_score(scores={
+        "M": 100,
+        "G1": 94,
+        "G2": 94,
+        "formula": "2*M+3*G1+G2"
+    })
