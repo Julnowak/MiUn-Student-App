@@ -16,6 +16,7 @@ from mainApp.serializers import UserRegisterSerializer, UserSerializer, Building
     SourceSerializer
 
 from .utils import send_verification_email
+from .calc_score import calc_score
 
 UserModel = get_user_model()
 
