@@ -2,11 +2,24 @@ import {useCallback, useEffect, useState} from "react";
 import {Container, Card, Form, Modal} from "react-bootstrap";
 import client from "../../client";
 import {API_BASE_URL} from "../../config";
-import {FaEdit} from "react-icons/fa";
+import {FaCheckCircle, FaCoffee, FaEdit, FaExclamationTriangle} from "react-icons/fa";
 import Cropper from "react-easy-crop";
 import "./userProfile.css"
 import {useNavigate} from "react-router-dom";
 import {Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle} from "@mui/material";
+
+import {
+    Box,
+    Divider,
+    Grid,
+    IconButton,
+    Paper,
+    styled,
+    TextField,
+    Typography,
+    useTheme
+} from "@mui/material";
+import "./userProfile.css";
 
 // Utility function to crop image (to be implemented)
 async function getCroppedImg(imageSrc, croppedAreaPixels) {
@@ -43,7 +56,46 @@ async function getCroppedImg(imageSrc, croppedAreaPixels) {
 }
 
 
+const StyledPaper = styled(Paper)(({theme}) => ({
+    padding: theme.spacing(4),
+    borderRadius: theme.shape.borderRadius * 2,
+    boxShadow: theme.shadows[4],
+    background: `linear-gradient(145deg, ${theme.palette.background.default}, ${theme.palette.background.paper})`,
+}));
+
+const ProfileImageWrapper = styled("div")(({theme}) => ({
+    position: "relative",
+    width: 188,
+    height: 188,
+    margin: "0 auto",
+    borderRadius: "50%",
+    transition: "transform 0.3s ease",
+    "&:hover": {
+        transform: "scale(1.05)",
+        "& .edit-overlay": {
+            opacity: 1,
+        },
+    },
+}));
+
+const EditOverlay = styled("div")(({theme}) => ({
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: "50%",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    opacity: 0,
+    transition: "opacity 0.3s ease",
+    cursor: "pointer",
+}));
+
 export default function UserProfile() {
+    const theme = useTheme();
     const [user, setUser] = useState({});
     const [isEditing, setIsEditing] = useState(false);
     const [hover, setHover] = useState(false);
@@ -155,275 +207,265 @@ export default function UserProfile() {
     const [open, setOpen] = useState(false);
 
     const handleClickOpen = () => {
-    setOpen(true);
+        setOpen(true);
     };
 
     const handleClose = () => {
-    setOpen(false);
+        setOpen(false);
     };
 
 
     return (
-        <div style={{maxWidth: 1000, margin: "auto", color: "black", marginTop: 120}}>
-            <div className={"grid-container"} style={{backgroundColor: "#c1c1c1", margin: 20, borderRadius: 20}}>
-                <div className={"item1"} style={{maxWidth: 1000, padding: 20, height: 150}}>
-                    <div
-                        onMouseEnter={() => setHover(true)}
-                        onMouseLeave={() => setHover(false)}
-                        style={{
-                            left: "0",
-                            top: "50%",
-                            width: 188,
-                            margin: "auto",
-                            transform: "translateY(-60%)",
-                            cursor: "pointer",
-                        }}
-                    >
-                        <img
-                            src={croppedImage
-                                ? croppedImage
-                                : user?.profile_picture
-                                    ? user?.profile_picture.toString().slice(15)
-                                    : "/images/basic/user_no_picture.png"}
-                            alt="Profil"
-                            className="rounded-circle"
-                            width="188"
-                            height="188"
-                            style={{filter: hover ? "brightness(1.2)" : "brightness(1)"}}
-                        />
-
-                        {hover && (
-                            <>
-                                <div
-                                    style={{
-                                        position: "absolute",
-                                        top: "50%",
-                                        left: "50%",
-                                        transform: "translate(-50%, -50%)",
-                                        background: "rgba(255,255,255,0.41)",
-                                        padding: 74,
-                                        borderRadius: 188,
-                                        cursor: "pointer",
-                                    }}
-                                    onClick={() => document.getElementById("fileInput").click()}
-                                ><FaEdit style={{width: 40, height: 40}} color={"black"}/></div>
-                                <input
-                                    id="fileInput"
-                                    type="file"
-                                    accept="image/png, image/jpeg"
-                                    style={{display: "none"}}
-                                    onChange={handleImageUpload}
-                                />
-                            </>
-                        )}
-
-                        <h3 style={{
-                            position: "absolute", margin: "auto", top: "100%", transform: "translate(-50%, 50%)",
-                            left: "50%", cursor: "pointer",
-                        }}>{user?.username}</h3>
-
-                    </div>
-                </div>
-
-
-                <div className="button-section"
-                     style={{gridColumn: "span 2", color: "black", width: "100%", textAlign: "center", margin: "auto", backgroundColor: "rgba(248,248,248,0.52)", borderRadius: 20}}>
-                    {user?.is_verified?
-                    <div>
-                        <h6>Konto zweryfikowane</h6>
-                    </div>
-                        :
-                    <div style={{margin: 20}}>
-                        <h6>Konto niezweryfikowane</h6>
-                        <p>
-                            Musisz zweryfikować swoje konto przy użycia e-maila uczelnianego, aby mieć dostęp do wszystkich funkcji aplikacji.
-                        </p>
-                        <Button variant={"contained"}>Zweryfikuj</Button>
-                    </div>}
-
-
-                </div>
-
-                {/* User Info */}
-
-                <div
-                    style={{
-                        backgroundColor: "rgba(255,255,255,0.41)",
-                        borderRadius: 20,
-                        padding: 20,
-                    }}
-                >
-                    <Form>
-                        <Form.Group className="mb-3 d-flex align-items-center">
-                            <Form.Label style={{width: "150px", marginRight: "10px"}}>Imię</Form.Label>
-                            <Form.Control
-                                type="text"
-                                name="firstName"
-                                value={user?.name}
-                                onChange={handleChange}
-                                disabled={!isEditing}
+        <Box sx={{maxWidth: 800, margin: "0 auto", p: 3}}>
+            <StyledPaper elevation={3}>
+                <Grid container spacing={4}>
+                    {/* Profile Image Section */}
+                    <Grid item xs={12} md={4} sx={{display: "flex", flexDirection: "column", alignItems: "center"}}>
+                        <ProfileImageWrapper
+                            onMouseEnter={() => setHover(true)}
+                            onMouseLeave={() => setHover(false)}
+                            onClick={() => document.getElementById("fileInput").click()}
+                        >
+                            <img
+                                src={croppedImage || user?.profile_picture?.toString().slice(15) || "/images/basic/user_no_picture.png"}
+                                alt="Profil"
+                                style={{
+                                    width: "100%",
+                                    height: "100%",
+                                    borderRadius: "50%",
+                                    objectFit: "cover",
+                                }}
                             />
-                        </Form.Group>
-
-                        <Form.Group className="mb-3 d-flex align-items-center">
-                            <Form.Label style={{width: "150px", marginRight: "10px"}}>Nazwisko</Form.Label>
-                            <Form.Control
-                                type="text"
-                                name="lastName"
-                                value={user?.surname}
-                                onChange={handleChange}
-                                disabled={!isEditing}
+                            <EditOverlay className="edit-overlay">
+                                <FaEdit size={32} color={theme.palette.common.white}/>
+                            </EditOverlay>
+                            <input
+                                id="fileInput"
+                                type="file"
+                                accept="image/png, image/jpeg"
+                                style={{display: "none"}}
+                                onChange={handleImageUpload}
                             />
-                        </Form.Group>
+                        </ProfileImageWrapper>
 
-                        <Form.Group className="mb-3 d-flex align-items-center">
-                            <Form.Label style={{width: "150px", marginRight: "10px"}}>Email</Form.Label>
-                            <Form.Control
-                                type="email" name="email"
-                                value={user?.email}
-                                onChange={handleChange}
-                                disabled={!isEditing}
-                            />
-                        </Form.Group>
+                        <Typography variant="h5" sx={{mt: 2, fontWeight: 600}}>
+                            {user?.username}
+                        </Typography>
 
-                        <Form.Group className="mb-3 d-flex align-items-center">
-                            <Form.Label style={{width: "150px", marginRight: "10px"}}>Adres</Form.Label>
-                            <Form.Control
-                                type="text"
-                                name="address"
-                                value={user?.address}
-                                onChange={handleChange}
-                                disabled={!isEditing}
-                            />
-                        </Form.Group>
-                    </Form>
-                </div>
-
-
-                <div
-                    style={{
-                        backgroundColor: "rgba(255,255,255,0.41)",
-                        borderRadius: 20,
-                        padding: 20,
-                    }}
-                >
-                    <Form.Group className="mb-3 d-flex align-items-center">
-                            <Form.Label style={{width: "150px", marginRight: "10px"}}>Wydział</Form.Label>
-                        <Form.Select
-                            name="faculty"
-                            value="EAIIB"
-                        />
-                    </Form.Group>
-
-                    <Form.Group className="mb-3 d-flex align-items-center">
-                            <Form.Label style={{width: "150px", marginRight: "10px"}}>Kierunek</Form.Label>
-                        <Form.Select
-                            name="field"
-                            value="AiR"
-                        />
-                    </Form.Group>
-
-                    <Form.Group className="mb-3 d-flex align-items-center">
-                            <Form.Label style={{width: "150px", marginRight: "10px"}}>Email uczelniany</Form.Label>
-                        <Form.Control
-                            name="student-email"
-                            value="student@aaa.edu.pl"
-                        />
-                    </Form.Group>
-                </div>
-
-                {/* Button Section (Merged Row) */}
-                <div className="button-section"
-                     style={{gridColumn: "span 2", textAlign: "center", width: 200, margin: "auto"}}>
-                    <Button style={{width: 200}} variant={"contained"}onClick={() => setIsEditing(!isEditing)}>
-                        {isEditing ? "Zapisz zmiany" : "Edytuj"}
-                    </Button>
-                </div>
-
-                {/* Crop Modal */}
-                <Modal show={showCropModal} onHide={() => setShowCropModal(false)} centered>
-                    <Modal.Header closeButton>
-                        <Modal.Title>Przytnij zdjęcie</Modal.Title>
-                    </Modal.Header>
-                    <Modal.Body>
-                        <div style={{position: "relative", height: 300, background: "#333"}}>
-                            {imageSrc && (
-                                <Cropper
-                                    image={imageSrc}
-                                    crop={crop}
-                                    zoom={zoom}
-                                    aspect={1}
-                                    onCropChange={setCrop}
-                                    onZoomChange={setZoom}
-                                    onCropComplete={onCropComplete}
-                                    cropShape="round"
-                                    showGrid={false}
-                                />
+                        {/* Verification Status */}
+                        <Box sx={{
+                            mt: 2,
+                            p: 2,
+                            width: "100%",
+                            borderRadius: theme.shape.borderRadius,
+                            bgcolor: user?.is_verified ? "success.light" : "warning.light",
+                            textAlign: "center"
+                        }}>
+                            {user?.is_verified ? (
+                                <>
+                                    <FaCheckCircle size={24} color={theme.palette.success.main}/>
+                                    <Typography variant="body2" sx={{mt: 1, color: "success.dark"}}>
+                                        Konto zweryfikowane
+                                    </Typography>
+                                </>
+                            ) : (
+                                <>
+                                    <FaExclamationTriangle size={24} color={theme.palette.warning.main}/>
+                                    <Typography variant="body2" sx={{mt: 1, color: "warning.dark"}}>
+                                        Wymagana weryfikacja
+                                    </Typography>
+                                    <Button
+                                        variant="contained"
+                                        size="small"
+                                        sx={{mt: 1, borderRadius: "20px"}}
+                                    >
+                                        Zweryfikuj konto
+                                    </Button>
+                                </>
                             )}
-                        </div>
-                    </Modal.Body>
-                    <Modal.Footer>
-                        <Button variant={"contained"} onClick={() => setShowCropModal(false)}>Anuluj</Button>
-                        <Button variant={"contained"} onClick={handleCropSave}>Zapisz</Button>
-                    </Modal.Footer>
-                </Modal>
+                        </Box>
+                    </Grid>
 
-            </div>
+                    {/* User Info Section */}
+                    <Grid item xs={12} md={8}>
+                        <Grid container spacing={3}>
+                            <Grid item xs={12}>
+                                <Typography variant="h6" gutterBottom sx={{fontWeight: 600}}>
+                                    Dane osobowe
+                                </Typography>
+                                <Divider sx={{mb: 2}}/>
+                                <Grid container spacing={2}>
+                                    <Grid item xs={12} sm={6}>
+                                        <TextField
+                                            fullWidth
+                                            label="Imię"
+                                            name="firstName"
+                                            value={user?.name || ""}
+                                            onChange={handleChange}
+                                            disabled={!isEditing}
+                                            variant="filled"
+                                        />
+                                    </Grid>
+                                    <Grid item xs={12} sm={6}>
+                                        <TextField
+                                            fullWidth
+                                            label="Nazwisko"
+                                            name="lastName"
+                                            value={user?.surname || ""}
+                                            onChange={handleChange}
+                                            disabled={!isEditing}
+                                            variant="filled"
+                                        />
+                                    </Grid>
+                                    <Grid item xs={12}>
+                                        <TextField
+                                            fullWidth
+                                            label="Email"
+                                            name="email"
+                                            value={user?.email || ""}
+                                            onChange={handleChange}
+                                            disabled={!isEditing}
+                                            variant="filled"
+                                        />
+                                    </Grid>
+                                </Grid>
+                            </Grid>
 
-            <div style={{margin: 20, padding: 10, borderRadius: 20, backgroundImage: "url(/images/basic/coffee.jpg)"}}>
-                <div style={{borderRadius: 20, margin: 20, padding: 20, backgroundColor: "rgba(255,214,193,0.89)",}}>
-                    <h3>
-                        Kawka
-                    </h3>
+                            <Grid item xs={12}>
+                                <Typography variant="h6" gutterBottom sx={{fontWeight: 600}}>
+                                    Informacje uczelniane
+                                </Typography>
+                                <Divider sx={{mb: 2}}/>
+                                <Grid container spacing={2}>
+                                    <Grid item xs={12} sm={6}>
+                                        <TextField
+                                            fullWidth
+                                            label="Wydział"
+                                            value="EAIIB"
+                                            variant="filled"
+                                            disabled
+                                        />
+                                    </Grid>
+                                    <Grid item xs={12} sm={6}>
+                                        <TextField
+                                            fullWidth
+                                            label="Kierunek"
+                                            value="AiR"
+                                            variant="filled"
+                                            disabled
+                                        />
+                                    </Grid>
+                                    <Grid item xs={12}>
+                                        <TextField
+                                            fullWidth
+                                            label="Email uczelniany"
+                                            value="student@aaa.edu.pl"
+                                            variant="filled"
+                                            disabled
+                                        />
+                                    </Grid>
+                                </Grid>
+                            </Grid>
+                        </Grid>
 
+                        {/* Action Buttons */}
+                        <Box sx={{mt: 4, display: "flex", gap: 2, justifyContent: "flex-end"}}>
+                            <Button
+                                variant={isEditing ? "contained" : "outlined"}
+                                color={isEditing ? "success" : "primary"}
+                                onClick={() => setIsEditing(!isEditing)}
+                                sx={{borderRadius: "20px", px: 4}}
+                            >
+                                {isEditing ? "Zapisz zmiany" : "Edytuj profil"}
+                            </Button>
+                        </Box>
+                    </Grid>
+                </Grid>
+            </StyledPaper>
 
-                    <div>
-                        <svg style={{margin: "10px"}} xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor"
-                             className="bi bi-cup-hot-fill" viewBox="0 0 16 16">
-                            <path fill-rule="evenodd"
-                                  d="M.5 6a.5.5 0 0 0-.488.608l1.652 7.434A2.5 2.5 0 0 0 4.104 16h5.792a2.5 2.5 0 0 0 2.44-1.958l.131-.59a3 3 0 0 0 1.3-5.854l.221-.99A.5.5 0 0 0 13.5 6zM13 12.5a2 2 0 0 1-.316-.025l.867-3.898A2.001 2.001 0 0 1 13 12.5"/>
-                            <path
-                                d="m4.4.8-.003.004-.014.019a4 4 0 0 0-.204.31 2 2 0 0 0-.141.267c-.026.06-.034.092-.037.103v.004a.6.6 0 0 0 .091.248c.075.133.178.272.308.445l.01.012c.118.158.26.347.37.543.112.2.22.455.22.745 0 .188-.065.368-.119.494a3 3 0 0 1-.202.388 5 5 0 0 1-.253.382l-.018.025-.005.008-.002.002A.5.5 0 0 1 3.6 4.2l.003-.004.014-.019a4 4 0 0 0 .204-.31 2 2 0 0 0 .141-.267c.026-.06.034-.092.037-.103a.6.6 0 0 0-.09-.252A4 4 0 0 0 3.6 2.8l-.01-.012a5 5 0 0 1-.37-.543A1.53 1.53 0 0 1 3 1.5c0-.188.065-.368.119-.494.059-.138.134-.274.202-.388a6 6 0 0 1 .253-.382l.025-.035A.5.5 0 0 1 4.4.8m3 0-.003.004-.014.019a4 4 0 0 0-.204.31 2 2 0 0 0-.141.267c-.026.06-.034.092-.037.103v.004a.6.6 0 0 0 .091.248c.075.133.178.272.308.445l.01.012c.118.158.26.347.37.543.112.2.22.455.22.745 0 .188-.065.368-.119.494a3 3 0 0 1-.202.388 5 5 0 0 1-.253.382l-.018.025-.005.008-.002.002A.5.5 0 0 1 6.6 4.2l.003-.004.014-.019a4 4 0 0 0 .204-.31 2 2 0 0 0 .141-.267c.026-.06.034-.092.037-.103a.6.6 0 0 0-.09-.252A4 4 0 0 0 6.6 2.8l-.01-.012a5 5 0 0 1-.37-.543A1.53 1.53 0 0 1 6 1.5c0-.188.065-.368.119-.494.059-.138.134-.274.202-.388a6 6 0 0 1 .253-.382l.025-.035A.5.5 0 0 1 7.4.8m3 0-.003.004-.014.019a4 4 0 0 0-.204.31 2 2 0 0 0-.141.267c-.026.06-.034.092-.037.103v.004a.6.6 0 0 0 .091.248c.075.133.178.272.308.445l.01.012c.118.158.26.347.37.543.112.2.22.455.22.745 0 .188-.065.368-.119.494a3 3 0 0 1-.202.388 5 5 0 0 1-.252.382l-.019.025-.005.008-.002.002A.5.5 0 0 1 9.6 4.2l.003-.004.014-.019a4 4 0 0 0 .204-.31 2 2 0 0 0 .141-.267c.026-.06.034-.092.037-.103a.6.6 0 0 0-.09-.252A4 4 0 0 0 9.6 2.8l-.01-.012a5 5 0 0 1-.37-.543A1.53 1.53 0 0 1 9 1.5c0-.188.065-.368.119-.494.059-.138.134-.274.202-.388a6 6 0 0 1 .253-.382l.025-.035A.5.5 0 0 1 10.4.8"/>
-                        </svg>
+            {/* Additional Sections */}
+            <Box sx={{mt: 4, display: "flex", gap: 4, flexDirection: {xs: "column", md: "row"}}}>
+                <StyledPaper sx={{flex: 1, background: theme.palette.primary.light}}>
+                    <Box sx={{textAlign: "center"}}>
+                        <Typography variant="h6" gutterBottom sx={{fontWeight: 600}}>
+                            Wesprzyj naszą platformę
+                        </Typography>
+                        <Button
+                            variant="contained"
+                            color="secondary"
+                            startIcon={<FaCoffee/>}
+                            sx={{borderRadius: "20px", px: 4}}
+                        >
+                            Postaw kawę
+                        </Button>
+                    </Box>
+                </StyledPaper>
 
-                        <p style={{margin: "20px"}}>
-                            Jeżeli podoba Ci się to, co robimy - postaw nam kawę :)
-                        </p>
-                    </div>
-
-                    <Button variant={"contained"} style={{maxWidth: 200}}>Postaw
-                        kawę</Button>
-                </div>
-            </div>
-
-            <div style={{borderRadius: 20, color: "white", padding: 20, backgroundColor: "rgb(42,41,41)", margin: 20}}>
-
-                  <Button variant="outlined" onClick={handleClickOpen}>
-                    Usuń konto
-                  </Button>
-                    <Dialog
-                    open={open}
-                    onClose={handleClose}
-                    aria-labelledby="alert-dialog-title"
-                    aria-describedby="alert-dialog-description"
+                <StyledPaper sx={{flex: 1, bgcolor: "error.light"}}>
+                    <Typography variant="h6" gutterBottom sx={{fontWeight: 600}}>
+                        Niebezpieczna strefa
+                    </Typography>
+                    <Button
+                        variant="outlined"
+                        color="error"
+                        onClick={handleClickOpen}
+                        sx={{borderRadius: "20px"}}
                     >
-                    <DialogTitle id="alert-dialog-title">
-                      {"Czy na pewno chcesz usunąć konto?"}
-                    </DialogTitle>
-                    <DialogContent>
-                      <DialogContentText id="alert-dialog-description">
+                        Usuń konto
+                    </Button>
+                </StyledPaper>
+            </Box>
+
+            {/* Crop Modal */}
+            <Modal show={showCropModal} onHide={() => setShowCropModal(false)} centered>
+                <Modal.Header closeButton>
+                    <Modal.Title>Przytnij zdjęcie</Modal.Title>
+                </Modal.Header>
+                <Modal.Body>
+                    <div style={{position: "relative", height: 300, background: "#333"}}>
+                        {imageSrc && (
+                            <Cropper
+                                image={imageSrc}
+                                crop={crop}
+                                zoom={zoom}
+                                aspect={1}
+                                onCropChange={setCrop}
+                                onZoomChange={setZoom}
+                                onCropComplete={onCropComplete}
+                                cropShape="round"
+                                showGrid={false}
+                            />
+                        )}
+                    </div>
+                </Modal.Body>
+                <Modal.Footer>
+                    <Button variant={"contained"} onClick={() => setShowCropModal(false)}>Anuluj</Button>
+                    <Button variant={"contained"} onClick={handleCropSave}>Zapisz</Button>
+                </Modal.Footer>
+            </Modal>
+
+            <Dialog
+                open={open}
+                onClose={handleClose}
+                aria-labelledby="alert-dialog-title"
+                aria-describedby="alert-dialog-description"
+            >
+                <DialogTitle id="alert-dialog-title">
+                    {"Czy na pewno chcesz usunąć konto?"}
+                </DialogTitle>
+                <DialogContent>
+                    <DialogContentText id="alert-dialog-description">
                         Operacja jest nieodwracalna, a wszystkie
                         Twoje dane zostaną usunięte! Czy chcesz kontynuować?
-                      </DialogContentText>
-                    </DialogContent>
-                    <DialogActions>
-                      <Button onClick={handleClose}>Anuluj</Button>
-                      <Button variant={"contained"}  onClick={handleDeleteAccount} autoFocus>
+                    </DialogContentText>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={handleClose}>Anuluj</Button>
+                    <Button variant={"contained"} onClick={handleDeleteAccount} autoFocus>
                         Usuń konto
-                      </Button>
-                    </DialogActions>
-                    </Dialog>
-            </div>
-        </div>
+                    </Button>
+                </DialogActions>
+            </Dialog>
+        </Box>
     );
 }

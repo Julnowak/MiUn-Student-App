@@ -19,7 +19,7 @@ const CustomNavbar = () => {
     const image_set = localStorage.getItem("image_set")
     let flag = false;
     const [isSmallScreen, setIsSmallScreen] = useState(false);
-
+    const [num, setNum] = useState(0);
 
 useEffect(() => {
     const handleResize = () => {
@@ -42,7 +42,7 @@ useEffect(() => {
                         Authorization: `Bearer ${token}`,
                     },
                 });
-                if (response.data.profile_picture){
+                if (response.data.profile_picture) {
                     setImage(response.data.profile_picture.toString().slice(15));
                     localStorage.setItem(response.data.profile_picture.toString().slice(15));
                 }
@@ -54,9 +54,21 @@ useEffect(() => {
             } catch (error) {
                 console.log("Nie udało się zalogować");
             }
+             try {
+                const response = await client.get(API_BASE_URL + "notifications/", {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                });
+                setNum(response.data.num);
+                console.log("Zalogowano");
+                console.log(response.data);
+            } catch (error) {
+                console.log("Nie udało się zalogować");
+            }
         };
 
-        if (!flag){
+        if (!flag) {
             if (token && !image_set) {
                 fetchUserData();
             }
@@ -65,8 +77,6 @@ useEffect(() => {
             }
             flag = true;
         }
-
-
     }, [image, image_set, token]);
 
     return (
@@ -119,7 +129,7 @@ useEffect(() => {
 
                                     <Nav.Link href="/learning" className="text-white">Nauka</Nav.Link>
                                     <Nav.Link href="/notifications" className="text-white">
-                                        <Badge badgeContent={4} color="primary">
+                                        <Badge badgeContent={num} color="primary">
                                           <CircleNotificationsRoundedIcon/>
                                         </Badge>
                                     </Nav.Link>

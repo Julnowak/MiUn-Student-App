@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import {
     Autocomplete,
     Box,
@@ -13,7 +13,7 @@ import {
     TextField,
     Typography,
     Paper,
-    Stack, Grid,
+    Stack, Grid, FormHelperText, Stepper, Step, StepLabel,
 } from '@mui/material';
 
 import {
@@ -33,6 +33,10 @@ import {
     IconButton,
 } from '@mui/material';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
+import client from "../../client";
+import {API_BASE_URL} from "../../config";
+import {all} from "axios";
+import GeminiPrompt from "../geminiPrompt/geminiPrompt";
 
 ChartJS.register(
     LineElement,
@@ -45,14 +49,7 @@ ChartJS.register(
     zoomPlugin
 );
 
-const kierunki = [
-    {label: 'Informatyka', g1: ['Matematyka', 'Fizyka'], g2: ['Informatyka', 'Język angielski']},
-    {label: 'Biotechnologia', g1: ['Biologia', 'Chemia'], g2: ['Matematyka', 'Fizyka']},
-];
 
-const wszystkiePrzedmioty = [
-    'Matematyka', 'Fizyka', 'Informatyka', 'Język angielski', 'Biologia', 'Chemia', 'Geografia', 'Historia'
-];
 
 const ProgiPunktowe = () => {
     const [selectedTab, setSelectedTab] = useState(0);
@@ -62,14 +59,19 @@ const ProgiPunktowe = () => {
     const [g2, setG2] = useState('');
     const [g1Score, setG1Score] = useState(0);
     const [g2Score, setG2Score] = useState(0);
-    const [allSubjects, setAllSubjects] = useState({});
+    const [mScore, setMScore] = useState(0);
+    const [val, setVal] = useState(0);
     const [results, setResults] = useState([]);
+    const [fields, setFields] = useState([]);
+    const [allSubjects, setAllSubjects] = useState([]);
+    const [allScores, setAllScores] = useState([]);
+
 
     const handleTabChange = (_, newValue) => setSelectedTab(newValue);
 
-    const handleCalculate = () => {
+    const handleCalculate = async () => {
         if (trybWszystkie) {
-            const wyniki = kierunki.map((kierunek) => {
+            const wyniki = fields.map((kierunek) => {
                 const score = kierunek.g1.concat(kierunek.g2).reduce((acc, subj) => {
                     return acc + (allSubjects[subj] || 0);
                 }, 0);
@@ -78,6 +80,24 @@ const ProgiPunktowe = () => {
             setResults(wyniki);
             setSelectedTab(1);
         } else {
+
+            try {
+                const response = await client.post(API_BASE_URL + "calculation/", {
+                        "G1": g1Score,
+                        "G2": g2Score,
+                        "M": mScore
+                    },
+                    {
+                        headers: {
+                            Authorization: `Bearer ${token}`,
+                        },
+                    });
+                console.log(response.data.score)
+                setVal(response.data.score)
+            } catch (error) {
+                console.error("Błąd pobierania danych:", error);
+            }
+
             if (selectedKierunek) {
                 const score = parseInt(g1Score) + parseInt(g2Score);
                 setResults([{kierunek: selectedKierunek.label, score}]);
@@ -86,11 +106,43 @@ const ProgiPunktowe = () => {
         }
     };
 
-    const filteredG2Subjects = selectedKierunek ? selectedKierunek.g2.filter(subj => subj !== g1) : [];
+    const token = localStorage.getItem("access");
+    const fetchData = async () => {
+        try {
+            const response = await client.get(API_BASE_URL + "fields/", {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+            console.log(response.data)
+            setFields(response.data);
+        } catch (error) {
+            console.error("Błąd pobierania danych:", error);
+        }
+
+        try {
+            const response = await client.get(API_BASE_URL + "maturasubjects/", {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+            console.log(response.data)
+            setAllSubjects(response.data);
+        } catch (error) {
+            console.error("Błąd pobierania danych:", error);
+        }
+    };
+
+
+    useEffect(() => {
+        if (fields.length < 1) {
+            fetchData();
+        }
+    }, [fields.length, fetchData]);
 
     const theme = useTheme();
     const chartRef = React.useRef(null);
-
+    const [activeStep, setActiveStep] = useState(0);
     const labels = ['2021', '2022', '2023', '2024', '2025'];
 
     const data = {
@@ -148,7 +200,7 @@ const ProgiPunktowe = () => {
             },
             {
                 label: 'Użytkownik',
-                data: [null, null, null, 91, null],
+                data: [null, null, null, val, null],
                 borderColor: theme.palette.error.dark,
                 backgroundColor: theme.palette.error.dark,
                 pointRadius: 7,
@@ -207,6 +259,33 @@ const ProgiPunktowe = () => {
         }
     };
 
+
+// Filtruj przedmioty G2, aby wykluczyć wybrany w G1
+    const availableG2Subjects = selectedKierunek?.G2_subject?.filter(
+        subject => subject.id !== g1
+    ) || [];
+
+// Filtruj przedmioty G1, aby wykluczyć wybrany w G2
+    const availableG1Subjects = selectedKierunek?.G1_subject?.filter(
+        subject => subject.id !== g2
+    ) || [];
+
+    const handleG1Change = (e) => {
+        setG1(e.target.value);
+        // Jeśli nowo wybrany przedmiot w G1 był wybrany w G2, wyczyść G2
+        if (e.target.value === g2) {
+            setG2('');
+        }
+    };
+
+    const handleG2Change = (e) => {
+        setG2(e.target.value);
+        // Jeśli nowo wybrany przedmiot w G2 był wybrany w G1, wyczyść G1
+        if (e.target.value === g1) {
+            setG1('');
+        }
+    };
+
     return (
         <Container sx={{mt: 4}}>
             <Typography variant="h4" gutterBottom align="center">Rekrutacja</Typography>
@@ -220,29 +299,192 @@ const ProgiPunktowe = () => {
                      label="Wszystkie kierunki"/>
             </Tabs>
 
-            {!trybWszystkie ? (
+            {trybWszystkie ? (
+   <Box sx={{ margin: 3 }}>
+    <Stepper activeStep={activeStep} alternativeLabel sx={{ mb: 4 }}>
+      {['Przedmioty', 'Zainteresowania', 'Wynik'].map((label) => (
+        <Step key={label}>
+          <StepLabel>{label}</StepLabel>
+        </Step>
+      ))}
+    </Stepper>
+
+    {activeStep === 0 && (
+      <Grid container spacing={3}>
+        <Grid item xs={12}>
+          <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, color: 'primary.main' }}>
+            Wprowadź swoje wyniki maturalne
+          </Typography>
+        </Grid>
+
+        {['PD', 'ROZ'].map((level) => (
+          <Grid item xs={12} md={6} key={level}>
+            <Paper sx={{ p: 3, borderRadius: 4, boxShadow: 3 }}>
+              <Typography variant="subtitle1" sx={{ mb: 2, color: 'text.secondary' }}>
+                Poziom {level === 'PD' ? 'podstawowy' : 'rozszerzony'}
+              </Typography>
+
+              {allSubjects.filter(subject => subject.level === level).map((subject) => (
+                <Box key={subject.id} sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  mb: 2,
+                  p: 2,
+                  borderRadius: 2,
+                  '&:hover': { bgcolor: 'action.hover' }
+                }}>
+                  <Typography sx={{ flexGrow: 1, mr: 2 }}>
+                    {subject.name}
+                  </Typography>
+                    <TextField
+                      type="number"
+                      variant="outlined"
+                      size="small"
+                      value={allScores[subject.id] || ''}
+                      onChange={(e) => setAllScores({
+                        ...allScores,
+                        [subject.id]: Math.max(0, Math.min(100, parseInt(e.target.value) || 0))
+                      })}
+                      inputProps={{
+                        min: 0,
+                        max: 100,
+                        style: { textAlign: 'center' }
+                      }}
+                      sx={{ width: 100 }}
+                    />
+                </Box>
+              ))}
+            </Paper>
+          </Grid>
+        ))}
+      </Grid>
+    )}
+
+    {activeStep === 1 && (
+      <Box sx={{
+        textAlign: 'center',
+        p: 4,
+        border: '2px dashed',
+        borderColor: 'divider',
+        borderRadius: 4
+      }}>
+        <GeminiPrompt />
+      </Box>
+    )}
+
+    {activeStep === 2 && (
+      <Paper sx={{ p: 4, borderRadius: 4, bgcolor: 'background.paper' }}>
+        <Typography variant="h5" sx={{ mb: 2, fontWeight: 600 }}>
+          Twój wynik rekrutacyjny
+        </Typography>
+        <Box sx={{
+          display: 'inline-block',
+          p: 3,
+          borderRadius: 4,
+          bgcolor: 'primary.light',
+          color: 'primary.contrastText'
+        }}>
+          <Typography variant="h3">
+            {val} punktów
+          </Typography>
+        </Box>
+      </Paper>
+    )}
+
+    <Box sx={{
+      display: 'flex',
+      justifyContent: 'space-between',
+      mt: 4,
+      gap: 2
+    }}>
+      <Button
+        variant="outlined"
+        disabled={activeStep === 0}
+        onClick={() => setActiveStep(s => s - 1)}
+      >
+        Wstecz
+      </Button>
+
+      {activeStep < 2 ? (
+        <Button
+          variant="contained"
+          onClick={() => setActiveStep(s => s + 1)}
+        >
+          {activeStep === 1 ? 'Oblicz' : 'Dalej'}
+        </Button>
+      ) : (
+        <Button
+          variant="contained"
+          onClick={() => setActiveStep(0)}
+        >
+          Nowe obliczenia
+        </Button>
+      )}
+    </Box>
+  </Box>
+            ) : (
                 <Box margin={2}>
                     <Autocomplete
-                        options={kierunki}
-                        getOptionLabel={(option) => option.label}
+                        options={fields}
+                        getOptionLabel={(option) => option.name || ''}
+                        isOptionEqualToValue={(option, value) => option.id === value.id}
+                        getOptionKey={(option) => option.id}  // Explicitly specify unique key
                         onChange={(_, value) => {
                             setSelectedKierunek(value);
+                            console.log(value);
                             setG1('');
                             setG2('');
                         }}
                         renderInput={(params) => <TextField {...params} label="Kierunek studiów"/>}
                         sx={{mb: 2}}
                     />
-
                     {selectedKierunek && (
                         <>
                             <Grid container spacing={2} alignItems="center" mb={2}>
                                 <Grid item xs={6}>
                                     <FormControl fullWidth sx={{mb: 2}}>
+                                        <InputLabel id="demo-simple-select-readonly-label">M</InputLabel>
+                                        <Select
+                                            labelId="demo-simple-select-readonly-label"
+                                            id="demo-simple-select-readonly"
+                                            value={"10"}
+                                            label="M"
+                                            inputProps={{readOnly: true}}
+                                        >
+                                            <MenuItem value="10">
+                                                Matematyka podstawowa
+                                            </MenuItem>
+                                        </Select>
+                                    </FormControl>
+                                </Grid>
+
+                                <Grid item xs={6}>
+                                    <TextField
+                                        fullWidth
+                                        type="number"
+                                        label="Wynik M"
+                                        value={mScore}
+                                        onChange={(e) => setMScore(e.target.value)}
+                                        sx={{mb: 2}}
+                                        inputProps={{min: 0, max: 100}}
+                                    />
+
+                                </Grid>
+                            </Grid>
+
+                            <Grid container spacing={2} alignItems="center" mb={2}>
+                                <Grid item xs={6}>
+                                    <FormControl fullWidth sx={{mb: 2}}>
                                         <InputLabel>G1</InputLabel>
-                                        <Select value={g1} label="G1" onChange={(e) => setG1(e.target.value)}>
-                                            {selectedKierunek.g1.map((subject) => (
-                                                <MenuItem key={subject} value={subject}>{subject}</MenuItem>
+                                        <Select
+                                            value={g1}
+                                            label="G1"
+                                            onChange={handleG1Change}
+                                        >
+                                            {availableG1Subjects.map((subject) => (
+                                                <MenuItem key={subject.id} value={subject.id}>
+                                                    {subject.name}
+                                                </MenuItem>
                                             ))}
                                         </Select>
                                     </FormControl>
@@ -257,7 +499,6 @@ const ProgiPunktowe = () => {
                                         sx={{mb: 2}}
                                         inputProps={{min: 0, max: 100}}
                                     />
-
                                 </Grid>
                             </Grid>
 
@@ -265,9 +506,15 @@ const ProgiPunktowe = () => {
                                 <Grid item xs={6}>
                                     <FormControl fullWidth sx={{mb: 2}}>
                                         <InputLabel>G2</InputLabel>
-                                        <Select value={g2} label="G2" onChange={(e) => setG2(e.target.value)}>
-                                            {filteredG2Subjects.map((subject) => (
-                                                <MenuItem key={subject} value={subject}>{subject}</MenuItem>
+                                        <Select
+                                            value={g2}
+                                            label="G2"
+                                            onChange={handleG2Change}
+                                        >
+                                            {availableG2Subjects.map((subject) => (
+                                                <MenuItem key={subject.id} value={subject.id}>
+                                                    {subject.name}
+                                                </MenuItem>
                                             ))}
                                         </Select>
                                     </FormControl>
@@ -287,30 +534,6 @@ const ProgiPunktowe = () => {
                         </>
                     )}
                 </Box>
-            ) : (
-                <>
-                    <Grid container spacing={2} alignItems="center" mb={2}>
-                        {wszystkiePrzedmioty.map((subject) => (
-                            <Grid item xs={6}>
-                                <Box key={subject} display="flex" alignItems="center" mb={1}>
-                                    <Typography sx={{width: 200}}>{subject}</Typography>
-                                    <TextField
-                                        type="number"
-                                        value={allSubjects[subject] || 0}
-                                        onChange={(e) =>
-                                            setAllSubjects({
-                                                ...allSubjects,
-                                                [subject]: Math.max(0, Math.min(100, parseInt(e.target.value) || 0)),
-                                            })
-                                        }
-                                        inputProps={{min: 0, max: 100}}
-                                        sx={{width: 100}}
-                                    />
-                                </Box>
-                            </Grid>
-                        ))}
-                    </Grid>
-                </>
             )}
 
             <Box mt={3}>
@@ -320,7 +543,7 @@ const ProgiPunktowe = () => {
             {selectedTab === 0 && !trybWszystkie && results.length > 0 && (
                 <Paper sx={{p: 3, mt: 4}}>
                     <Stack direction="row" alignItems="center" justifyContent="space-between">
-                        <Typography variant="h6">Wynik użytkownika: 91 punktów</Typography>
+                        <Typography variant="h6">Wynik użytkownika: {val} punktów</Typography>
                         <IconButton onClick={resetZoom}>
                             <RestartAltIcon/>
                         </IconButton>

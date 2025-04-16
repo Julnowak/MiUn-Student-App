@@ -93,12 +93,29 @@ class Faculty(models.Model):
         return f"Wydział ID-{self.id}: {self.name}"
 
 
+SUBJECT_TYPE_CHOICES = (
+    ("PD", "podstawowy"),
+    ("ROZ", "rozszerzony"),
+)
+
+
+class MaturaSubject(models.Model):
+    id = models.AutoField(primary_key=True)
+    name = models.CharField(max_length=300)
+    level = models.CharField(max_length=300, choices=SUBJECT_TYPE_CHOICES, default="ROZ")
+
+    def __str__(self):
+        return f"Przedmiot maturalny ID-{self.id}: {self.name} {self.level}"
+
+
 # Kierunek
 class Field(models.Model):
     id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=300)
     faculty = models.ForeignKey(Faculty, on_delete=models.CASCADE)
     formula = models.CharField(max_length=1000, default='')
+    G1_subject = models.ManyToManyField(MaturaSubject, blank=True, related_name="G1")
+    G2_subject = models.ManyToManyField(MaturaSubject, blank=True, related_name="G2")
 
     def __str__(self):
         return f"Kierunek ID-{self.id}: {self.name}"

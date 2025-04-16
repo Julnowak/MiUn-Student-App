@@ -11,12 +11,18 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from mainApp.models import AppUser, Building, Notification, Source
+from mainApp.models import AppUser, Building, Notification, Source, Field, MaturaSubject
 from mainApp.serializers import UserRegisterSerializer, UserSerializer, BuildingSerializer, NotificationSerializer, \
-    SourceSerializer
+    SourceSerializer, FieldSerializer, MaturaSubjectSerializer
 
 from .utils import send_verification_email
-from .calc_score import calc_score
+from .calc_score.calc_score import calc_score_fun
+import google.generativeai as genai
+from django.conf import settings
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
+
+
 
 UserModel = get_user_model()
 
@@ -151,13 +157,63 @@ class BuildingAPI(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
+class FieldsAPI(APIView):
+    permission_classes = (permissions.IsAuthenticated,)  # Only authenticated users can log out
+
+    def get(self, request):
+        fields = Field.objects.all().order_by("name").prefetch_related(
+            'G1_subject',
+            'G2_subject'
+        )
+        serializer = FieldSerializer(fields, many=True)
+
+        print(fields[:2].values())
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
 class NotificationsAPI(APIView):
     permission_classes = (permissions.IsAuthenticated,)  # Only authenticated users can log out
 
     def get(self, request):
         notifications = Notification.objects.filter(user=request.user)
         serializer = NotificationSerializer(notifications, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        num = len(notifications.filter(isRead=False))
+        return Response({"notifications": serializer.data, "num": num}, status=status.HTTP_200_OK)
+
+    def patch(self, request, pk=None):
+        try:
+            notification = Notification.objects.get(pk=pk, user=request.user)
+        except Notification.DoesNotExist:
+            return Response(
+                {"error": "Notification not found or you don't have permission"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        serializer = NotificationSerializer(
+            notification,
+            data={'isRead': True},
+            partial=True
+        )
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, pk=None):
+        try:
+            notification = Notification.objects.get(pk=pk, user=request.user)
+        except Notification.DoesNotExist:
+            return Response(
+                {"error": "Notification not found or you don't have permission"},
+                status=status.HTTP_404_NOT_FOUND
+            )
+
+        notification.delete()
+        return Response(
+            {"message": "Notification deleted successfully"},
+            status=status.HTTP_204_NO_CONTENT
+        )
 
 
 class SourceAPI(APIView):
@@ -168,3 +224,111 @@ class SourceAPI(APIView):
         serializer = SourceSerializer(sources, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+
+class MaturaSubjectsAPI(APIView):
+    permission_classes = (permissions.IsAuthenticated,)  # Only authenticated users can log out
+
+    def get(self, request):
+        sources = MaturaSubject.objects.all()
+        serializer = MaturaSubjectSerializer(sources, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class CalculationAPI(APIView):
+    permission_classes = (permissions.IsAuthenticated,)  # Only authenticated users can log out
+
+    def post(self, request):
+        G1 = request.data.get('G1')
+        G2 = request.data.get('G2')
+        M = request.data.get('M')
+        data = {"M": int(M), "G1": int(G1), "G2": int(G2), "formula": "2*M+3*G1+G2"}
+        score = calc_score_fun(data)
+        print(score)
+        return Response({"score": score}, status=status.HTTP_200_OK)
+
+
+
+# Configure Gemini
+genai.configure(api_key=settings.GEMINI_API_KEY)
+model = genai.GenerativeModel('gemini-2.0-flash')
+
+
+@api_view(['POST'])
+def ask_gemini(request):
+    user_prompt = request.data.get("prompt")
+
+    if not user_prompt:
+        return Response({"error": "No prompt provided."}, status=400)
+
+    # Get data from DB (example: all products)
+    products = Building.objects.all()
+    context_data = "\n".join(
+        [f"Nazwa: {p.name}, Funkcja: {p.function}, Adres: {p.address}" for p in products]
+    )
+
+    # Combine context and user prompt
+    # full_prompt = f"""
+    # Bazując na następujących danych opisujących budynki uczelni:
+    #
+    # {context_data}
+    #
+    # Odpowiedz na następujące pytanie użytkownika:
+    # {user_prompt}
+    # """
+
+    full_prompt = f"""
+    Użytkownik aplikował na trzy zupełnie różne kierunki studiów i uzyskał następujące wyniki punktowe w procesie rekrutacyjnym:
+
+    -Informatyka stosowana – 87,5 punktów
+    
+    -Filologia klasyczna – 61,0 punktów
+    
+    -Inżynieria biomedyczna – 78,3 punktów
+    
+    -Automatyka i robotyka – 84,2 pkt
+
+    -Psychologia – 76,0 pkt
+    
+    -Sztuki piękne – 62,3 pkt
+    
+    -Fizyka techniczna – 85,1 pkt
+    
+    -Pedagogika przedszkolna i wczesnoszkolna – 70,6 pkt
+    
+    -Muzykologia – 24,9 pkt
+        
+    Opis kierunków:
+    
+    -Informatyka stosowana:
+    Kierunek skupia się na praktycznym wykorzystaniu narzędzi informatycznych w rozwiązywaniu rzeczywistych problemów. Obejmuje naukę programowania, algorytmiki, baz danych, systemów operacyjnych oraz nowoczesnych technologii webowych i mobilnych. Absolwenci często pracują jako programiści, analitycy danych czy specjaliści ds. IT.
+    
+    -Filologia klasyczna:
+    Ten humanistyczny kierunek koncentruje się na językach starożytnych, takich jak łacina i greka, oraz literaturze i kulturze antycznej Grecji i Rzymu. Studenci uczą się tłumaczenia tekstów źródłowych i zgłębiają klasyczne dzieła filozoficzne i historyczne. Absolwenci znajdują zatrudnienie m.in. w edukacji, bibliotekach, wydawnictwach lub instytucjach kultury.
+    
+    -Inżynieria biomedyczna:
+    Interdyscyplinarny kierunek łączący wiedzę z zakresu inżynierii, medycyny i biologii. Studenci uczą się projektowania nowoczesnych urządzeń medycznych, analizy sygnałów biologicznych oraz tworzenia systemów wspomagających diagnostykę i terapię. Po studiach mogą pracować w branży medtech, szpitalach, firmach farmaceutycznych lub instytutach badawczych.
+    
+    -Automatyka i robotyka: Tworzenie i programowanie systemów mechatronicznych.
+    
+    -Psychologia: Badanie ludzkiego zachowania, emocji i procesów poznawczych.
+    
+    -Sztuki piękne: Rozwijanie kreatywności poprzez malarstwo, rzeźbę i inne dziedziny sztuki.
+    
+    -Fizyka techniczna: Zastosowanie fizyki w nowoczesnych technologiach i badaniach.
+
+    -Pedagogika: Przygotowanie do pracy z dziećmi w wieku przedszkolnym i wczesnoszkolnym.
+    
+    -Muzykologia: Badanie historii, teorii i kultury muzycznej.
+    
+    Użytkownik opisał również swoje zainteresowania i predyspozycje:
+    {user_prompt}
+    
+    Na podstawie wszystkich danych, uszereguj propozycje kierunków dla użytkownika w taki sposób, w jaki byś je zarekomendował, a następnie przedstaw krótko dlaczego uważasz, że odnajdzie się na pierwszym z wyznaczonych kierunków.
+    Przy podawaniu decyzji weź pod uwagę, że użytkownik prawdopodobnie nie dostanie się na kierunek, jeśli ma mniej niż 50 pkt. Zwracaj się do użytkownika bezpośrednio, jakbyś rozmawiał z 19-letnim kolegą.
+    """
+
+    try:
+        response = model.generate_content(full_prompt)
+        return Response({"response": response.text})
+    except Exception as e:
+        return Response({"error": str(e)}, status=500)

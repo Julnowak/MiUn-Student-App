@@ -24,6 +24,7 @@ import AddOffer from "./components/exchange/addOffer";
 import MyOffers from "./components/exchange/myOffers";
 import Groups from "./components/groups/groups";
 import Actualities from "./components/actualities/actualities";
+import GeminiPrompt from "./components/geminiPrompt/geminiPrompt";
 
 function App() {
     return (
@@ -58,6 +59,7 @@ function App() {
                         <Route path="/my-offers" element={<MyOffers />} />
                         <Route path="/groups" element={<Groups />} />
                         <Route path="/actual-info" element={<Actualities />} />
+                        <Route path="/chat" element={<GeminiPrompt />} />
 
                     </Routes>
                 </div>

@@ -78,7 +78,7 @@ const Learning = () => {
         if (allResources.length < 1) {
             fetchData();
         }
-    }, []);
+    }, [allResources.length, fetchData]);
 
     const ITEMS_PER_PAGE = 5;
     const totalPages = Math.ceil(allResources.length / ITEMS_PER_PAGE);

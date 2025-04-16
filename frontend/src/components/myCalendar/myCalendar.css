@@ -1,108 +1,47 @@
-/* Calendar Container */
 .calendar-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+  height: 100vh;
   padding: 20px;
-  color: black;
-  background-color: #f5f5f5;
-  border-radius: 8px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-  max-width: 900px;
-  margin: 20px auto;
+  background-color: #f8f9fa;
 }
 
-/* Calendar Header */
-.calendar-header {
-  font-size: 24px;
-  margin-bottom: 20px;
-  color: #333;
+.rbc-toolbar {
+  padding: 15px;
+  background-color: white;
+  border-radius: 12px;
+  margin-bottom: 15px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
-/* Event Form */
-.form-container {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-bottom: 20px;
-  width: 100%;
-  max-width: 400px;
-  background-color: #fff;
-  padding: 20px;
-  border-radius: 8px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-}
-
-/* Input Fields */
-.input {
-  padding: 10px;
-  font-size: 14px;
-  border-radius: 4px;
-  border: 1px solid #ccc;
-  outline: none;
-}
-
-/* Button Container */
-.button-container {
-  display: flex;
-  justify-content: space-between;
-}
-
-/* Buttons */
-.button {
-  background-color: #4caf50;
-  color: #fff;
+.rbc-month-view,
+.rbc-time-view,
+.rbc-agenda-view {
+  border-radius: 12px;
+  overflow: hidden;
   border: none;
-  padding: 10px 15px;
-  border-radius: 4px;
-  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
-.button-cancel {
-  background-color: #f44336;
-  color: #fff;
-  border: none;
-  padding: 10px 15px;
-  border-radius: 4px;
-  cursor: pointer;
+.rbc-event {
+  transition: transform 0.2s ease;
 }
 
-/* Add Event Button */
-.add-button {
-  background-color: #007bff;
-  color: #fff;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 4px;
-  cursor: pointer;
-  margin-bottom: 20px;
+.rbc-event:hover {
+  transform: translateY(-2px);
 }
 
-/* Calendar Inner Container */
-.calendar-container-inner {
-  width: 100%;
-  max-width: 900px;
-  margin-top: 20px;
-  background-color: #fff;
-  border-radius: 8px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-  padding: 10px;
+.rbc-day-bg + .rbc-day-bg,
+.rbc-month-row + .rbc-month-row {
+  border-color: rgba(0,0,0,0.05);
 }
 
-/* Toolbar */
-.toolbar {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 10px;
+.rbc-header {
+  padding: 12px;
+  background-color: #f8f9fa;
+  font-weight: 500;
+  color: #495057;
+  border-bottom: 2px solid #e9ecef;
 }
 
-/* View Buttons */
-.view-button {
-  margin: 0 10px;
-  padding: 8px 15px;
-  background-color: #007bff;
-  color: #fff;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
+.rbc-today {
+  background-color: rgba(15, 118, 110, 0.05);
 }

@@ -4,7 +4,7 @@ from rest_framework import serializers
 # from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, get_user_model
 
-from mainApp.models import Building, Notification, Source
+from mainApp.models import Building, Notification, Source, Field, MaturaSubject
 
 UserModel = get_user_model()
 
@@ -57,3 +57,17 @@ class SourceSerializer(serializers.ModelSerializer):
     class Meta:
         model = Source
         fields = '__all__'
+
+
+class MaturaSubjectSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = MaturaSubject
+        fields = '__all__'
+
+
+class FieldSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Field
+        fields = '__all__'
+        depth = 1

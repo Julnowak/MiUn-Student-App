@@ -1,5 +1,28 @@
 import React, { useState } from "react";
-import { Box, Typography, Card, CardContent, CardActions, Button, Pagination, Grid } from "@mui/material";
+import {
+  Box,
+  Typography,
+  Card,
+  CardContent,
+  CardActions,
+  Button,
+  Pagination,
+  Grid,
+  useTheme,
+  styled,
+  IconButton
+} from "@mui/material";
+import { CalendarToday, Person, ArrowForward } from "@mui/icons-material";
+
+const StyledCard = styled(Card)(({ theme }) => ({
+  transition: "all 0.3s ease",
+  borderRadius: "16px",
+  boxShadow: theme.shadows[4],
+  "&:hover": {
+    transform: "translateY(-4px)",
+    boxShadow: theme.shadows[8],
+  },
+}));
 
 const Actualities = () => {
   // Sample data (in a real app, this would be fetched from an API)
@@ -55,6 +78,7 @@ const Actualities = () => {
   const indexOfLastUpdate = currentPage * updatesPerPage;
   const indexOfFirstUpdate = indexOfLastUpdate - updatesPerPage;
   const currentUpdates = updates.slice(indexOfFirstUpdate, indexOfLastUpdate);
+  const theme = useTheme();
 
   // Pagination handler
   const handleChangePage = (event, value) => {
@@ -62,43 +86,117 @@ const Actualities = () => {
   };
 
   return (
-    <Box sx={{ p: 3, maxWidth: 1000, margin: "auto", display: "flex", justifyContent: "center", flexDirection: "column", alignItems: "center" }}>
-      <Typography variant="h4" gutterBottom>
-        Najnowsze Informacje od Deweloperów
+    <Box sx={{
+      p: 4,
+      maxWidth: 1200,
+      margin: "0 auto",
+      background: theme.palette.background.default
+    }}>
+      <Typography
+        variant="h3"
+        sx={{
+          mb: 6,
+          textAlign: "center",
+          fontWeight: 700,
+          color: "primary.main",
+          letterSpacing: "-0.5px"
+        }}
+      >
+        Najnowsze Informacje
       </Typography>
 
-      {/* Developer Updates Cards */}
-      <Grid container spacing={3} justifyContent="center">
+      <Grid container spacing={4} justifyContent="center">
         {currentUpdates.map((update) => (
-          <Grid item xs={12} key={update.id}>
-            <Card>
-              <CardContent>
-                <Typography variant="h5" component="div">
-                  {update.title}
-                </Typography>
-                <Typography variant="body2" color="textSecondary" paragraph>
-                  {update.content}
-                </Typography>
-                <Typography variant="caption" display="block" color="textSecondary">
-                  {`Data: ${update.date} | Autor: ${update.author}`}
-                </Typography>
+          <Grid item xs={12} md={6} lg={4} key={update.id}>
+            <StyledCard>
+              <CardContent sx={{
+                minHeight: 260,
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "space-between"
+              }}>
+                <Box>
+                  <Typography
+                    variant="h5"
+                    component="div"
+                    sx={{
+                      mb: 2,
+                      fontWeight: 600,
+                      color: "text.primary",
+                      minHeight: 64
+                    }}
+                  >
+                    {update.title}
+                  </Typography>
+                  <Typography
+                    variant="body1"
+                    color="text.secondary"
+                    paragraph
+                    sx={{
+                      lineHeight: 1.6,
+                      mb: 3
+                    }}
+                  >
+                    {update.content}
+                  </Typography>
+                </Box>
+
+                <Box sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 2,
+                  color: "text.secondary"
+                }}>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    <CalendarToday fontSize="small" />
+                    <Typography variant="caption">{update.date}</Typography>
+                  </Box>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    <Person fontSize="small" />
+                    <Typography variant="caption">{update.author}</Typography>
+                  </Box>
+                </Box>
               </CardContent>
-              <CardActions>
-                <Button size="small" color="primary" onClick={() => console.log(`Kliknięto ${update.id}`)}>
-                  Zobacz szczegóły
+              <CardActions sx={{
+                borderTop: `1px solid ${theme.palette.divider}`,
+                justifyContent: "flex-end"
+              }}>
+                <Button
+                  endIcon={<ArrowForward />}
+                  sx={{
+                    textTransform: "none",
+                    fontWeight: 500,
+                    "&:hover": {
+                      backgroundColor: "action.hover"
+                    }
+                  }}
+                >
+                  Czytaj więcej
                 </Button>
               </CardActions>
-            </Card>
+            </StyledCard>
           </Grid>
         ))}
       </Grid>
 
-      {/* Pagination */}
-      <Box sx={{ display: "flex", justifyContent: "center", mt: 3 }}>
+      <Box sx={{
+        display: "flex",
+        justifyContent: "center",
+        mt: 6,
+        "& .MuiPaginationItem-root": {
+          borderRadius: "8px",
+          fontWeight: 500
+        },
+        "& .Mui-selected": {
+          boxShadow: theme.shadows[2]
+        }
+      }}>
         <Pagination
           count={Math.ceil(updates.length / updatesPerPage)}
           page={currentPage}
           onChange={handleChangePage}
+          color="primary"
+          size="large"
         />
       </Box>
     </Box>
