@@ -10,9 +10,10 @@ from mainApp.models import Faculty, Field, Round, Building
 
 # Plik Excel
 file_path = os.path.join("..", "AGH_Progi_punktowe.xlsx")
-sheet_name = "202223"
-df = pd.read_excel(file_path, sheet_name=sheet_name, header=None)
+sheet_name = "202324"
+year_label = "2023/2024"
 
+df = pd.read_excel(file_path, sheet_name=sheet_name, header=None)
 round_names = df.iloc[0, 1:4].tolist()
 
 # Pobranie budynku domyślnego
@@ -21,7 +22,7 @@ if not building:
     print("Brak budynków w bazie danych. Przerwano.")
     exit()
 
-# 📌 Uwaga: A1 to również pierwszy wydział!
+# 📌 A1 to pierwszy wydział
 first_faculty_name = str(df.iloc[0, 0]).strip()
 current_faculty, created = Faculty.objects.get_or_create(
     name=first_faculty_name,
@@ -32,7 +33,7 @@ if not created:
     current_faculty.save()
 print(f"[+] Wydział: {first_faculty_name} (budynek: {building})")
 
-# Iteracja od drugiego wiersza (czyli Excel row 2 / index=1)
+# Iteracja od drugiego wiersza
 for index in range(1, len(df)):
     row = df.iloc[index]
     first_cell = row[0]
@@ -57,7 +58,7 @@ for index in range(1, len(df)):
         field, created = Field.objects.get_or_create(
             name=field_name,
             faculty=current_faculty,
-            defaults={"formula": "G1*5+G1*5"}
+            defaults={"formula": "2*M+3*G1+G2"}
         )
         if created:
             print(f"  [-] Kierunek: {field_name} (wydział: {current_faculty.name})")
@@ -66,12 +67,21 @@ for index in range(1, len(df)):
         for i, round_label in enumerate(round_names):
             score = row[i + 1]
             if pd.notna(score):
-                Round.objects.create(
+                round_exists = Round.objects.filter(
                     name=round_label,
                     field=field,
-                    min_threshold=int(score),
-                    year="2022/2023"
-                )
-                print(f"     • Tura: {round_label} – próg: {int(score)}")
+                    year=year_label
+                ).exists()
 
-print("\nImport zakończony.")
+                if not round_exists:
+                    Round.objects.create(
+                        name=round_label,
+                        field=field,
+                        min_threshold=int(score),
+                        year=year_label
+                    )
+                    print(f"     • Tura: {round_label} – próg: {int(score)}")
+                else:
+                    print(f"     • [POMINIĘTO] Tura {round_label} dla kierunku {field_name} ({year_label}) już istnieje")
+
+print("\nImport zakończony bez duplikatów.")
