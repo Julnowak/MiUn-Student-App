@@ -171,7 +171,7 @@ MEDIA_ROOT = os.path.join(BASE_DIR, '../frontend/public/images/media/')
 import os
 
 # Add your Gemini API key to .env or environment
-GEMINI_API_KEY = ""
+GEMINI_API_KEY = "AIzaSyCkvRDN3r1-ilK-bN4uIfm-sHJ43W7svD8"
 
 
 # EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
