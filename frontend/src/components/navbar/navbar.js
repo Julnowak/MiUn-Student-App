@@ -1,166 +1,704 @@
 import React, {useContext, useEffect, useState} from 'react';
-import {Container, Nav, Navbar, NavDropdown} from "react-bootstrap";
-import "./navbar.css"
-import HomeRoundedIcon from '@mui/icons-material/HomeRounded';
-import LoginRoundedIcon from '@mui/icons-material/LoginRounded';
-import AccountCircleRoundedIcon from '@mui/icons-material/AccountCircleRounded';
+import {
+    AppBar,
+    Toolbar,
+    Container,
+    IconButton,
+    Menu,
+    MenuItem,
+    Avatar,
+    Badge,
+    Divider,
+    Typography,
+    Box,
+    useMediaQuery,
+    styled, ListItemIcon, Button, ListItemText, Collapse, List, Drawer, ListItem
+} from '@mui/material';
+import {
+    HomeRounded,
+    LoginRounded,
+    LogoutRounded,
+    NotificationsRounded,
+    MenuRounded,
+    Person,
+    ExpandMore,
+    CloseRounded,
+    ExpandLess, CalendarMonth, Groups, Sync, Forum, Newspaper, School, LocationOn, ListAlt, LocalLibrary,
+} from '@mui/icons-material';
 import {AuthContext} from "../../AuthContext";
-import {LogoutRounded} from "@mui/icons-material";
 import client from "../../client";
 import {API_BASE_URL} from "../../config";
-import CircleNotificationsRoundedIcon from '@mui/icons-material/CircleNotificationsRounded';
-import {Avatar} from "@mui/material";
-import Badge from '@mui/material/Badge';
+import {useTheme} from '@mui/material/styles';
+import {People} from "react-bootstrap-icons";
+
+const StyledAppBar = styled(AppBar)(({theme}) => ({
+    backdropFilter: 'blur(8px)',
+    backgroundColor: 'rgba(0,0,0,1)',
+    transition: theme.transitions.create(['background-color', 'box-shadow']),
+}));
 
 const CustomNavbar = () => {
+    const theme = useTheme()
     const {isAuthenticated} = useContext(AuthContext);
     const [image, setImage] = useState(null);
-    const token = localStorage.getItem("access");
-    const image_set = localStorage.getItem("image_set")
-    let flag = false;
-    const [isSmallScreen, setIsSmallScreen] = useState(false);
+    const [anchorEl, setAnchorEl] = useState(null);
+    const [mobileAnchorEl, setMobileAnchorEl] = useState(null);
     const [num, setNum] = useState(0);
+    const isSmallScreen = useMediaQuery(theme.breakpoints.down('md'));
+    const token = localStorage.getItem("access");
+    const image_set = localStorage.getItem("image_set");
 
-useEffect(() => {
-    const handleResize = () => {
-      setIsSmallScreen(window.innerWidth < 992); // You can adjust the threshold as needed
+    const [managementAnchorEl, setManagementAnchorEl] = useState(null);
+    const [socialAnchorEl, setSocialAnchorEl] = useState(null);
+
+
+    // Menu handlers
+    const handleMenuOpen = (event) => setAnchorEl(event.currentTarget);
+    const handleMobileMenuOpen = (event) => setMobileAnchorEl(event.currentTarget);
+    const handleManagementMenuOpen = (event) => setManagementAnchorEl(event.currentTarget);
+    const handleSocialMenuOpen = (event) => setSocialAnchorEl(event.currentTarget);
+    const handleClose = () => {
+        setAnchorEl(null);
+        setMobileAnchorEl(null);
+        setManagementAnchorEl(null);
+        setSocialAnchorEl(null);
     };
 
-    window.addEventListener('resize', handleResize);
-    handleResize(); // Set initial state
-
-    return () => {
-      window.removeEventListener('resize', handleResize);
-    };
-  }, []);
-
-useEffect(() => {
+    useEffect(() => {
         const fetchUserData = async () => {
             try {
                 const response = await client.get(API_BASE_URL + "user/", {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
+                    headers: {Authorization: `Bearer ${token}`},
                 });
-                if (response.data.profile_picture) {
-                    setImage(response.data.profile_picture.toString().slice(15));
-                    localStorage.setItem(response.data.profile_picture.toString().slice(15));
-                }
-                else {
-                    setImage("/images/basic/user_no_picture.png");
-                    localStorage.setItem("/images/basic/user_no_picture.png");
-                }
+                const img = response.data.profile_picture
+                    ? response.data.profile_picture.toString().slice(15)
+                    : "/images/basic/user_no_picture.png";
+                setImage(img);
+                localStorage.setItem("image_set", img);
+
 
             } catch (error) {
-                console.log("Nie udało się zalogować");
-            }
-             try {
-                const response = await client.get(API_BASE_URL + "notifications/", {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                });
-                setNum(response.data.num);
-                console.log("Zalogowano");
-                console.log(response.data);
-            } catch (error) {
-                console.log("Nie udało się zalogować");
+                console.error("Error fetching data:", error);
             }
         };
 
-        if (!flag) {
-            if (token && !image_set) {
-                fetchUserData();
+
+        const fetchNotifications = async () => {
+            try {
+                const notifications = await client.get(API_BASE_URL + "notifications/", {
+                    headers: {Authorization: `Bearer ${token}`},
+                });
+                setNum(notifications.data.num);
+                console.log(notifications)
+            } catch (error) {
+                console.error("Error fetching data:", error);
             }
-            else {
-                setImage(image_set)
-            }
-            flag = true;
+        };
+
+        if (token && !image_set) {
+            fetchUserData();
+        } else {
+            setImage(image_set);
         }
-    }, [image, image_set, token]);
+
+        if (token) {
+            fetchNotifications()
+        }
+    }, [image_set, token]);
+
+    const renderDesktopMenu = () => (
+        <>
+            {isAuthenticated && (
+                <>
+
+                    <Box sx={{display: 'flex', alignItems: 'center', ml: 2}}>
+                        <IconButton href="/main" sx={{
+                            color: 'white',
+                            p: 1,
+                            borderRadius: 1,
+                            transition: 'all 0.2s ease',
+                            '&:hover': {
+                                bgcolor: 'action.hover',
+                                transform: 'translateY(-2px)'
+                            },
+                            '&.Mui-focusVisible': {
+                                bgcolor: 'action.selected'
+                            }
+                        }}>
+                            <HomeRounded/>
+                        </IconButton>
+                    </Box>
+
+                    <IconButton href="/actual-info" sx={{
+                        color: 'white',
+                        p: 1,
+                        borderRadius: 1,
+                        transition: 'all 0.2s ease',
+                        '&:hover': {
+                            bgcolor: 'action.hover',
+                            transform: 'translateY(-2px)'
+                        },
+                        '&.Mui-focusVisible': {
+                            bgcolor: 'action.selected'
+                        }
+                    }}>
+                        <Typography variant="body1">Aktualności</Typography>
+                    </IconButton>
+
+                    <IconButton href="/pierogi" sx={{
+                        color: 'white',
+                        p: 1,
+                        borderRadius: 1,
+                        transition: 'all 0.2s ease',
+                        '&:hover': {
+                            bgcolor: 'action.hover',
+                            transform: 'translateY(-2px)'
+                        },
+                        '&.Mui-focusVisible': {
+                            bgcolor: 'action.selected'
+                        }
+                    }}>
+                        <Typography variant="body1">Rekrutacja</Typography>
+                    </IconButton>
+
+
+                    <IconButton
+                        onClick={handleManagementMenuOpen}
+                        sx={{
+                            color: 'white',
+                            p: 1,
+                            borderRadius: 1,
+                            transition: 'all 0.2s ease',
+                            '&:hover': {
+                                bgcolor: 'action.hover',
+                                transform: 'translateY(-2px)'
+                            },
+                            '&.Mui-focusVisible': {
+                                bgcolor: 'action.selected'
+                            }
+                        }}
+                    >
+                        <Typography
+                            variant="subtitle1"
+                            sx={{
+                                fontWeight: 600,
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 0.5
+                            }}
+                        >
+                            Planowanie
+                            <ExpandMore sx={{
+                                fontSize: 18,
+                                transition: 'transform 0.2s',
+                                transform: Boolean(managementAnchorEl) ? 'rotate(180deg)' : 'none'
+                            }}/>
+                        </Typography>
+                    </IconButton>
+
+                    <Menu
+                        anchorEl={managementAnchorEl}
+                        open={Boolean(managementAnchorEl)}
+                        onClose={handleClose}
+                        elevation={2}
+                        sx={{
+                            '& .MuiPaper-root': {
+                                minWidth: 220,
+                                borderRadius: 2,
+                                boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.1)',
+                                mt: 1.5
+                            }
+                        }}
+                        transformOrigin={{horizontal: 'right', vertical: 'top'}}
+                        anchorOrigin={{horizontal: 'right', vertical: 'bottom'}}
+                        MenuListProps={{
+                            sx: {py: 0.5}
+                        }}
+                    >
+                        <MenuItem
+                            href="/calendar"
+                            component="a"
+                            sx={{
+                                py: 1,
+                                '&:hover': {
+                                    bgcolor: 'primary.light',
+                                    color: 'primary.main'
+                                }
+                            }}
+                        >
+                            <CalendarMonth sx={{fontSize: 20, mr: 1.5}}/>
+                            Kalendarz
+                        </MenuItem>
+
+                        <MenuItem
+                            href="/localizations"
+                            component="a"
+                            sx={{
+                                py: 1.5,
+                                '&:hover': {
+                                    bgcolor: 'primary.light',
+                                    color: 'primary.main'
+                                }
+                            }}
+                        >
+                            <LocationOn sx={{fontSize: 20, mr: 1.5}}/>
+                            Lokalizacje
+                        </MenuItem>
+                    </Menu>
+
+
+                    <IconButton
+                        onClick={handleSocialMenuOpen}
+                        sx={{
+                            color: 'white',
+                            p: 1,
+                            borderRadius: 1,
+                            transition: 'all 0.2s ease',
+                            '&:hover': {
+                                bgcolor: 'action.hover',
+                                transform: 'translateY(-2px)'
+                            },
+                            '&.Mui-focusVisible': {
+                                bgcolor: 'action.selected'
+                            }
+                        }}
+                    >
+                        <Typography
+                            variant="subtitle1"
+                            sx={{
+                                fontWeight: 600,
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 0.5
+                            }}
+                        >
+                            Społeczność
+                            <ExpandMore sx={{
+                                fontSize: 18,
+                                transition: 'transform 0.2s',
+                                transform: Boolean(socialAnchorEl) ? 'rotate(180deg)' : 'none'
+                            }}/>
+                        </Typography>
+                    </IconButton>
+
+                    <Menu
+                        anchorEl={socialAnchorEl}
+                        open={Boolean(socialAnchorEl)}
+                        onClose={handleClose}
+                        elevation={2}
+                        sx={{
+                            '& .MuiPaper-root': {
+                                minWidth: 220,
+                                borderRadius: 2,
+                                boxShadow: '0px 4px 20px rgba(0, 0, 0, 0.1)',
+                                mt: 1.5
+                            }
+                        }}
+                        transformOrigin={{horizontal: 'right', vertical: 'top'}}
+                        anchorOrigin={{horizontal: 'right', vertical: 'bottom'}}
+                        MenuListProps={{
+                            sx: {py: 0.5}
+                        }}
+                    >
+                        <MenuItem
+                            href="/groups"
+                            component="a"
+                            sx={{
+                                py: 1.5,
+                                '&:hover': {
+                                    bgcolor: 'primary.light',
+                                    color: 'primary.main'
+                                }
+                            }}
+                        >
+                            <Groups sx={{fontSize: 20, mr: 1.5}}/>
+                            Grupy
+                        </MenuItem>
+
+                        <MenuItem
+                            href="/exchanges"
+                            component="a"
+                            sx={{
+                                py: 1.5,
+                                '&:hover': {
+                                    bgcolor: 'primary.light',
+                                    color: 'primary.main'
+                                }
+                            }}
+                        >
+                            <Sync sx={{fontSize: 20, mr: 1.5}}/>
+                            Wymiany
+                        </MenuItem>
+
+                        <MenuItem
+                            href="/forum"
+                            component="a"
+                            sx={{
+                                py: 1.5,
+                                '&:hover': {
+                                    bgcolor: 'primary.light',
+                                    color: 'primary.main'
+                                }
+                            }}
+                        >
+                            <Forum sx={{fontSize: 20, mr: 1.5}}/>
+                            Forum
+                        </MenuItem>
+                    </Menu>
+
+                    <IconButton href="/learning" sx={{
+                        color: 'white',
+                        p: 1,
+                        borderRadius: 1,
+                        transition: 'all 0.2s ease',
+                        '&:hover': {
+                            bgcolor: 'action.hover',
+                            transform: 'translateY(-2px)'
+                        },
+                        '&.Mui-focusVisible': {
+                            bgcolor: 'action.selected'
+                        }
+                    }}>
+                        <Typography variant="body1">Nauka</Typography>
+                    </IconButton>
+                </>
+            )}
+        </>
+    );
+
+    const [mobileOpen, setMobileOpen] = useState(false);
+    const [expandedSection, setExpandedSection] = useState(null);
+
+    const handleDrawerToggle = () => {
+        setMobileOpen(!mobileOpen);
+    };
+
+    const toggleSection = (section) => {
+        setExpandedSection(expandedSection === section ? null : section);
+    };
+
+    const renderSidebarContent = () => (
+        <Box
+            sx={{
+                display: 'flex',
+                flexDirection: 'column',
+                height: '100%',
+                p: 2
+            }}
+        >
+            <Box sx={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                mb: 2,
+                p: 1
+            }}>
+                <Typography variant="h6" fontWeight="bold">
+                    Menu
+                </Typography>
+                <IconButton onClick={handleDrawerToggle}>
+                    <CloseRounded/>
+                </IconButton>
+            </Box>
+
+            <Divider sx={{mb: 2}}/>
+
+            <List component="nav" sx={{flexGrow: 1}}>
+                {isAuthenticated && (
+                    <>
+                        <ListItem button href="/main" component="a">
+                            <ListItemIcon>
+                                <HomeRounded/>
+                            </ListItemIcon>
+                            <ListItemText sx={{color: 'black'}} primary="Strona główna"/>
+                        </ListItem>
+
+                        <ListItem button href="/actual-info" component="a">
+                            <ListItemIcon>
+                                <Newspaper/>
+                            </ListItemIcon>
+                            <ListItemText sx={{color: 'black'}} primary="Aktualności"/>
+                        </ListItem>
+
+
+                        <ListItem button href="/pierogi" component="a">
+                            <ListItemIcon>
+                                <School/>
+                            </ListItemIcon>
+                            <ListItemText sx={{color: 'black'}} primary="Rekrutacja"/>
+                        </ListItem>
+
+                        <ListItem button onClick={() => toggleSection('manage')}>
+                            <ListItemIcon>
+                                <ListAlt/>
+                            </ListItemIcon>
+                            <ListItemText primary="Planowanie"/>
+                            {expandedSection === 'manage' ? <ExpandLess/> : <ExpandMore/>}
+                        </ListItem>
+
+                        <Collapse in={expandedSection === 'manage'} timeout="auto" unmountOnExit>
+                            <List component="div" disablePadding>
+                                <ListItem button href="/calendar" component="a" sx={{pl: 4}}>
+                                    <ListItemIcon>
+                                        <CalendarMonth/>
+                                    </ListItemIcon>
+                                    <ListItemText sx={{color: 'black'}} primary="Kalendarz"/>
+                                </ListItem>
+
+                                <ListItem button href="/localizations" component="a" sx={{pl: 4}}>
+                                    <ListItemIcon>
+                                        <LocationOn/>
+                                    </ListItemIcon>
+                                    <ListItemText sx={{color: 'black'}} primary="Lokalizacje"/>
+                                </ListItem>
+                            </List>
+                        </Collapse>
+
+
+                        <ListItem button onClick={() => toggleSection('community')}>
+                            <ListItemIcon>
+                                <People/>
+                            </ListItemIcon>
+                            <ListItemText primary="Społeczność"/>
+                            {expandedSection === 'community' ? <ExpandLess/> : <ExpandMore/>}
+                        </ListItem>
+
+                        <Collapse in={expandedSection === 'community'} timeout="auto" unmountOnExit>
+                            <List component="div" disablePadding>
+                                <ListItem button href="/groups" component="a" sx={{pl: 4}}>
+                                    <ListItemIcon>
+                                        <Groups/>
+                                    </ListItemIcon>
+                                    <ListItemText sx={{color: 'black'}} primary="Grupy"/>
+                                </ListItem>
+
+                                <ListItem button href="/exchanges" component="a" sx={{pl: 4}}>
+                                    <ListItemIcon>
+                                        <Sync/>
+                                    </ListItemIcon>
+                                    <ListItemText sx={{color: 'black'}} primary="Wymiany"/>
+                                </ListItem>
+
+                                <ListItem button href="/forum" component="a" sx={{pl: 4}}>
+                                    <ListItemIcon>
+                                        <Forum/>
+                                    </ListItemIcon>
+                                    <ListItemText sx={{color: 'black'}} primary="Forum"/>
+                                </ListItem>
+
+                            </List>
+                        </Collapse>
+
+
+                        <ListItem button href="/learning" component="a">
+                            <ListItemIcon>
+                                <LocalLibrary/>
+                            </ListItemIcon>
+                            <ListItemText sx={{color: 'black'}} primary="Nauka"/>
+                        </ListItem>
+                    </>
+                )}
+            </List>
+
+            <Box sx={{mt: 'auto', p: 1}}>
+                <Button
+                    fullWidth
+                    href={isAuthenticated ? '/logout' : '/login'}
+                    component="a"
+                    startIcon={isAuthenticated ? <LogoutRounded color={"white"}/> : <LoginRounded  color={"white"}/>}
+                    sx={{
+                        py: 1.5,
+                        borderRadius: 1,
+                        color: isAuthenticated ? 'error.main' : 'success.main',
+                        transition: 'all 0.2s ease',
+                        '&:hover': {
+                            bgcolor: 'action.hover',
+                            transform: 'translateY(-2px)'
+                        },
+                    }}
+                >
+                    {isAuthenticated ? 'Wyloguj się' : 'Zaloguj się'}
+                </Button>
+            </Box>
+        </Box>
+    );
 
     return (
-        <div>
-            {/* Navbar */}
-            <Navbar expand="lg" variant="dark" className="shadow-sm"  style={{ backgroundColor: "black"}}>
-                <Container>
-                    <Navbar.Brand className="text-primary fw-bold">
-                        <Nav.Link href="/">
-                            <img style={{display: "inline", marginRight: 10}} width={50} src={"/icons/kitty.ico"}/>
-                        </Nav.Link>
-                    </Navbar.Brand>
-                    <Navbar.Toggle aria-controls=" basic-navbar-nav"/>
-                    <Navbar.Collapse id="basic-navbar-nav">
-                        <Nav className="ms-auto" style={{alignItems: "center"}}>
-                            {!isAuthenticated ?
-                                null
-                                :
-                                <Nav.Link href="/main" className="text-white"><HomeRoundedIcon/></Nav.Link>
-                            }
+        <StyledAppBar position="sticky" elevation={0}>
+            <Container maxWidth="xl">
+                <Toolbar disableGutters>
+                    <Box href="/" component="a" sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        textDecoration: 'none',
+                        mr: 3
+                    }}>
+                        <img
+                            width={30}
+                            style={{margin: 10}}
+                            src={"/icons/miun.ico"}
+                            alt="Logo"
+                        />
 
+                        <img
+                            height={15}
+                            style={{margin: "10px 0 10px 0px"}}
+                            src={"/icons/name.ico"}
+                            alt="Logo"
+                        />
 
-                            {/*<Nav.Link as={Link} to="/manage" className="text-white">Zarządzaj</Nav.Link>*/}
+                    </Box>
 
-                            {!isAuthenticated ?
-                                <>
-                                    <Nav.Link href="/about" className="text-white">O nas</Nav.Link>
-                                    <Nav.Link href="/contact" className="text-white">Kontakt</Nav.Link>
-                                </>
-                                :
-                                <>
-                                    <Nav.Link href="/actual-info" className="text-white">Aktualności</Nav.Link>
-                                    <Nav.Link href="/pierogi" className="text-white">Rekrutacja</Nav.Link>
-                                    <NavDropdown title="Planowanie">
-                                        <NavDropdown.Item href="/calendar">Kalendarz</NavDropdown.Item>
-                                        <NavDropdown.Item href="/localizations">
-                                          Lokalizacje
-                                        </NavDropdown.Item>
-                                    </NavDropdown>
+                    {!isSmallScreen && renderDesktopMenu()}
 
-                                    <NavDropdown title="Społeczność">
-                                        <NavDropdown.Item href="/groups">Grupy</NavDropdown.Item>
-                                        <NavDropdown.Item href="/exchanges">
-                                          Wymiany
-                                        </NavDropdown.Item>
-                                        <NavDropdown.Item href="/forum">
-                                          Forum
-                                        </NavDropdown.Item>
-                                    </NavDropdown>
+                    <Box sx={{flexGrow: 1}}/>
 
-                                    <Nav.Link href="/learning" className="text-white">Nauka</Nav.Link>
-                                    <Nav.Link href="/notifications" className="text-white">
-                                        <Badge badgeContent={num} color="primary">
-                                          <CircleNotificationsRoundedIcon/>
-                                        </Badge>
-                                    </Nav.Link>
-                                </>
-                            }
+                    <Box sx={{display: 'flex', alignItems: 'center', gap: 1}}>
 
-                            {!isAuthenticated ?
-                                null
-                                :
-                                <Nav.Link href="/userProfile" className="text-white">
-                                    <Avatar src={image}/>
-                                </Nav.Link>
-                            }
+                        {isAuthenticated && (
+                            <Box sx={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 1,
+                                flexDirection: 'row', // Zawsze układ w poziomie
+                                flexWrap: 'nowrap', // Zapobiega zawijaniu
+                                '& > *': { // Gwarancja stałej wielkości elementów
+                                    flexShrink: 0
+                                }
+                            }}>
+                                {isAuthenticated && (
+                                    <Box sx={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: 1,
+                                        // Responsywny margines
+                                        mr: {xs: 1, md: 2},
+                                        // Płynna animacja
+                                        transition: theme.transitions.create('all', {
+                                            duration: theme.transitions.duration.short,
+                                        }),
+                                    }}>
+                                        <IconButton
+                                            href="/notifications"
+                                            sx={{
+                                                color: 'white',
+                                                p: 1,
+                                                borderRadius: 1,
+                                                transition: 'all 0.2s ease',
+                                                transform: {
+                                                    xs: 'scale(0.9)', // Lekkie pomniejszenie na mobile
+                                                    md: 'scale(1)'
+                                                },
+                                                '&:hover': {
+                                                    bgcolor: 'action.hover',
+                                                    transform: {
+                                                        xs: 'translateY(-2px) scale(0.9)',
+                                                        md: 'translateY(-2px) scale(1)'
+                                                    }
+                                                },
+                                                '&.Mui-focusVisible': {
+                                                    bgcolor: 'action.selected'
+                                                }
+                                            }}
+                                        >
+                                            <Badge badgeContent={num} color="error">
+                                                <NotificationsRounded sx={{
+                                                    fontSize: {
+                                                        xs: '20px', // Mniejszy rozmiar na mobile
+                                                        md: '22px'
+                                                    }
+                                                }}/>
+                                            </Badge>
+                                        </IconButton>
 
-                            {!isSmallScreen ? (
-                                // For small screens, show login/logout icon
-                                <Nav.Link href={isAuthenticated ? '/logout' : '/login'} className="text-white">
-                                  {isAuthenticated ? <LogoutRounded /> : <LoginRoundedIcon />}
-                                </Nav.Link>
-                              ) : (
-                                // For larger screens, show full text (Login / Logout)
-                                <Nav.Link href={isAuthenticated ? '/logout' : '/login'} className="text-white">
-                                    {isAuthenticated ? <div><span style={{marginRight: 10}}>Wyloguj</span><LogoutRounded /></div> :
-                                        <div><LoginRoundedIcon /><span style={{marginLeft: 10}}> Zaloguj</span></div>}
-                                </Nav.Link>
-                              )}
-                        </Nav>
-                    </Navbar.Collapse>
-                </Container>
-            </Navbar>
-        </div>
+                                        <IconButton
+                                            href="/userProfile"
+                                            sx={{
+                                                transform: {
+                                                    xs: 'scale(0.85)', // Dopasowanie skali avatara
+                                                    md: 'scale(1)'
+                                                },
+                                                transition: 'transform 0.2s ease'
+                                            }}
+                                        >
+                                            <Avatar
+                                                src={image}
+                                                sx={{
+                                                    width: {
+                                                        xs: 32, // Mniejszy avatar na mobile
+                                                        md: 36
+                                                    },
+                                                    height: {
+                                                        xs: 32,
+                                                        md: 36
+                                                    },
+                                                    transition: 'all 0.2s ease',
+                                    '&:hover': {
+                                        transform: 'translateY(-2px)'
+                                    }
+
+                                                }}
+                                            >
+                                                <Person/>
+                                            </Avatar>
+                                        </IconButton>
+                                    </Box>
+                                )}
+                            </Box>
+                        )}
+
+                        {isSmallScreen ? (
+                            <>
+                                <IconButton
+                                    edge="start"
+                                    aria-label="menu"
+                                    onClick={handleDrawerToggle}
+                                    sx={{ml: 0.5}}
+                                >
+                                    <MenuRounded sx={{color: 'white'}}/>
+                                </IconButton>
+                                <Drawer
+                                    variant="temporary"
+                                    anchor="left"
+                                    open={mobileOpen}
+                                    onClose={handleDrawerToggle}
+                                    ModalProps={{
+                                        keepMounted: true,
+                                        disableScrollLock: true,
+                                    }}
+                                    sx={{
+                                        '& .MuiDrawer-paper': {
+                                            width: 280,
+                                            boxSizing: 'border-box',
+                                        },
+                                    }}
+                                >
+                                    {renderSidebarContent()}
+                                </Drawer>
+                            </>
+                        ) : (
+                            <IconButton
+                                href={isAuthenticated ? '/logout' : '/login'}
+                                sx={{
+                                    borderRadius: 2,
+                                    px: 2,
+                                    bgcolor: "rgba(255,255,255,0)",
+                                    transition: 'all 0.2s ease',
+                                    '&:hover': {
+                                        transform: 'translateY(-2px)'
+                                    }
+                                }}
+                            >
+                                {isAuthenticated ? <LogoutRounded sx={{ color: "white" }}/> : <LoginRounded  sx={{ color: "white" }}/>}
+                                <Typography sx={{ml: 1, color: "white"}}>
+                                    {isAuthenticated ? 'Wyloguj' : 'Zaloguj'}
+                                </Typography>
+                            </IconButton>
+                        )}
+                    </Box>
+                </Toolbar>
+            </Container>
+        </StyledAppBar>
     );
 };
 
