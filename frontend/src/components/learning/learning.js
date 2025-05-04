@@ -36,6 +36,7 @@ import LinkIcon from '@mui/icons-material/Link';
 import client from "../../client";
 import {API_BASE_URL} from "../../config";
 import Alert from "@mui/material/Alert";
+import {Cloud} from "@mui/icons-material";
 
 const Learning = () => {
     const [allResources, setAllResources] = useState([]);
@@ -347,69 +348,147 @@ const Learning = () => {
                 <AddIcon/>
             </Fab>
 
-            <Dialog open={addDialogOpen} onClose={handleAddClose} ModalProps={{
-                                        keepMounted: true,
-                                        disableScrollLock: true,
-                                    }} fullWidth maxWidth="sm">
-                <DialogTitle>Dodaj nowy zasób</DialogTitle>
-                <DialogContent>
-                    <Box display="flex" flexDirection="column" gap={2} mt={1}>
+            <Dialog
+                open={addDialogOpen}
+                onClose={handleAddClose}
+                ModalProps={{
+                    keepMounted: true,
+                    disableScrollLock: true,
+                }}
+                fullWidth
+                maxWidth="sm"
+            >
+                <DialogTitle sx={{
+                    backgroundColor: "#212121",
+                    color: (theme) => theme.palette.primary.contrastText,
+                    textAlign: 'left',
+                    py: 2
+                }}>
+                    Dodaj nowy zasób
+                </DialogTitle>
+                <DialogContent sx={{pt: 3}}>
+                    <Box display="flex" flexDirection="column" gap={3} mt={3}>
                         <TextField
                             label="Tytuł"
                             fullWidth
+                            variant="outlined"
                             value={formData.title}
                             onChange={(e) => handleFormChange('title', e.target.value)}
                         />
+
                         <TextField
                             label="Opis"
                             fullWidth
                             multiline
-                            minRows={2}
+                            minRows={3}
+                            variant="outlined"
                             value={formData.description}
                             onChange={(e) => handleFormChange('description', e.target.value)}
                         />
+
                         <Autocomplete
                             options={["Informatyka", "Automatyka"]}
                             value={formData.kierunek}
                             onChange={(e, val) => handleFormChange('kierunek', val || '')}
-                            renderInput={(params) => <TextField {...params} label="Kierunek"/>}
+                            renderInput={(params) => (
+                                <TextField
+                                    {...params}
+                                    label="Kierunek"
+                                    variant="outlined"
+                                />
+                            )}
                         />
+
                         <Autocomplete
                             options={["Matematyka", "Programowanie"]}
                             value={formData.przedmiot}
                             onChange={(e, val) => handleFormChange('przedmiot', val || '')}
-                            renderInput={(params) => <TextField {...params} label="Przedmiot"/>}
+                            renderInput={(params) => (
+                                <TextField
+                                    {...params}
+                                    label="Przedmiot"
+                                    variant="outlined"
+                                />
+                            )}
                         />
-                        <FormControl>
-                            <FormLabel>Typ zasobu</FormLabel>
-                            <RadioGroup row value={formData.type}
-                                        onChange={(e) => handleFormChange('type', e.target.value)}>
-                                <FormControlLabel value="PLIK" control={<Radio/>} label="Plik"/>
-                                <FormControlLabel value="LINK" control={<Radio/>} label="Link"/>
+
+                        <FormControl component="fieldset" >
+                            <FormLabel component="legend" color={"#212121"}>Typ zasobu</FormLabel>
+                            <RadioGroup
+                                row
+                                value={formData.type}
+                                onChange={(e) => handleFormChange('type', e.target.value)}
+                                sx={{mt: 1}}
+                            >
+                                <FormControlLabel
+                                    value="PLIK"
+                                    control={<Radio color="dark"/>}
+                                    sx={{display: "inline"}}
+                                    label="Plik"
+                                />
+                                <FormControlLabel
+                                    value="LINK"
+                                    control={<Radio color="dark"/>}
+                                    label="Link"
+                                    sx={{ml: 3, display: "inline"}}
+                                />
                             </RadioGroup>
                         </FormControl>
+
                         {formData.type === "PLIK" ? (
-                            <Button variant="contained" component="label">
-                                Wybierz plik
-                                <input type="file" hidden
-                                       onChange={(e) => handleFormChange('file', e.target.files[0])}/>
-                            </Button>
+                            <Box>
+                                <Button
+                                    variant="outlined"
+                                    component="label"
+                                    color="dark"
+
+                                    startIcon={<Cloud/>}
+                                    sx={{mb: 1}}
+                                >
+                                    {formData.file? "Zmień plik" : "Wybierz plik"}
+                                    <input
+                                        type="file"
+                                        hidden
+                                        onChange={(e) => handleFormChange('file', e.target.files?.[0])}
+                                    />
+                                </Button>
+                                {formData.file && (
+                                    <Typography variant="body2" sx={{ml: 1, display: "inline"}}>
+                                        <b>Wybrany plik:</b> {formData.file.name.length > 40? formData.file.name.slice(0,40) + "..." : formData.file.name}
+                                    </Typography>
+                                )}
+                            </Box>
                         ) : (
                             <TextField
                                 label="Link"
                                 fullWidth
+                                variant="outlined"
+                                sx={{height: 45}}
                                 value={formData.link}
                                 onChange={(e) => handleFormChange('link', e.target.value)}
                             />
                         )}
                     </Box>
                 </DialogContent>
-                <DialogActions>
-                    <Button onClick={handleAddClose}>Anuluj</Button>
-                    <Button onClick={handleFormSubmit} variant="contained">Dodaj</Button>
+                <DialogActions sx={{px: 3, py: 2}}>
+                    <Button
+                        onClick={handleAddClose}
+                        variant="outlined"
+                        color="dark"
+                        sx={{width: 120}}
+                    >
+                        Anuluj
+                    </Button>
+                    <Button
+                        onClick={handleFormSubmit}
+                        variant="contained"
+                        back="primary"
+                        sx={{width: 120, backgroundColor: "#212121"}}
+                    >
+                        Dodaj
+                    </Button>
                 </DialogActions>
             </Dialog>
-
 
         </div>
     );

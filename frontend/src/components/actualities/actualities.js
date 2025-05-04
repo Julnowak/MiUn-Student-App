@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, {useEffect, useState} from "react";
 import {
   Box,
   Typography,
@@ -13,6 +13,8 @@ import {
   IconButton
 } from "@mui/material";
 import { CalendarToday, Person, ArrowForward } from "@mui/icons-material";
+import client from "../../client";
+import {API_BASE_URL} from "../../config";
 
 const StyledCard = styled(Card)(({ theme }) => ({
   transition: "all 0.3s ease",
@@ -71,19 +73,42 @@ const Actualities = () => {
     }
   ]);
 
+  const [news, setNews] = useState([]);
+  const token = localStorage.getItem("access")
+
+  useEffect(() => {
+      const fetchData = async () => {
+          try {
+              const response = await client.get(API_BASE_URL + "news/", {
+                  headers: {
+                      Authorization: `Bearer ${token}`,
+                  },
+              });
+              setNews(response.data);
+          } catch (error) {
+              console.log("Nie udało się zalogować");
+          }
+      };
+
+      if (token) {
+          fetchData();
+      }
+  }, [token]);
+
   const [currentPage, setCurrentPage] = useState(1);
   const [updatesPerPage] = useState(3); // One card per page
 
   // Calculate index of the first and last update on the current page
   const indexOfLastUpdate = currentPage * updatesPerPage;
   const indexOfFirstUpdate = indexOfLastUpdate - updatesPerPage;
-  const currentUpdates = updates.slice(indexOfFirstUpdate, indexOfLastUpdate);
+  const currentUpdates = news.slice(indexOfFirstUpdate, indexOfLastUpdate);
   const theme = useTheme();
 
   // Pagination handler
   const handleChangePage = (event, value) => {
     setCurrentPage(value);
   };
+
 
   return (
     <Box sx={{
@@ -126,7 +151,7 @@ const Actualities = () => {
                       minHeight: 64
                     }}
                   >
-                    {update.title}
+                    {update.name}
                   </Typography>
                   <Typography
                     variant="body1"
@@ -137,7 +162,7 @@ const Actualities = () => {
                       mb: 3
                     }}
                   >
-                    {update.content}
+                    {update.details.length > 200 ? update.details.slice(0,200) + "...": update.details}
                   </Typography>
                 </Box>
 
@@ -149,11 +174,11 @@ const Actualities = () => {
                 }}>
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                     <CalendarToday fontSize="small" />
-                    <Typography variant="caption">{update.date}</Typography>
+                    <Typography variant="caption">{new Date(update.date_added).toLocaleDateString()}</Typography>
                   </Box>
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                     <Person fontSize="small" />
-                    <Typography variant="caption">{update.author}</Typography>
+                    <Typography variant="caption">{update.author.username}</Typography>
                   </Box>
                 </Box>
               </CardContent>
@@ -183,20 +208,14 @@ const Actualities = () => {
         display: "flex",
         justifyContent: "center",
         mt: 6,
-        "& .MuiPaginationItem-root": {
-          borderRadius: "8px",
-          fontWeight: 500
-        },
-        "& .Mui-selected": {
-          boxShadow: theme.shadows[2]
-        }
+
       }}>
         <Pagination
           count={Math.ceil(updates.length / updatesPerPage)}
           page={currentPage}
           onChange={handleChangePage}
-          color="primary"
-          size="large"
+
+          shape="circular"
         />
       </Box>
     </Box>
