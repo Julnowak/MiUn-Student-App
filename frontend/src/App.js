@@ -4,7 +4,7 @@ import Homepage from "./components/homepage/homepage";
 import Login from "./components/login/login";
 import CustomNavbar from "./components/navbar/navbar";
 import Footer from "./components/footer/footer";
-import React, {useContext} from "react";
+import React from "react";
 import UserProfile from "./components/userProfile/userProfile";
 import Main from "./components/main/main";
 import {AuthProvider} from "./AuthContext";
@@ -20,11 +20,12 @@ import Register from "./components/register/register";
 import Notifications from "./components/notifications/notifications";
 import Donations from "./components/donations/donations";
 import Exchange from "./components/exchange/exchange";
-import AddOffer from "./components/exchange/addOffer";
 import MyOffers from "./components/exchange/myOffers";
 import Groups from "./components/groups/groups";
 import Actualities from "./components/actualities/actualities";
 import GeminiPrompt from "./components/geminiPrompt/geminiPrompt";
+import NotFoundPage from "./components/notFoundPage/notFoundPage";
+import Forum from "./components/forum/forum";
 
 function App() {
     return (
@@ -55,11 +56,12 @@ function App() {
                         <Route path="/donations" element={<Donations/>}/>
 
                         <Route path="/exchanges" element={<Exchange />} />
-                        <Route path="/add-offer" element={<AddOffer />} />
                         <Route path="/my-offers" element={<MyOffers />} />
                         <Route path="/groups" element={<Groups />} />
                         <Route path="/actual-info" element={<Actualities />} />
                         <Route path="/chat" element={<GeminiPrompt />} />
+                        <Route path="/forum" element={<Forum />} />
+                        <Route path="*" element={<NotFoundPage />} />
 
                     </Routes>
                 </div>

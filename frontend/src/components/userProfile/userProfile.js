@@ -6,7 +6,7 @@ import {FaCheckCircle, FaCoffee, FaEdit, FaExclamationTriangle} from "react-icon
 import Cropper from "react-easy-crop";
 import "./userProfile.css"
 import {useNavigate} from "react-router-dom";
-import {Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle} from "@mui/material";
+import {Avatar, Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle} from "@mui/material";
 
 import {
     Box,
@@ -55,21 +55,25 @@ async function getCroppedImg(imageSrc, croppedAreaPixels) {
     });
 }
 
-
 const StyledPaper = styled(Paper)(({theme}) => ({
     padding: theme.spacing(4),
-    borderRadius: theme.shape.borderRadius * 2,
-    boxShadow: theme.shadows[4],
-    background: `linear-gradient(145deg, ${theme.palette.background.default}, ${theme.palette.background.paper})`,
+    borderRadius: theme.shape.borderRadius * 3,
+    boxShadow: theme.shadows[6],
+    background: theme.palette.background.paper,
+    border: `1px solid ${theme.palette.divider}`,
+    transition: "transform 0.3s ease",
+    "&:hover": {
+        transform: "translateY(-4px)",
+    },
 }));
 
 const ProfileImageWrapper = styled("div")(({theme}) => ({
     position: "relative",
-    width: 188,
-    height: 188,
+    width: 200,
+    height: 200,
     margin: "0 auto",
     borderRadius: "50%",
-    transition: "transform 0.3s ease",
+    transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
     "&:hover": {
         transform: "scale(1.05)",
         "& .edit-overlay": {
@@ -92,8 +96,32 @@ const EditOverlay = styled("div")(({theme}) => ({
     opacity: 0,
     transition: "opacity 0.3s ease",
     cursor: "pointer",
+    "& svg": {
+        fontSize: "2rem",
+        backgroundColor: theme.palette.primary.main,
+        borderRadius: "50%",
+        padding: theme.spacing(1),
+        boxShadow: theme.shadows[4],
+    },
 }));
 
+const SectionHeader = styled(Typography)(({theme}) => ({
+    fontSize: "1.5rem",
+    fontWeight: 700,
+    color: theme.palette.text.primary,
+    marginBottom: theme.spacing(2),
+    position: "relative",
+    "&::after": {
+        content: '""',
+        position: "absolute",
+        bottom: -8,
+        left: 0,
+        width: "40px",
+        height: "4px",
+        backgroundColor: theme.palette.primary.main,
+        borderRadius: "2px",
+    },
+}));
 export default function UserProfile() {
     const theme = useTheme();
     const [user, setUser] = useState({});
@@ -216,7 +244,13 @@ export default function UserProfile() {
 
 
     return (
-        <Box sx={{maxWidth: 800, margin: "0 auto", p: 3}}>
+        <Box sx={{
+            maxWidth: 900,
+            margin: "0 auto",
+            p: 4,
+            minHeight: "100vh",
+            background: `linear-gradient(135deg, ${theme.palette.background.default} 0%, ${theme.palette.background.paper} 100%)`
+        }}>
             <StyledPaper elevation={3}>
                 <Grid container spacing={4}>
                     {/* Profile Image Section */}
@@ -226,18 +260,20 @@ export default function UserProfile() {
                             onMouseLeave={() => setHover(false)}
                             onClick={() => document.getElementById("fileInput").click()}
                         >
-                            <img
+                            <Avatar
                                 src={croppedImage || user?.profile_picture?.toString().slice(15) || "/images/basic/user_no_picture.png"}
                                 alt="Profil"
-                                style={{
+                                sx={{
                                     width: "100%",
                                     height: "100%",
-                                    borderRadius: "50%",
-                                    objectFit: "cover",
+                                    border: `3px solid ${theme.palette.primary.main}`,
+                                    "&:hover": {
+                                        borderColor: theme.palette.primary.dark,
+                                    },
                                 }}
                             />
                             <EditOverlay className="edit-overlay">
-                                <FaEdit size={32} color={theme.palette.common.white}/>
+                                <FaEdit color={theme.palette.common.white}/>
                             </EditOverlay>
                             <input
                                 id="fileInput"
@@ -248,36 +284,47 @@ export default function UserProfile() {
                             />
                         </ProfileImageWrapper>
 
-                        <Typography variant="h5" sx={{mt: 2, fontWeight: 600}}>
+                        <Typography variant="h4" sx={{mt: 3, fontWeight: 700, letterSpacing: -0.5}}>
                             {user?.username}
                         </Typography>
 
                         {/* Verification Status */}
                         <Box sx={{
-                            mt: 2,
+                            mt: 3,
                             p: 2,
                             width: "100%",
                             borderRadius: theme.shape.borderRadius,
-                            bgcolor: user?.is_verified ? "success.light" : "warning.light",
-                            textAlign: "center"
+                            bgcolor: user?.is_verified ?
+                                theme.palette.success.light :
+                                theme.palette.warning.light,
+                            textAlign: "center",
+                            border: `1px solid ${user?.is_verified ? 
+                                theme.palette.success.dark : 
+                                theme.palette.warning.dark}`
                         }}>
                             {user?.is_verified ? (
                                 <>
-                                    <FaCheckCircle size={24} color={theme.palette.success.main}/>
-                                    <Typography variant="body2" sx={{mt: 1, color: "success.dark"}}>
+                                    <FaCheckCircle size={28} color={theme.palette.success.dark}/>
+                                    <Typography variant="body1" sx={{mt: 1, fontWeight: 500}}>
                                         Konto zweryfikowane
                                     </Typography>
                                 </>
                             ) : (
                                 <>
-                                    <FaExclamationTriangle size={24} color={theme.palette.warning.main}/>
-                                    <Typography variant="body2" sx={{mt: 1, color: "warning.dark"}}>
+                                    <FaExclamationTriangle size={28} color={theme.palette.warning.dark}/>
+                                    <Typography variant="body1" sx={{mt: 1, fontWeight: 500}}>
                                         Wymagana weryfikacja
                                     </Typography>
                                     <Button
                                         variant="contained"
-                                        size="small"
-                                        sx={{mt: 1, borderRadius: "20px"}}
+                                        size="medium"
+                                        sx={{
+                                            mt: 2,
+                                            borderRadius: "8px",
+                                            py: 1,
+                                            px: 3,
+                                            fontWeight: 600
+                                        }}
                                     >
                                         Zweryfikuj konto
                                     </Button>
@@ -288,93 +335,125 @@ export default function UserProfile() {
 
                     {/* User Info Section */}
                     <Grid item xs={12} md={8}>
-                        <Grid container spacing={3}>
-                            <Grid item xs={12}>
-                                <Typography variant="h6" gutterBottom sx={{fontWeight: 600}}>
-                                    Dane osobowe
-                                </Typography>
-                                <Divider sx={{mb: 2}}/>
-                                <Grid container spacing={2}>
-                                    <Grid item xs={12} sm={6}>
-                                        <TextField
-                                            fullWidth
-                                            label="Imię"
-                                            name="firstName"
-                                            value={user?.name || ""}
-                                            onChange={handleChange}
-                                            disabled={!isEditing}
-                                            variant="filled"
-                                        />
-                                    </Grid>
-                                    <Grid item xs={12} sm={6}>
-                                        <TextField
-                                            fullWidth
-                                            label="Nazwisko"
-                                            name="lastName"
-                                            value={user?.surname || ""}
-                                            onChange={handleChange}
-                                            disabled={!isEditing}
-                                            variant="filled"
-                                        />
-                                    </Grid>
-                                    <Grid item xs={12}>
-                                        <TextField
-                                            fullWidth
-                                            label="Email"
-                                            name="email"
-                                            value={user?.email || ""}
-                                            onChange={handleChange}
-                                            disabled={!isEditing}
-                                            variant="filled"
-                                        />
-                                    </Grid>
+                        <Box sx={{mb: 4}}>
+                            <SectionHeader variant="h2">
+                                Dane osobowe
+                            </SectionHeader>
+                            <Grid container spacing={3}>
+                                <Grid item xs={12} sm={6}>
+                                    <TextField
+                                        fullWidth
+                                        label="Imię"
+                                        name="firstName"
+                                        value={user?.name || ""}
+                                        onChange={handleChange}
+                                        disabled={!isEditing}
+                                        variant="outlined"
+                                        InputLabelProps={{
+                                            style: {color: theme.palette.text.secondary}
+                                        }}
+                                    />
+                                </Grid>
+                                <Grid item xs={12} sm={6}>
+                                    <TextField
+                                        fullWidth
+                                        label="Nazwisko"
+                                        name="lastName"
+                                        value={user?.surname || ""}
+                                        onChange={handleChange}
+                                        disabled={!isEditing}
+                                        variant="outlined"
+                                    />
+                                </Grid>
+                                <Grid item xs={12}>
+                                    <TextField
+                                        fullWidth
+                                        label="Email"
+                                        name="email"
+                                        value={user?.email || ""}
+                                        onChange={handleChange}
+                                        disabled={!isEditing}
+                                        variant="outlined"
+                                        InputProps={{
+                                            endAdornment: (
+                                                <IconButton size="small" sx={{mr: -1}}>
+                                                    <FaEdit fontSize="small"/>
+                                                </IconButton>
+                                            ),
+                                        }}
+                                    />
                                 </Grid>
                             </Grid>
+                        </Box>
 
-                            <Grid item xs={12}>
-                                <Typography variant="h6" gutterBottom sx={{fontWeight: 600}}>
-                                    Informacje uczelniane
-                                </Typography>
-                                <Divider sx={{mb: 2}}/>
-                                <Grid container spacing={2}>
-                                    <Grid item xs={12} sm={6}>
-                                        <TextField
-                                            fullWidth
-                                            label="Wydział"
-                                            value="EAIIB"
-                                            variant="filled"
-                                            disabled
-                                        />
-                                    </Grid>
-                                    <Grid item xs={12} sm={6}>
-                                        <TextField
-                                            fullWidth
-                                            label="Kierunek"
-                                            value="AiR"
-                                            variant="filled"
-                                            disabled
-                                        />
-                                    </Grid>
-                                    <Grid item xs={12}>
-                                        <TextField
-                                            fullWidth
-                                            label="Email uczelniany"
-                                            value="student@aaa.edu.pl"
-                                            variant="filled"
-                                            disabled
-                                        />
-                                    </Grid>
+                        <Box sx={{mb: 4}}>
+                            <SectionHeader variant="h2">
+                                Informacje uczelniane
+                            </SectionHeader>
+                            <Grid container spacing={3}>
+                                <Grid item xs={12} sm={6}>
+                                    <TextField
+                                        fullWidth
+                                        label="Wydział"
+                                        value="EAIIB"
+                                        variant="outlined"
+                                        disabled
+                                        InputLabelProps={{shrink: true}}
+                                    />
+                                </Grid>
+                                <Grid item xs={12} sm={6}>
+                                    <TextField
+                                        fullWidth
+                                        label="Kierunek"
+                                        value="AiR"
+                                        variant="outlined"
+                                        disabled
+                                        InputLabelProps={{shrink: true}}
+                                    />
+                                </Grid>
+                                <Grid item xs={12}>
+                                    <TextField
+                                        fullWidth
+                                        label="Email uczelniany"
+                                        value="student@aaa.edu.pl"
+                                        variant="outlined"
+                                        disabled
+                                        InputProps={{
+                                            endAdornment: (
+                                                <IconButton size="small" disabled sx={{mr: -1}}>
+                                                    <FaEdit fontSize="small"/>
+                                                </IconButton>
+                                            ),
+                                        }}
+                                    />
                                 </Grid>
                             </Grid>
-                        </Grid>
+                        </Box>
 
                         {/* Action Buttons */}
-                        <Box sx={{mt: 4, display: "flex", gap: 2, justifyContent: "flex-end"}}>
+                        <Box sx={{
+                            mt: 4,
+                            display: "flex",
+                            gap: 2,
+                            justifyContent: "flex-end",
+                            borderTop: `1px solid ${theme.palette.divider}`,
+                            pt: 3
+                        }}>
                             <Button
                                 variant={isEditing ? "contained" : "outlined"}
-                                color={isEditing ? "success" : "primary"}
+                                color="primary"
                                 onClick={() => setIsEditing(!isEditing)}
-                                sx={{borderRadius: "20px", px: 4}}
+                                sx={{
+                                    borderRadius: "8px",
+                                    px: 4,
+                                    py: 1.5,
+                                    fontWeight: 600,
+                                    textTransform: "none",
+                                    "&:hover": {
+                                        transform: "translateY(-1px)",
+                                        boxShadow: theme.shadows[2],
+                                    }
+                                }}
                             >
                                 {isEditing ? "Zapisz zmiany" : "Edytuj profil"}
                             </Button>
@@ -384,45 +463,83 @@ export default function UserProfile() {
             </StyledPaper>
 
             {/* Additional Sections */}
-            <Box sx={{mt: 4, display: "flex", gap: 4, flexDirection: {xs: "column", md: "row"}}}>
-                <StyledPaper sx={{flex: 1, background: theme.palette.primary.light}}>
-                    <Box sx={{textAlign: "center"}}>
-                        <Typography variant="h6" gutterBottom sx={{fontWeight: 600}}>
-                            Wesprzyj naszą platformę
-                        </Typography>
-                        <Button
-                            variant="contained"
-                            color="secondary"
-                            startIcon={<FaCoffee/>}
-                            sx={{borderRadius: "20px", px: 4}}
-                        >
-                            Postaw kawę
-                        </Button>
-                    </Box>
-                </StyledPaper>
+            <Grid container spacing={3} sx={{mt: 2}}>
+                <Grid item xs={12} md={6}>
+                    <StyledPaper sx={{
+                        background: `linear-gradient(135deg, ${theme.palette.primary.light} 0%, ${theme.palette.primary.dark} 100%)`,
+                        color: theme.palette.primary.contrastText
+                    }}>
+                        <Box sx={{textAlign: "center", p: 3}}>
+                            <FaCoffee size={32} style={{marginBottom: 16}}/>
+                            <Typography variant="h6" gutterBottom sx={{fontWeight: 700}}>
+                                Wesprzyj naszą platformę
+                            </Typography>
+                            <Button
+                                variant="contained"
+                                color="secondary"
+                                sx={{
+                                    borderRadius: "8px",
+                                    px: 4,
+                                    py: 1.5,
+                                    fontWeight: 600,
+                                    textTransform: "none",
+                                    boxShadow: theme.shadows[3],
+                                    "&:hover": {
+                                        transform: "translateY(-1px)",
+                                        boxShadow: theme.shadows[4],
+                                    }
+                                }}
+                            >
+                                Postaw kawę
+                            </Button>
+                        </Box>
+                    </StyledPaper>
+                </Grid>
 
-                <StyledPaper sx={{flex: 1, bgcolor: "error.light"}}>
-                    <Typography variant="h6" gutterBottom sx={{fontWeight: 600}}>
-                        Niebezpieczna strefa
-                    </Typography>
-                    <Button
-                        variant="outlined"
-                        color="error"
-                        onClick={handleClickOpen}
-                        sx={{borderRadius: "20px"}}
-                    >
-                        Usuń konto
-                    </Button>
-                </StyledPaper>
-            </Box>
+                <Grid item xs={12} md={6}>
+                    <StyledPaper sx={{
+                        background: theme.palette.error.light,
+                        borderColor: theme.palette.error.dark
+                    }}>
+                        <Box sx={{p: 3}}>
+                            <Typography variant="h6" gutterBottom sx={{fontWeight: 700}}>
+                                Niebezpieczna strefa
+                            </Typography>
+                            <Button
+                                variant="outlined"
+                                color="error"
+                                onClick={handleClickOpen}
+                                sx={{
+                                    borderRadius: "8px",
+                                    px: 4,
+                                    py: 1.5,
+                                    fontWeight: 600,
+                                    textTransform: "none",
+                                    borderWidth: 2,
+                                    "&:hover": {
+                                        borderWidth: 2,
+                                        backgroundColor: theme.palette.error.dark + "15",
+                                    }
+                                }}
+                            >
+                                Usuń konto
+                            </Button>
+                        </Box>
+                    </StyledPaper>
+                </Grid>
+            </Grid>
 
             {/* Crop Modal */}
-            <Modal show={showCropModal} onHide={() => setShowCropModal(false)} centered>
-                <Modal.Header closeButton>
-                    <Modal.Title>Przytnij zdjęcie</Modal.Title>
-                </Modal.Header>
-                <Modal.Body>
-                    <div style={{position: "relative", height: 300, background: "#333"}}>
+            <Dialog open={showCropModal} onClose={() => setShowCropModal(false)} maxWidth="md">
+                <DialogTitle sx={{fontWeight: 700}}>Przytnij zdjęcie profilowe</DialogTitle>
+                <DialogContent>
+                    <Box sx={{
+                        position: "relative",
+                        height: 400,
+                        bgcolor: theme.palette.grey[900],
+                        borderRadius: theme.shape.borderRadius,
+                        overflow: "hidden"
+                    }}>
                         {imageSrc && (
                             <Cropper
                                 image={imageSrc}
@@ -434,34 +551,65 @@ export default function UserProfile() {
                                 onCropComplete={onCropComplete}
                                 cropShape="round"
                                 showGrid={false}
+                                classes={{containerClassName: "crop-container"}}
                             />
                         )}
-                    </div>
-                </Modal.Body>
-                <Modal.Footer>
-                    <Button variant={"contained"} onClick={() => setShowCropModal(false)}>Anuluj</Button>
-                    <Button variant={"contained"} onClick={handleCropSave}>Zapisz</Button>
-                </Modal.Footer>
-            </Modal>
+                    </Box>
+                </DialogContent>
+                <DialogActions sx={{p: 3}}>
+                    <Button
+                        onClick={() => setShowCropModal(false)}
+                        sx={{mr: 2, px: 4}}
+                    >
+                        Anuluj
+                    </Button>
+                    <Button
+                        variant="contained"
+                        onClick={handleCropSave}
+                        sx={{px: 4}}
+                    >
+                        Zapisz zmiany
+                    </Button>
+                </DialogActions>
+            </Dialog>
 
+            {/* Delete Account Dialog */}
             <Dialog
                 open={open}
                 onClose={handleClose}
-                aria-labelledby="alert-dialog-title"
-                aria-describedby="alert-dialog-description"
+                PaperProps={{
+                    sx: {
+                        borderRadius: "12px",
+                        border: `2px solid ${theme.palette.error.main}`
+                    }
+                }}
             >
-                <DialogTitle id="alert-dialog-title">
-                    {"Czy na pewno chcesz usunąć konto?"}
+                <DialogTitle sx={{fontWeight: 700, color: theme.palette.error.main}}>
+                    Usuwanie konta
                 </DialogTitle>
                 <DialogContent>
-                    <DialogContentText id="alert-dialog-description">
-                        Operacja jest nieodwracalna, a wszystkie
-                        Twoje dane zostaną usunięte! Czy chcesz kontynuować?
+                    <DialogContentText sx={{mt: 2}}>
+                        Ta akcja jest nieodwracalna! Wszystkie Twoje dane zostaną trwale usunięte.
                     </DialogContentText>
                 </DialogContent>
-                <DialogActions>
-                    <Button onClick={handleClose}>Anuluj</Button>
-                    <Button variant={"contained"} onClick={handleDeleteAccount} autoFocus>
+                <DialogActions sx={{p: 3}}>
+                    <Button
+                        onClick={handleClose}
+                        sx={{color: theme.palette.text.secondary}}
+                    >
+                        Anuluj
+                    </Button>
+                    <Button
+                        variant="contained"
+                        color="error"
+                        onClick={handleDeleteAccount}
+                        sx={{
+                            px: 4,
+                            "&:hover": {
+                                backgroundColor: theme.palette.error.dark
+                            }
+                        }}
+                    >
                         Usuń konto
                     </Button>
                 </DialogActions>

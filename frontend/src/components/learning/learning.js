@@ -347,7 +347,10 @@ const Learning = () => {
                 <AddIcon/>
             </Fab>
 
-            <Dialog open={addDialogOpen} onClose={handleAddClose} fullWidth maxWidth="sm">
+            <Dialog open={addDialogOpen} onClose={handleAddClose} ModalProps={{
+                                        keepMounted: true,
+                                        disableScrollLock: true,
+                                    }} fullWidth maxWidth="sm">
                 <DialogTitle>Dodaj nowy zasób</DialogTitle>
                 <DialogContent>
                     <Box display="flex" flexDirection="column" gap={2} mt={1}>

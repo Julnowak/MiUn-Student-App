@@ -108,12 +108,21 @@ class MaturaSubject(models.Model):
         return f"Przedmiot maturalny ID-{self.id}: {self.name} {self.level}"
 
 
+STUDIES_CHOICES = (
+    ("STACJONARNE", "for all users"),
+    ("NIESTACJONARNE", "for me and my group-mates"),
+)
+
+
 # Kierunek
 class Field(models.Model):
     id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=300)
     faculty = models.ForeignKey(Faculty, on_delete=models.CASCADE)
     formula = models.CharField(max_length=1000, default='')
+    type = models.CharField(max_length=100, default='stacjonarne', choices=STUDIES_CHOICES)
+    description = models.TextField(blank=True, null=True)
+    specialization = models.CharField(max_length=300, blank=True, null=True)
     G1_subject = models.ManyToManyField(MaturaSubject, blank=True, related_name="G1")
     G2_subject = models.ManyToManyField(MaturaSubject, blank=True, related_name="G2")
 
@@ -169,11 +178,13 @@ class Course(models.Model):
     id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=300)
     field = models.ManyToManyField(Field)
-    semester = models.ManyToManyField(Semester)
+    semester = models.ManyToManyField(Semester, null=True)
     ECTS = models.IntegerField(default=1)
     test_type = models.CharField(max_length=300, default="egzamin")
     additional_info = models.TextField(blank=True, null=True)
     lecturer = models.CharField(max_length=300, blank=True, null=True)
+    place = models.ForeignKey(Building, on_delete=models.CASCADE, blank=True, null=True)
+    room = models.CharField(max_length=300, blank=True, null=True)
 
     def __str__(self):
         return f"Kurs ID-{self.id}: {self.name}"

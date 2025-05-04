@@ -30,6 +30,10 @@
   color: #61dafb;
 }
 
+/* W globalnym CSS */
+body.MuiModal-root {
+  padding-right: 0 !important;
+}
 
 /* Stylizacja scrollbara */
 ::-webkit-scrollbar {
@@ -53,16 +57,3 @@
   display: none;
 }
 
-
-/*.white ::-webkit-scrollbar-track {*/
-/*  background: #cbcbcb;*/
-/*}*/
-
-/*.white ::-webkit-scrollbar-thumb {*/
-/*  background: #9f9f9f;*/
-
-/*}*/
-
-/*.white ::-webkit-scrollbar-thumb:hover {*/
-/*  background: #818181;*/
-/*}*/
