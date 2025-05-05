@@ -29,10 +29,10 @@ const Footer = () => {
           <Grid item xs={12} md={4}>
             <Typography variant="h6" gutterBottom>Śledź nas</Typography>
             <Box sx={{ display: 'flex', gap: 1, justifyContent: { xs: 'center', } }}>
-              <IconButton href="#" color="inherit" aria-label="Facebook"><FaFacebook /></IconButton>
-              <IconButton href="#" color="inherit" aria-label="Twitter"><FaTwitter /></IconButton>
-              <IconButton href="#" color="inherit" aria-label="Instagram"><FaInstagram /></IconButton>
-              <IconButton href="#" color="inherit" aria-label="LinkedIn"><FaLinkedin /></IconButton>
+              <IconButton href="https://www.facebook.com/" color="inherit" aria-label="Facebook"><FaFacebook /></IconButton>
+              <IconButton href="https://x.com/" color="inherit" aria-label="Twitter"><FaTwitter /></IconButton>
+              <IconButton href="https://www.instagram.com/" color="inherit" aria-label="Instagram"><FaInstagram /></IconButton>
+              <IconButton href="https://www.linkedin.com/" color="inherit" aria-label="LinkedIn"><FaLinkedin /></IconButton>
             </Box>
           </Grid>
         </Grid>

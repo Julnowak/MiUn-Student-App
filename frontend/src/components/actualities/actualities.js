@@ -1,20 +1,24 @@
-import React, {useEffect, useState} from "react";
+import React, { useEffect, useState } from "react";
 import {
-  Box,
-  Typography,
-  Card,
-  CardContent,
-  CardActions,
-  Button,
-  Pagination,
-  Grid,
-  useTheme,
-  styled,
-  IconButton
+    Box,
+    Typography,
+    Card,
+    CardContent,
+    CardActions,
+    Button,
+    Pagination,
+    Grid,
+    useTheme,
+    styled,
+    Dialog,
+    DialogTitle,
+    DialogContent,
+    DialogContentText,
+    DialogActions, IconButton
 } from "@mui/material";
-import { CalendarToday, Person, ArrowForward } from "@mui/icons-material";
+import { CalendarToday, Person, ArrowForward, Close } from "@mui/icons-material";
 import client from "../../client";
-import {API_BASE_URL} from "../../config";
+import { API_BASE_URL } from "../../config";
 
 const StyledCard = styled(Card)(({ theme }) => ({
   transition: "all 0.3s ease",
@@ -27,88 +31,43 @@ const StyledCard = styled(Card)(({ theme }) => ({
 }));
 
 const Actualities = () => {
-  // Sample data (in a real app, this would be fetched from an API)
-  const [updates, setUpdates] = useState([
-    {
-      id: 1,
-      title: "Nowa wersja API v2.0",
-      date: "2025-04-01",
-      content: "Wersja 2.0 API wprowadza nowe funkcjonalności, takie jak poprawa wydajności i nowe metody.",
-      author: "Deweloper 1"
-    },
-    {
-      id: 2,
-      title: "Poprawki w systemie logowania",
-      date: "2025-03-25",
-      content: "Naprawiono błąd w procesie logowania, który powodował problemy z autoryzacją.",
-      author: "Deweloper 2"
-    },
-    {
-      id: 3,
-      title: "Nowe możliwości w aplikacji mobilnej",
-      date: "2025-03-20",
-      content: "W aplikacji mobilnej dodano nową funkcjonalność synchronizacji danych offline.",
-      author: "Deweloper 3"
-    },
-    {
-      id: 4,
-      title: "Zmiany w strukturze bazy danych",
-      date: "2025-03-15",
-      content: "Zmieniono strukturę bazy danych, co pozwoli na lepszą skalowalność aplikacji.",
-      author: "Deweloper 4"
-    },
-    {
-      id: 5,
-      title: "Poprawki UI w panelu administratora",
-      date: "2025-03-10",
-      content: "Zoptymalizowano interfejs użytkownika panelu administratora w celu poprawy doświadczeń użytkowników.",
-      author: "Deweloper 5"
-    },
-    {
-      id: 6,
-      title: "Ulepszony system powiadomień",
-      date: "2025-03-05",
-      content: "Nowy system powiadomień umożliwia łatwiejsze śledzenie ważnych informacji w aplikacji.",
-      author: "Deweloper 6"
-    }
-  ]);
-
+  const [selectedPost, setSelectedPost] = useState(null);
   const [news, setNews] = useState([]);
-  const token = localStorage.getItem("access")
+  const token = localStorage.getItem("access");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [updatesPerPage] = useState(3);
+  const theme = useTheme();
 
   useEffect(() => {
-      const fetchData = async () => {
-          try {
-              const response = await client.get(API_BASE_URL + "news/", {
-                  headers: {
-                      Authorization: `Bearer ${token}`,
-                  },
-              });
-              setNews(response.data);
-          } catch (error) {
-              console.log("Nie udało się zalogować");
-          }
-      };
-
-      if (token) {
-          fetchData();
+    const fetchData = async () => {
+      try {
+        const response = await client.get(API_BASE_URL + "news/", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        setNews(response.data);
+      } catch (error) {
+        console.log("Nie udało się pobrać aktualności");
       }
+    };
+
+    if (token) {
+      fetchData();
+    }
   }, [token]);
 
-  const [currentPage, setCurrentPage] = useState(1);
-  const [updatesPerPage] = useState(3); // One card per page
-
-  // Calculate index of the first and last update on the current page
   const indexOfLastUpdate = currentPage * updatesPerPage;
   const indexOfFirstUpdate = indexOfLastUpdate - updatesPerPage;
   const currentUpdates = news.slice(indexOfFirstUpdate, indexOfLastUpdate);
-  const theme = useTheme();
 
-  // Pagination handler
   const handleChangePage = (event, value) => {
     setCurrentPage(value);
   };
 
+  const handleCloseDialog = () => {
+    setSelectedPost(null);
+  };
 
   return (
     <Box sx={{
@@ -123,7 +82,7 @@ const Actualities = () => {
           mb: 6,
           textAlign: "center",
           fontWeight: 700,
-          color: "primary.main",
+          color: "#212121",
           letterSpacing: "-0.5px"
         }}
       >
@@ -162,7 +121,7 @@ const Actualities = () => {
                       mb: 3
                     }}
                   >
-                    {update.details.length > 200 ? update.details.slice(0,200) + "...": update.details}
+                    {update.details.length > 200 ? update.details.slice(0, 200) + "..." : update.details}
                   </Typography>
                 </Box>
 
@@ -188,6 +147,7 @@ const Actualities = () => {
               }}>
                 <Button
                   endIcon={<ArrowForward />}
+                  onClick={() => setSelectedPost(update)}
                   sx={{
                     textTransform: "none",
                     fontWeight: 500,
@@ -204,17 +164,78 @@ const Actualities = () => {
         ))}
       </Grid>
 
+      {/* Post Details Dialog */}
+    <Dialog
+      open={!!selectedPost}
+      onClose={handleCloseDialog}
+      maxWidth="md"
+      fullWidth
+      transitionDuration={0}
+      >
+        <DialogTitle sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          backgroundColor: "#212121",
+          color: theme.palette.primary.contrastText
+        }}>
+          {selectedPost?.name}
+          <IconButton onClick={handleCloseDialog} sx={{ color: "inherit" }}>
+            <Close />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent sx={{ pt: 3 }}>
+          <DialogContentText component="div">
+            <Typography mt={3} align={"justify"} variant="body1" paragraph>
+              {selectedPost?.details}
+            </Typography>
+            {selectedPost?.images?
+                <Box sx={{margin: "auto", textAlign: "center"}}>
+                  <img height={200} src={selectedPost?.images?.slice(16)} />
+                </Box>:
+            null}
+            <Box sx={{
+              display: "flex",
+              gap: 3,
+              mt: 2,
+              color: "text.secondary"
+            }}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                <CalendarToday fontSize="small" />
+                <Typography variant="body2">
+                  {selectedPost && new Date(selectedPost.date_added).toLocaleDateString()}
+                </Typography>
+              </Box>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                <Person fontSize="small" />
+                <Typography variant="body2">
+                  {selectedPost?.author.username}
+                </Typography>
+              </Box>
+            </Box>
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button
+            onClick={handleCloseDialog}
+            variant="contained"
+            color="primary"
+            sx={{backgroundColor: "#212121"}}
+          >
+            Zamknij
+          </Button>
+        </DialogActions>
+      </Dialog>
+
       <Box sx={{
         display: "flex",
         justifyContent: "center",
         mt: 6,
-
       }}>
         <Pagination
-          count={Math.ceil(updates.length / updatesPerPage)}
+          count={Math.ceil(news.length / updatesPerPage)}
           page={currentPage}
           onChange={handleChangePage}
-
           shape="circular"
         />
       </Box>
