@@ -118,7 +118,7 @@ STUDIES_CHOICES = (
 class Field(models.Model):
     id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=300)
-    faculty = models.ForeignKey(Faculty, on_delete=models.CASCADE)
+    faculty = models.ManyToManyField(Faculty)
     formula = models.CharField(max_length=1000, default='')
     type = models.CharField(max_length=100, default='stacjonarne', choices=STUDIES_CHOICES)
     description = models.TextField(blank=True, null=True)
@@ -130,24 +130,63 @@ class Field(models.Model):
         return f"Kierunek ID-{self.id}: {self.name}"
 
 
+class Semester(models.Model):
+    id = models.AutoField(primary_key=True)
+    start_date = models.DateField(blank=True, null=True)
+    end_date = models.DateField(blank=True, null=True)
+    number = models.IntegerField()
+    ECTS_required = models.IntegerField(default=30)
+
+    def __str__(self):
+        return f"Semestr {self.number}, ID-{self.id}"
+
+
+# Tok studiów
 class FieldByYear(models.Model):
     id = models.AutoField(primary_key=True)
     field = models.ForeignKey(Field, on_delete=models.CASCADE)
     start_date = models.DateField()
     end_date = models.DateField()
+    students = models.ManyToManyField(AppUser)
+    semesters = models.ManyToManyField(Semester)
 
     def __str__(self):
-        return f"Kierunek ID-{self.id}: {self.name} {str(self.start_date.year)}"
+        return f"Kierunek ID-{self.id}: {self.field.name} {str(self.start_date.year)}-{str(self.end_date.year)}"
 
 
-class Semester(models.Model):
+class Course(models.Model):
     id = models.AutoField(primary_key=True)
-    field_by_year = models.ForeignKey(FieldByYear, on_delete=models.CASCADE)
-    number = models.IntegerField()
-    ECTS_required = models.IntegerField(default=30)
+    name = models.CharField(max_length=300)
+    field = models.ManyToManyField(Field)
+    semester = models.ManyToManyField(Semester)
+    ECTS = models.IntegerField(default=1)
+    test_type = models.CharField(max_length=300, default="egzamin")
+    additional_info = models.TextField(blank=True, null=True)
+    lecturer = models.CharField(max_length=300, blank=True, null=True)
+    place = models.ForeignKey(Building, on_delete=models.CASCADE, blank=True, null=True)
+    room = models.CharField(max_length=300, blank=True, null=True)
 
     def __str__(self):
-        return f"Semestr {self.number}, ID-{self.id}: {self.field_by_year.field.name}"
+        return f"Kurs ID-{self.id}: {self.name}"
+
+
+class CourseGrade(models.Model):
+    subject = models.ForeignKey(Course, on_delete=models.CASCADE)
+    grade = models.DecimalField(max_digits=4, decimal_places=2)
+
+    def __str__(self):
+        return f"{self.subject.name}: {self.grade}"
+
+
+class Progress(models.Model):
+    id = models.AutoField(primary_key=True)
+    all_studies = models.ManyToManyField(FieldByYear)
+    current_semesters = models.ManyToManyField(Semester, related_name="current_semesters")
+    completed_semesters = models.ManyToManyField(Semester, related_name="completed_semesters")
+    grades = models.ManyToManyField(CourseGrade)
+
+    def __str__(self):
+        return f"Progress studenta ID-{self.id}"
 
 
 class Round(models.Model):
@@ -173,21 +212,6 @@ class VerificationCode(models.Model):
     def __str__(self):
         return f"{self.user.email} - {self.code}"
 
-
-class Course(models.Model):
-    id = models.AutoField(primary_key=True)
-    name = models.CharField(max_length=300)
-    field = models.ManyToManyField(Field)
-    semester = models.ManyToManyField(Semester, null=True)
-    ECTS = models.IntegerField(default=1)
-    test_type = models.CharField(max_length=300, default="egzamin")
-    additional_info = models.TextField(blank=True, null=True)
-    lecturer = models.CharField(max_length=300, blank=True, null=True)
-    place = models.ForeignKey(Building, on_delete=models.CASCADE, blank=True, null=True)
-    room = models.CharField(max_length=300, blank=True, null=True)
-
-    def __str__(self):
-        return f"Kurs ID-{self.id}: {self.name}"
 
 
 class Event(models.Model):
