@@ -1,7 +1,8 @@
 import axios from "axios";
+import {API_BASE_URL} from "./config";
 
 const client = axios.create({
-    baseURL: "https://miun-student-app.onrender.com/api/",
+    baseURL: API_BASE_URL,
     headers: { "Content-Type": "application/json" },
 });
 
@@ -51,7 +52,7 @@ client.interceptors.response.use(
                 const refreshToken = localStorage.getItem("refreshToken");
                 if (!refreshToken) throw new Error("Brak refreshToken");
 
-                const response = await axios.post("https://miun-student-app.onrender.com" +"/api/token/refresh/", { refresh: refreshToken });
+                const response = await axios.post(API_BASE_URL +"token/refresh/", { refresh: refreshToken });
 
                 const newAccessToken = response.data.access;
                 localStorage.setItem("accessToken", newAccessToken);
