@@ -1,7 +1,8 @@
 import axios from "axios";
+import {API_BASE_URL} from "./config";
 
 const client = axios.create({
-    baseURL: "http://127.0.0.1:8000/api/",
+    baseURL: API_BASE_URL,
     headers: { "Content-Type": "application/json" },
 });
 
@@ -51,7 +52,7 @@ client.interceptors.response.use(
                 const refreshToken = localStorage.getItem("refreshToken");
                 if (!refreshToken) throw new Error("Brak refreshToken");
 
-                const response = await axios.post("http://127.0.0.1:8000/api/token/refresh/", { refresh: refreshToken });
+                const response = await axios.post(API_BASE_URL +"token/refresh/", { refresh: refreshToken });
 
                 const newAccessToken = response.data.access;
                 localStorage.setItem("accessToken", newAccessToken);
