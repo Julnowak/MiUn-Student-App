@@ -98,7 +98,7 @@ DATABASES = {
 
     'default': dj_database_url.config(
         # Replace this value with your local database's connection string.
-        default='postgresql://miundb:5Q8H7TI3zDnJrYzy941eVOsWcsN2jyQu@dpg-d0cv3t8dl3ps73ek03v0-a/miundb',
+        default='postgresql://miundb:5Q8H7TI3zDnJrYzy941eVOsWcsN2jyQu@dpg-d0cv3t8dl3ps73ek03v0-a.oregon-postgres.render.com/miundb',
         conn_max_age=600
     )
 
