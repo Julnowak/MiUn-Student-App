@@ -35,25 +35,25 @@ body.MuiModal-root {
   padding-right: 0 !important;
 }
 
-/* Stylizacja scrollbara */
-::-webkit-scrollbar {
-  width: 8px;
-}
+/*!* Stylizacja scrollbara *!*/
+/*::-webkit-scrollbar {*/
+/*  width: 8px;*/
+/*}*/
 
-::-webkit-scrollbar-track {
-  background: #222;
-}
+/*::-webkit-scrollbar-track {*/
+/*  background: #222;*/
+/*}*/
 
-::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.58);
+/*::-webkit-scrollbar-thumb {*/
+/*  background: rgba(0, 0, 0, 0.58);*/
 
-}
+/*}*/
 
-::-webkit-scrollbar-thumb:hover {
-  background: #000000;
-}
+/*::-webkit-scrollbar-thumb:hover {*/
+/*  background: #000000;*/
+/*}*/
 
-::-webkit-scrollbar-button {
-  display: none;
-}
+/*::-webkit-scrollbar-button {*/
+/*  display: none;*/
+/*}*/
 

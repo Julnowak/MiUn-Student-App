@@ -109,18 +109,6 @@ class Migration(migrations.Migration):
             ],
         ),
         migrations.CreateModel(
-            name='News',
-            fields=[
-                ('id', models.AutoField(primary_key=True, serialize=False)),
-                ('name', models.CharField(max_length=300)),
-                ('details', models.TextField(blank=True, max_length=2000, null=True)),
-                ('date_added', models.DateTimeField(auto_now_add=True)),
-                ('images', models.ImageField(blank=True, null=True, upload_to='dev_images')),
-                ('links', models.URLField(blank=True, null=True)),
-                ('author', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
-            ],
-        ),
-        migrations.CreateModel(
             name='Notification',
             fields=[
                 ('id', models.AutoField(primary_key=True, serialize=False)),
