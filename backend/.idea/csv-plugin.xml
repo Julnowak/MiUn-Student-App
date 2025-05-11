@@ -10,6 +10,27 @@
             </Attribute>
           </value>
         </entry>
+        <entry key="\sylabus_data\course_data_2025_1_stopien.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\sylabus_data\faculty_data_2025_1_stopien.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value=";" />
+            </Attribute>
+          </value>
+        </entry>
+        <entry key="\sylabus_data\field_data_2025_1_stopien.csv">
+          <value>
+            <Attribute>
+              <option name="separator" value="," />
+            </Attribute>
+          </value>
+        </entry>
       </map>
     </option>
   </component>
