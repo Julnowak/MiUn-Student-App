@@ -148,8 +148,6 @@ class Migration(migrations.Migration):
                 ('test_type', models.CharField(default='egzamin', max_length=300)),
                 ('additional_info', models.TextField(blank=True, null=True)),
                 ('lecturer', models.CharField(blank=True, max_length=300, null=True)),
-                ('room', models.CharField(blank=True, max_length=300, null=True)),
-                ('place', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='mainApp.building')),
                 ('field', models.ManyToManyField(to='mainApp.field')),
                 ('semester', models.ManyToManyField(null=True, to='mainApp.semester')),
             ],
