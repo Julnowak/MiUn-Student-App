@@ -233,9 +233,14 @@ class Event(models.Model):
 class Group(models.Model):
     id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=300)
-    fieldByYear = models.ForeignKey(FieldByYear, on_delete=models.CASCADE)
+    fieldByYear = models.ForeignKey(FieldByYear, on_delete=models.CASCADE, blank=True, null=True)
     admin = models.ForeignKey(AppUser, on_delete=models.CASCADE, blank=True, null=True)
     code = models.CharField(max_length=300, default=get_random_string(32))
+    isPublic = models.BooleanField(default=False)
+    members = models.ManyToManyField(AppUser, related_name="members")
+    description = models.TextField(blank=True, null=True, max_length=600)
+    limit = models.IntegerField(default=150)
+    archived = models.BooleanField(default=False)
 
     def __str__(self):
         return f"Grupa ID-{self.id}: {self.name}"

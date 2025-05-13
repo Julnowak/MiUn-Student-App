@@ -40,6 +40,8 @@ import {Cloud} from "@mui/icons-material";
 
 const Learning = () => {
     const [allResources, setAllResources] = useState([]);
+    const [fields, setFields] = useState([]);
+    const [courses, setCourses] = useState([]);
     const [page, setPage] = useState(1);
     const [filters, setFilters] = useState({
         name: '',
@@ -69,6 +71,20 @@ const Learning = () => {
 
             setAllResources(response.data);
             setPage(1); // reset strony
+
+            const resp = await client.get(API_BASE_URL + "fields/", {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                }})
+
+            setFields(resp.data)
+
+            const respo = await client.get(API_BASE_URL + "courses/", {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                }})
+            setCourses(respo.data)
+
         } catch (error) {
             console.error("Błąd pobierania danych:", error);
         }
@@ -173,25 +189,23 @@ const Learning = () => {
 
     return (
         <div className="container mt-4 p-4 rounded">
-
             <Snackbar
                 open={snackbarOpen}
                 autoHideDuration={3000}
                 onClose={() => setSnackbarOpen(false)}
                 anchorOrigin={{vertical: 'top', horizontal: 'center'}}
             >
-                <Alert onClose={() => setSnackbarOpen(false)} severity="success" sx={{width: '100%'}}>
+                <Alert severity="success" sx={{width: '100%'}}>
                     Zasób został dodany pomyślnie!
                 </Alert>
             </Snackbar>
 
-
-            <Typography sx={{mt: 4, mb: 2}} variant="h6">Dostępne zasoby</Typography>
+            <Typography variant="h6" sx={{mt: 4, mb: 2}}>Dostępne zasoby</Typography>
 
             {/* Filters */}
             <Box sx={{flexGrow: 1, p: 2}}>
                 <Grid container spacing={2} alignItems="center" mb={2}>
-                    <Grid item xs={10}>
+                    <Grid item xs={12} sm={10}>
                         <TextField
                             fullWidth
                             label="Nazwa"
@@ -200,33 +214,37 @@ const Learning = () => {
                             onChange={(e) => handleFilterChange('name', e.target.value)}
                         />
                     </Grid>
-                    <Grid item xs={2}>
-                        <Button variant="contained" onClick={fetchData}>Wyszukaj</Button>
+                    <Grid item xs={12} sm={2}>
+                        <Button fullWidth variant="contained" onClick={fetchData}>Wyszukaj</Button>
                     </Grid>
                 </Grid>
 
                 <Grid container spacing={2} alignItems="center" mb={2}>
-                    <Grid item xs={3}>
+                    <Grid item xs={12} sm={6} md={3}>
                         <Autocomplete
-                            disablePortal
-                            options={["Informatyka", "Automatyka"]}
-                            value={filters.kierunek}
-                            onChange={(e, val) => handleFilterChange('kierunek', val || '')}
-                            renderInput={(params) => <TextField {...params} label="Kierunek" variant="standard"/>}
+                            options={fields}
+                            getOptionLabel={(option) => option.name}
+                            value={fields.find(f => f.id === filters.kierunek) || null}
+                            onChange={(e, val) => handleFilterChange('kierunek', val?.id || '')}
+                            renderInput={(params) => (
+                                <TextField {...params} label="Kierunek" variant="standard"/>
+                            )}
                         />
                     </Grid>
 
-                    <Grid item xs={3}>
+                    <Grid item xs={12} sm={6} md={3}>
                         <Autocomplete
-                            disablePortal
-                            options={["Matematyka", "Programowanie"]}
-                            value={filters.przedmiot}
-                            onChange={(e, val) => handleFilterChange('przedmiot', val || '')}
-                            renderInput={(params) => <TextField {...params} label="Przedmiot" variant="standard"/>}
+                            options={courses}
+                            getOptionLabel={(option) => option.name}
+                            value={courses.find(c => c.id === filters.przedmiot) || null}
+                            onChange={(e, val) => handleFilterChange('przedmiot', val?.id || '')}
+                            renderInput={(params) => (
+                                <TextField {...params} label="Przedmiot" variant="standard"/>
+                            )}
                         />
                     </Grid>
 
-                    <Grid item xs={2}>
+                    <Grid item xs={6} sm={3}>
                         <FormControlLabel
                             control={
                                 <Checkbox
@@ -238,7 +256,7 @@ const Learning = () => {
                         />
                     </Grid>
 
-                    <Grid item xs={2}>
+                    <Grid item xs={6} sm={3}>
                         <FormControlLabel
                             control={
                                 <Checkbox
@@ -253,14 +271,11 @@ const Learning = () => {
             </Box>
 
             {/* Sort */}
-            <Grid container spacing={2}>
-                <Grid item xs={9}></Grid>
-                <Grid item xs={3}>
+            <Grid container justifyContent="flex-end" spacing={2} sx={{mb: 2}}>
+                <Grid item xs={12} md={3}>
                     <FormControl fullWidth variant="standard">
-                        <InputLabel id="sort-label">Data dodania</InputLabel>
+                        <InputLabel>Data dodania</InputLabel>
                         <Select
-                            labelId="sort-label"
-                            id="sort-select"
                             value={filters.sort}
                             onChange={(e) => handleFilterChange('sort', e.target.value)}
                         >
@@ -301,7 +316,7 @@ const Learning = () => {
                             primary={resource.title}
                             secondary={resource.description || "Brak opisu"}
                         />
-                        <Chip label={resource.field}/>
+                        <Chip label={resource.field.name}/>
                     </ListItem>
                 ))}
             </List>

@@ -426,7 +426,7 @@ const ProgiPunktowe = () => {
                 <Box margin={2}>
                     <Autocomplete
                         options={fields}
-                        getOptionLabel={(option) => option.name || ''}
+                        getOptionLabel={(option) => option.name + " (" + option.type + ")" || ''}
                         isOptionEqualToValue={(option, value) => option.id === value.id}
                         getOptionKey={(option) => option.id}  // Explicitly specify unique key
                         onChange={(_, value) => {

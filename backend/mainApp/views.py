@@ -11,9 +11,9 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from mainApp.models import AppUser, Building, Notification, Source, Field, MaturaSubject, News
+from mainApp.models import AppUser, Building, Notification, Source, Field, MaturaSubject, News, Course
 from mainApp.serializers import UserRegisterSerializer, UserSerializer, BuildingSerializer, NotificationSerializer, \
-    SourceSerializer, FieldSerializer, MaturaSubjectSerializer, NewsSerializer
+    SourceSerializer, FieldSerializer, MaturaSubjectSerializer, NewsSerializer, CourseSerializer
 
 from .utils import send_verification_email
 from .calc_score.calc_score import calc_score_fun
@@ -167,7 +167,15 @@ class FieldsAPI(APIView):
         )
         serializer = FieldSerializer(fields, many=True)
 
-        print(fields[:2].values())
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class CourseAPI(APIView):
+    permission_classes = (permissions.IsAuthenticated,)  # Only authenticated users can log out
+
+    def get(self, request):
+        courses = Course.objects.all().order_by("name")
+        serializer = CourseSerializer(courses, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
@@ -251,7 +259,7 @@ class NewsAPI(APIView):
     permission_classes = (permissions.IsAuthenticated,)  # Only authenticated users can log out
 
     def get(self, request):
-        news= News.objects.all()
+        news= News.objects.all().order_by("-date_added")
         serializer = NewsSerializer(news, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 

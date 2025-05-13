@@ -17,6 +17,7 @@ urlpatterns = [
     path('news/<int:pk>/', views.NewsAPI.as_view(), name='news-detail'),
     path('sources/', views.SourceAPI.as_view(), name='sources'),
     path('fields/', views.FieldsAPI.as_view(), name='fields'),
+    path('courses/', views.CourseAPI.as_view(), name='courses'),
     path('maturasubjects/', views.MaturaSubjectsAPI.as_view(), name='maturasubjects'),
 
     # New verification endpoints

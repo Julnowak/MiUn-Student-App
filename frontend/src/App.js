@@ -27,6 +27,7 @@ import GeminiPrompt from "./components/geminiPrompt/geminiPrompt";
 import NotFoundPage from "./components/notFoundPage/notFoundPage";
 import Forum from "./components/forum/forum";
 import OfferPage from "./components/exchange/offerPage";
+import GroupPage from "./components/groups/groupPage";
 
 function App() {
     return (
@@ -58,7 +59,10 @@ function App() {
 
                         <Route path="/exchanges" element={<Exchange />} />
                         <Route path="/my-offers" element={<MyOffers />} />
+
                         <Route path="/groups" element={<Groups />} />
+                        <Route path="/group/:id" element={<GroupPage />} />
+
                         <Route path="/actual-info" element={<Actualities />} />
                         <Route path="/chat" element={<GeminiPrompt />} />
                         <Route path="/forum" element={<Forum />} />
