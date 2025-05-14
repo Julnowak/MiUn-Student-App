@@ -126,6 +126,7 @@ class Field(models.Model):
     G1_subject = models.ManyToManyField(MaturaSubject, blank=True, related_name="G1")
     G2_subject = models.ManyToManyField(MaturaSubject, blank=True, related_name="G2")
     level = models.CharField(max_length=300, default="I stopień")
+    isActive = models.BooleanField(default=True)
 
     def __str__(self):
         return f"Kierunek ID-{self.id}: {self.name}"
