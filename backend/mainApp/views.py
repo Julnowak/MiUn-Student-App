@@ -11,9 +11,11 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
-from mainApp.models import AppUser, Building, Notification, Source, Field, MaturaSubject, News, Course
+from mainApp.models import AppUser, Building, Notification, Source, Field, MaturaSubject, News, Course, Group, \
+    FieldByYear, Event
 from mainApp.serializers import UserRegisterSerializer, UserSerializer, BuildingSerializer, NotificationSerializer, \
-    SourceSerializer, FieldSerializer, MaturaSubjectSerializer, NewsSerializer, CourseSerializer
+    SourceSerializer, FieldSerializer, MaturaSubjectSerializer, NewsSerializer, CourseSerializer, GroupSerializer, \
+    FieldByYearSerializer, EventSerializer
 
 from .utils import send_verification_email
 from .calc_score.calc_score import calc_score_fun
@@ -240,6 +242,88 @@ class MaturaSubjectsAPI(APIView):
         sources = MaturaSubject.objects.all()
         serializer = MaturaSubjectSerializer(sources, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class EventAPI(APIView):
+    permission_classes = (permissions.IsAuthenticated,)  # Only authenticated users can log out
+
+    def get(self, request):
+        events = Event.objects.filter(user=request.user)
+        serializer = EventSerializer(events, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def post(self, request):
+        events = Event.objects.filter(user=request.user)
+        serializer = EventSerializer(events, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class FieldByYearAPI(APIView):
+    permission_classes = (permissions.IsAuthenticated,)  # Only authenticated users can log out
+
+    def get(self, request):
+        toki = FieldByYear.objects.filter(students=request.user)
+        serializer = FieldByYearSerializer(toki, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class GroupAPI(APIView):
+    permission_classes = (permissions.IsAuthenticated,)  # Only authenticated users can log out
+
+    def get(self, request):
+        groups = Group.objects.all().order_by("-date_created")
+        serializer = GroupSerializer(groups, many=True)
+
+        user_groups = Group.objects.filter(members=request.user)
+        myGroupsSerializer = GroupSerializer(user_groups, many=True)
+
+        return Response({"allGroups": serializer.data, "myGroups": myGroupsSerializer.data}, status=status.HTTP_200_OK)
+
+    def post(self, request):
+        groups = Group.objects.all()
+        userGroups = Group.objects.filter(members=request.user)
+
+        if request.data['code'] and not request.data['isPublic']:
+            group = Group.objects.create(name=request.data['name'],
+                                         admin=request.user, isPublic=request.data['isPublic'],
+                                         description=request.data['description'], limit=request.data['limit'],
+                                         code=request.data['code'])
+        else:
+            group = Group.objects.create(name=request.data['name'],
+                                         admin=request.user, isPublic=request.data['isPublic'],
+                                         description=request.data['description'], limit=request.data['limit'])
+
+        group.members.add(request.user)
+        group.save()
+
+        serializer = GroupSerializer(groups, many=True)
+        groupSerializer = GroupSerializer(group)
+        userGroupsSerializer = GroupSerializer(userGroups, many=True)
+        return Response({"groups": serializer.data, "newGroup": groupSerializer.data, "userGroups": userGroupsSerializer.data }, status=status.HTTP_200_OK)
+
+
+class OneGroupAPI(APIView):
+    permission_classes = (permissions.IsAuthenticated,)  # Only authenticated users can log out
+
+    def get(self, request, group_id):
+        group = Group.objects.get(id=group_id)
+        serializer = GroupSerializer(group)
+
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def post(self, request, group_id):
+        group = Group.objects.get(id=group_id)
+        print(group.code)
+        print(request.data['code'])
+        if group.isPublic:
+            return Response(status=status.HTTP_200_OK)
+        else:
+            if group.code == request.data['code']:
+                group.members.add(request.user)
+                group.save()
+                return Response(status=status.HTTP_200_OK)
+
+        return Response(status=status.HTTP_406_NOT_ACCEPTABLE)
 
 
 class CalculationAPI(APIView):

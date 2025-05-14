@@ -1,382 +1,624 @@
-import React, { useState, useEffect } from 'react';
+import React, {useState, useEffect} from 'react';
 import {
-  Tabs,
-  Tab,
-  TextField,
-  Button,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  List,
-  ListItem,
-  ListItemText,
-  Chip,
-  IconButton,
-  Divider,
-  Box, Typography, FormControl, InputLabel, Select, MenuItem, Avatar, Grid, FormControlLabel, Switch, Snackbar
+    Tabs,
+    Tab,
+    TextField,
+    Button,
+    Dialog,
+    DialogTitle,
+    DialogContent,
+    DialogActions,
+    List,
+    ListItem,
+    ListItemText,
+    Chip,
+    IconButton,
+    Divider,
+    Box,
+    Typography,
+    FormControl,
+    InputLabel,
+    Select,
+    MenuItem,
+    Avatar,
+    Grid,
+    FormControlLabel,
+    Switch,
+    Snackbar,
+    InputAdornment, Tooltip, Pagination, Checkbox
 } from '@mui/material';
-import {Search, FilterList, Lock, LockOpen, Description, GroupAdd, Public} from '@mui/icons-material';
-import {People} from "react-bootstrap-icons";
-import {Alert} from "react-bootstrap";
+import {
+    Search,
+    FilterList,
+    Lock,
+    LockOpen,
+    Description,
+    GroupAdd,
+    Public,
+    VisibilityOff,
+    Visibility, PeopleAlt, Verified, NoEncryptionGmailerrorred
+} from '@mui/icons-material';
 
-// Mock danych
-const mockGroups = [
-  { id: 1, name: 'Grupa React', year: 2023, isPublic: true, members: [], password: '' },
-  { id: 2, name: 'Advanced JS', year: 2023, isPublic: false, members: [], password: 'secret' },
-  { id: 3, name: 'MUI Masters', year: 2022, isPublic: true, members: [], password: '' },
-];
+import client from "../../client";
+import {API_BASE_URL} from "../../config";
+import {useNavigate} from "react-router-dom";
+
 
 const mockFieldByYears = [
-  { id: 1, year: 2023, fieldName: 'Informatyka' },
-  { id: 2, year: 2023, fieldName: 'Matematyka' },
-  { id: 3, year: 2022, fieldName: 'Fizyka' },
+    {id: 1, year: 2023, fieldName: 'Informatyka'},
+    {id: 2, year: 2023, fieldName: 'Matematyka'},
+    {id: 3, year: 2022, fieldName: 'Fizyka'},
 ];
 
 const Groups = () => {
-  const [activeTab, setActiveTab] = useState(0);
-  const [search, setSearch] = useState({ name: '', year: '' });
-  const [selectedGroup, setSelectedGroup] = useState(null);
-  const [password, setPassword] = useState('');
-  const [groups, setGroups] = useState(mockGroups);
-  const [userGroups, setUserGroups] = useState([]);
-  const userId = 1;
+    const [activeTab, setActiveTab] = useState(0);
+    const [search, setSearch] = useState({
+        name: '',
+        isPublic: null, // 'public' lub 'private'
+        isOfficial: null // null = wszystkie, true/false = tylko oficjalne/nieoficjalne
+    });
 
-  const [newGroup, setNewGroup] = useState({
-    name: '',
-    fieldByYear: '',
-    description: '',
-    isPublic: true,
-    password: '',
-    capacity: 30
-  });
-  const [createdGroupCode, setCreatedGroupCode] = useState('');
-  const [showSuccess, setShowSuccess] = useState(false);
+    const [selectedGroup, setSelectedGroup] = useState(null);
+    const [password, setPassword] = useState('');
+    const [groups, setGroups] = useState([]);
+    const [fieldByYears, setFieldByYears] = useState([]);
+    const [userGroups, setUserGroups] = useState([]);
+    const userId = 1;
+    const [showPassword, setShowPassword] = useState(false);
 
-  const handleCreateGroup = () => {
-    const selectedField = mockFieldByYears.find(f => f.id === newGroup.fieldByYear);
-    const generatedCode = Math.random().toString(36).substr(2, 8).toUpperCase();
+    const handleTogglePassword = () => {
+        setShowPassword(!showPassword);
+    };
+    const [page, setPage] = useState(0);
+    const rowsPerPage = 6;
 
-    const newGroupObject = {
-      id: groups.length + 1,
-      ...newGroup,
-      year: selectedField.year,
-      fieldByYear: selectedField,
-      admin: userId,
-      code: generatedCode,
-      members: [userId],
-      capacity: Number(newGroup.capacity)
+    const [newGroup, setNewGroup] = useState({
+        name: '',
+        fieldByYear: '',
+        description: '',
+        isPublic: true,
+        password: '',
+        capacity: 30
+    });
+    const [createdGroupCode, setCreatedGroupCode] = useState('');
+    const [showSuccess, setShowSuccess] = useState(false);
+
+    const handleCreateGroup = () => {
+        const generatedCode = Math.random().toString(36).substr(2, 8).toUpperCase();
+
+
+        try {
+            const response = client.post(API_BASE_URL + "groups/", {
+                name: newGroup.name,
+                description: newGroup.description,
+                code: newGroup.password,
+                limit: newGroup.capacity,
+                isPublic: newGroup.isPublic,
+                fieldByYear: newGroup.fieldByYear
+            }, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+            // setUser(response.data);
+            setGroups(response.data.groups)
+            setUserGroups(response.data.userGroups)
+        } catch (error) {
+            console.log("Nie udało się zalogować");
+        }
+
+        setCreatedGroupCode(generatedCode);
+        setShowSuccess(true);
+        setNewGroup({
+            name: '',
+            fieldByYear: '',
+            description: '',
+            isPublic: true,
+            password: '',
+            capacity: 30
+        });
+
+        setActiveTab(0)
+        window.location.reload();
     };
 
-    setGroups([...groups, newGroupObject]);
-    setCreatedGroupCode(generatedCode);
-    setShowSuccess(true);
-    setNewGroup({
-      name: '',
-      fieldByYear: '',
-      description: '',
-      isPublic: true,
-      password: '',
-      capacity: 30
+
+    const navigate = useNavigate()
+    const [userGroupsPage, setUserGroupsPage] = useState(0);
+    const token = localStorage.getItem("access");
+    const fetchData = async () => {
+        try {
+            const response = await client.get(API_BASE_URL + "groups/", {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+
+            setGroups(response.data.allGroups)
+            setUserGroups(response.data.myGroups)
+
+            const resp = await client.get(API_BASE_URL + "fieldByYear/", {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+
+            setFieldByYears(resp.data)
+
+        } catch (error) {
+            console.error("Błąd pobierania danych:", error);
+        }
+    };
+
+
+    useEffect(() => {
+
+        if (groups?.length < 1) {
+            fetchData();
+        }
+
+    }, [fetchData, groups, userId]);
+
+    const handleJoinGroup = async () => {
+        if (!selectedGroup) return;
+
+        console.log(password)
+        try {
+            const response = await client.post(API_BASE_URL + `group/${selectedGroup.id}`,
+                {
+                    code: password
+                },
+                {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            })
+
+            navigate(`/group/${selectedGroup.id}`)
+
+        } catch (error) {
+            alert('Nieprawidłowe hasło!');
+            console.error("Błąd pobierania danych:", error);
+        }
+
+
+
+        setSelectedGroup(null);
+        setPassword('');
+    };
+
+    const filteredGroups = groups?.filter(g => {
+        // Filter by name (case insensitive)
+        const matchesName = search.name
+            ? g.name.toLowerCase().includes(search.name.toLowerCase())
+            : true;
+
+        // Filter by official status
+        const matchesOfficial = search.isOfficial === null
+            ? true
+            : g.isOfficial === search.isOfficial;
+
+        // Filter by public/private status
+        const matchesPublic = search.isPublic === null
+            ? true
+            : g.isPublic === search.isPublic;
+
+        return matchesName && matchesOfficial && matchesPublic;
     });
-  };
 
-  useEffect(() => {
-    const userGroups = groups.filter(g => g.members.includes(userId));
-    setUserGroups(userGroups);
-  }, [groups, userId]);
 
-  const handleJoinGroup = () => {
-    if (!selectedGroup) return;
+    return (
+        <Box sx={{p: 2, maxWidth: 1000, margin: "auto"}}>
+            <Tabs value={activeTab} onChange={(e, newVal) => setActiveTab(newVal)}>
+                <Tab label="Moje grupy"/>
+                <Tab label="Odkrywaj"/>
+                <Tab label="Twórz"/>
+            </Tabs>
 
-    const requiresPassword = !selectedGroup.isPublic && password !== selectedGroup.password;
-    if (requiresPassword) {
-      alert('Nieprawidłowe hasło!');
-      return;
-    }
+            {activeTab === 0 ? (
+                <Box sx={{mt: 2}}>
+                    <List sx={{display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
+                        {userGroups?.length > 0 ? (
+                            <>
+                                {userGroups
+                                    ?.slice(userGroupsPage * rowsPerPage, userGroupsPage * rowsPerPage + rowsPerPage)
+                                    .map(g => (
+                                        <ListItem onClick={() => {
+                                            navigate(`/group/${g.id}`)
+                                        }} key={g.id} sx={{ cursor: "pointer", width: '100%', maxWidth: 400}}>
+                                            <ListItemText
+                                                primary={<Box sx={{display: 'flex', alignItems: 'center', gap: 1}}>
+                                                    {g.isOfficial ?
+                                                        <>
+                                                            {g.name}
+                                                            <Verified sx={{color: 'primary', fontSize: '1rem'}}/></>
+                                                        : g.name}
+                                                    {userGroups.some(group => group.id === g.id) && (
+                                                        <Chip
+                                                            label="Dołączono"
+                                                            size="small"  // Built-in small size
+                                                            sx={{
+                                                                fontSize: '0.7rem',    // Smaller text
+                                                                height: '24px',        // Reduced height
+                                                                padding: '0 8px',      // Tighter padding
+                                                                '& .MuiChip-label': {  // Target the label specifically
+                                                                    padding: '0 4px'     // Less horizontal space
+                                                                }
+                                                            }}
+                                                        />
+                                                    )}
+                                                </Box>}
+                                                secondary={`Admin: ${g.admin.username} • Utworzono: ${new Date(g.date_created).toLocaleDateString()} ${g.limit ? `• Członkowie: ${g.members.length}/${g.limit}` : ""}`}
+                                            />
+                                            {g.archived ? <Tooltip title="Archiwalna"><NoEncryptionGmailerrorred
+                                                sx={{color: "lightgray"}}/></Tooltip> : (g.isPublic ?
+                                                <Tooltip title="Publiczna"><LockOpen color="blacky"/></Tooltip> :
+                                                <Tooltip title="Prywatna"><Lock color="black"/></Tooltip>)}
+                                        </ListItem>
+                                    ))}
+                                <Box sx={{display: 'flex', justifyContent: 'center', mt: 2}}>
+                                    <Pagination
+                                        count={Math.ceil(userGroups.length / rowsPerPage)}
+                                        page={userGroupsPage + 1}
+                                        onChange={(event, value) => setUserGroupsPage(value - 1)}
+                                        color="black"
+                                    />
+                                </Box>
+                            </>
+                        ) : (
+                            <Box sx={{textAlign: 'center', mt: 6}}>
+                                <img
+                                    src="https://cdn-icons-png.flaticon.com/512/4076/4076478.png"
+                                    alt="Brak grup"
+                                    style={{width: 100, height: 100, opacity: 0.6}}
+                                />
+                                <Typography variant="subtitle1" color="textSecondary" sx={{mt: 2}}>
+                                    Nie dołączono jeszcze do żadnej grupy.
+                                </Typography>
+                            </Box>
+                        )}
+                    </List>
+                </Box>
+            ) : activeTab === 1 ? (
+                <Box sx={{mt: 2}}>
+                    <Box sx={{
+                        display: 'flex',
+                        flexWrap: 'wrap',
+                        gap: 2,
+                        mb: 3,
+                        alignItems: 'flex-end'
+                    }}>
+                        {/* Pole wyszukiwania po nazwie */}
+                        <TextField
+                            label="Szukaj po nazwie"
+                            value={search.name}
+                            onChange={e => setSearch({...search, name: e.target.value})}
+                            InputProps={{startAdornment: <Search/>}}
+                            sx={{flexGrow: 1, minWidth: 200}}
+                        />
 
-    setGroups(groups.map(g =>
-      g.id === selectedGroup.id ? { ...g, members: [...g.members, userId] } : g
-    ));
-    setSelectedGroup(null);
-    setPassword('');
-  };
+                        {/* Filtrowanie po typie grupy */}
+                        <FormControl sx={{minWidth: 180}}>
+                            <InputLabel>Typ grupy</InputLabel>
+                            <Select
+                                value={search.isPublic}
+                                onChange={e => setSearch({...search, isPublic: e.target.value})}
+                                label="Typ grupy"
+                            >
+                                <MenuItem value={null}>Wszystkie</MenuItem>
+                                <MenuItem value={true}>Publiczne</MenuItem>
+                                <MenuItem value={false}>Prywatne</MenuItem>
+                            </Select>
+                        </FormControl>
 
-  const filteredGroups = groups.filter(g => {
-    const matchesName = g.name.toLowerCase().includes(search.name.toLowerCase());
-    const matchesYear = search.year ? g.year.toString() === search.year : true;
-    return matchesName && matchesYear;
-  });
-
-  return (
-    <Box sx={{ p: 2, maxWidth: 1000, margin: "auto" }}>
-      <Tabs value={activeTab} onChange={(e, newVal) => setActiveTab(newVal)}>
-        <Tab label="Moje grupy" />
-        <Tab label="Odkrywaj grupy" />
-        <Tab label="Nowa grupa" />
-      </Tabs>
-
-      {activeTab === 0 ? (
-        <Box sx={{ mt: 2 }}>
-          <List sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            {userGroups.length > 0 ? (
-              userGroups.map(g => (
-                <ListItem key={g.id} sx={{ width: '100%', maxWidth: 600 }}>
-                  <ListItemText
-                    primary={g.name}
-                    secondary={`Rok: ${g.year} • ${g.members.length} członków`}
-                  />
-                  <IconButton edge="end" aria-label="manage">
-                    <FilterList />
-                  </IconButton>
-                </ListItem>
-              ))
-            ) : (
-              <Box sx={{ textAlign: 'center', mt: 6 }}>
-                <img
-                  src="https://cdn-icons-png.flaticon.com/512/4076/4076478.png"
-                  alt="Brak grup"
-                  style={{ width: 100, height: 100, opacity: 0.6 }}
-                />
-                <Typography variant="subtitle1" color="textSecondary" sx={{ mt: 2 }}>
-                  Nie dołączono jeszcze do żadnej grupy.
-                </Typography>
-              </Box>
-            )}
-          </List>
-        </Box>
-      ) : activeTab === 1 ? (
-        <Box sx={{ mt: 2 }}>
-          <Box sx={{ display: 'flex', gap: 2, mb: 3 }}>
-            <TextField
-              label="Szukaj po nazwie"
-              value={search.name}
-              onChange={e => setSearch({ ...search, name: e.target.value })}
-              InputProps={{ startAdornment: <Search /> }}
-            />
-            <TextField
-              label="Rok"
-              type="number"
-              value={search.year}
-              onChange={e => setSearch({ ...search, year: e.target.value })}
-            />
-            <Button
-              variant="contained"
-              onClick={() => setSearch({ ...search, year: new Date().getFullYear() })}
-            >
-              Pokaż tegoroczne
-            </Button>
-          </Box>
-
-          <Divider sx={{ my: 2 }} />
-
-          <List>
-            {filteredGroups.map(g => (
-              <ListItem
-                key={g.id}
-                button
-                onClick={() => !g.members.includes(userId) && setSelectedGroup(g)}
-                disabled={g.members.includes(userId)}
-              >
-                <ListItemText
-                  primary={g.name}
-                  secondary={`Rok: ${g.year} • ${g.isPublic ? 'Publiczna' : 'Prywatna'}`}
-                />
-                {g.isPublic ? <LockOpen color="success" /> : <Lock color="error" />}
-                {g.members.includes(userId) && <Chip label="Należysz" sx={{ ml: 2 }} />}
-              </ListItem>
-            ))}
-          </List>
-        </Box>
-      ) : activeTab === 2 ? (
-        <Box sx={{ mt: 4, maxWidth: 800, mx: 'auto' }}>
-          <Box sx={{ textAlign: 'center', mb: 4 }}>
-            <Avatar sx={{
-              bgcolor: 'primary.main',
-              width: 80,
-              height: 80,
-              mx: 'auto',
-              mb: 2
-            }}>
-              <GroupAdd fontSize="large" />
-            </Avatar>
-            <Typography variant="h4" gutterBottom>
-              Nowa Grupa
-            </Typography>
-            <Typography color="textSecondary">
-              Stwórz przestrzeń do współpracy i wymiany wiedzy
-            </Typography>
-          </Box>
-
-          <Grid container spacing={4}>
-            <Grid item xs={12} md={6}>
-              <Box sx={{ p: 3, bgcolor: 'background.paper', borderRadius: 2 }}>
-                <Typography variant="h6" gutterBottom sx={{ mb: 3 }}>
-                  <Description sx={{ mr: 1, verticalAlign: 'middle' }} />
-                  Podstawowe informacje
-                </Typography>
-
-                <TextField
-                  label="Nazwa grupy"
-                  fullWidth
-                  value={newGroup.name}
-                  onChange={(e) => setNewGroup({...newGroup, name: e.target.value})}
-                  required
-                  sx={{ mb: 3 }}
-                />
-
-                <TextField
-                  label="Opis grupy"
-                  multiline
-                  rows={4}
-                  fullWidth
-                  value={newGroup.description}
-                  onChange={(e) => setNewGroup({...newGroup, description: e.target.value})}
-                  helperText="Opisz cel i charakter grupy (max 600 znaków)"
-                  sx={{ mb: 3 }}
-                />
-
-                <FormControl fullWidth sx={{ mb: 3 }}>
-                  <InputLabel>Kierunek i rok</InputLabel>
-                  <Select
-                    value={newGroup.fieldByYear}
-                    label="Kierunek i rok"
-                    onChange={(e) => setNewGroup({...newGroup, fieldByYear: e.target.value})}
-                    required
-                  >
-                    {mockFieldByYears.map((field) => (
-                      <MenuItem key={field.id} value={field.id}>
-                        {field.fieldName} ({field.year})
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Box>
-            </Grid>
-
-            <Grid item xs={12} md={6}>
-              <Box sx={{ p: 3, bgcolor: 'background.paper', borderRadius: 2 }}>
-                <Typography variant="h6" gutterBottom sx={{ mb: 3 }}>
-                  <People sx={{ mr: 1, verticalAlign: 'middle' }} />
-                  Ustawienia dostępu
-                </Typography>
-
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={newGroup.isPublic}
-                      onChange={(e) => setNewGroup({...newGroup, isPublic: e.target.checked})}
-                      color="primary"
-                    />
-                  }
-                  label={
-                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                      {newGroup.isPublic ? <Public /> : <Lock />}
-                      <Box sx={{ ml: 1 }}>
-                        {newGroup.isPublic ? 'Grupa publiczna' : 'Grupa prywatna'}
-                        <Typography variant="body2" color="textSecondary">
-                          {newGroup.isPublic
-                            ? 'Każdy może dołączyć'
-                            : 'Wymagane hasło do dołączenia'}
-                        </Typography>
-                      </Box>
+                        {/* Filtrowanie po statusie oficjalnym */}
+                        <FormControlLabel
+                            control={
+                                <Checkbox
+                                    checked={search.isOfficial || false}
+                                    onChange={e => setSearch({...search, isOfficial: e.target.checked})}
+                                    indeterminate={search.isOfficial === null}
+                                />
+                            }
+                            label="Oficjalne"
+                            sx={{whiteSpace: 'nowrap'}}
+                        />
                     </Box>
-                  }
-                  sx={{ mb: 3 }}
-                />
 
-                {!newGroup.isPublic && (
-                  <TextField
-                    label="Hasło dostępu"
-                    type="password"
-                    fullWidth
-                    value={newGroup.password}
-                    onChange={(e) => setNewGroup({...newGroup, password: e.target.value})}
-                    required
-                    sx={{ mb: 3 }}
-                  />
-                )}
+                    <Divider sx={{my: 2}}/>
 
-                <TextField
-                  label="Maksymalna liczba członków"
-                  type="number"
-                  fullWidth
-                  value={newGroup.capacity}
-                  onChange={(e) => setNewGroup({...newGroup, capacity: e.target.value})}
-                  inputProps={{ min: 2, max: 100 }}
-                  helperText="0 oznacza brak limitu"
-                  sx={{ mb: 3 }}
-                />
+                    <List>
+                        {filteredGroups
+                            ?.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                            .map(g => (
+                                <ListItem
+                                    key={g.id}
+                                    button
+                                    onClick={() => userGroups.some(group => group.id === g.id) ? navigate(`/group/${g.id}`) : (g.archived ? null : setSelectedGroup(g))}
+                                    disabled={g.members.includes(userId)}
+                                    sx={g.archived && !userGroups.some(group => group.id === g.id) ? null : {cursor: "pointer"}}
+                                >
+                                    <ListItemText
+                                        primary={<Box sx={{display: 'flex', alignItems: 'center', gap: 1}}>
+                                            {g.isOfficial ?
+                                                <>
+                                                    {g.name}
+                                                    <Verified sx={{color: 'primary', fontSize: '1rem'}}/></>
+                                                : g.name}
+                                            {userGroups.some(group => group.id === g.id) && (
+                                                <Chip
+                                                    label="Dołączono"
+                                                    size="small"  // Built-in small size
+                                                    sx={{
+                                                        fontSize: '0.7rem',    // Smaller text
+                                                        height: '24px',        // Reduced height
+                                                        padding: '0 8px',      // Tighter padding
+                                                        '& .MuiChip-label': {  // Target the label specifically
+                                                            padding: '0 4px'     // Less horizontal space
+                                                        }
+                                                    }}
+                                                />
+                                            )}
+                                        </Box>}
+                                        secondary={`Admin: ${g.admin.username} • Utworzono: ${new Date(g.date_created).toLocaleDateString()} ${g.limit ? `• Członkowie: ${g.members.length}/${g.limit}` : ""}`}
+                                    />
+                                    {g.archived ? <Tooltip title="Archiwalna"><NoEncryptionGmailerrorred
+                                        sx={{color: "lightgray"}}/></Tooltip> : (g.isPublic ?
+                                        <Tooltip title="Publiczna"><LockOpen color="blacky"/></Tooltip> :
+                                        <Tooltip title="Prywatna"><Lock color="black"/></Tooltip>)}
 
-                <Divider sx={{ my: 3 }} />
+                                </ListItem>
+                            ))}
+                    </List>
 
-                <Button
-                  variant="contained"
-                  size="large"
-                  fullWidth
-                  onClick={handleCreateGroup}
-                  disabled={!newGroup.name || !newGroup.fieldByYear || (!newGroup.isPublic && !newGroup.password)}
-                  startIcon={<GroupAdd />}
-                >
-                  Utwórz grupę
-                </Button>
-              </Box>
-            </Grid>
-          </Grid>
+                    {filteredGroups?.length > 0 && (
+                        <Box sx={{display: 'flex', justifyContent: 'center', mt: 2}}>
+                            <Pagination
+                                count={Math.ceil(filteredGroups.length / rowsPerPage)}
+                                page={page + 1}
+                                onChange={(event, value) => setPage(value - 1)}
+                                color="black"
+                            />
+                        </Box>
+                    )}
 
-          <Snackbar
-            open={showSuccess}
-            autoHideDuration={6000}
-            onClose={() => setShowSuccess(false)}
-            anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
-          >
-            <Alert
-              severity="success"
-              sx={{ width: '100%' }}
-              icon={<GroupAdd fontSize="inherit" />}
-            >
-              <Typography variant="body1">
-                Grupa utworzona pomyślnie!
-              </Typography>
-              <Typography variant="body2">
-                Kod dostępu: <strong>{createdGroupCode}</strong>
-              </Typography>
-              <Button
-                variant="outlined"
-                size="small"
-                sx={{ mt: 1 }}
-                onClick={() => navigator.clipboard.writeText(createdGroupCode)}
-              >
-                Kopiuj kod
-              </Button>
-            </Alert>
-          </Snackbar>
-        </Box>) : null}
+                </Box>
+            ) : activeTab === 2 ? (
+                <Box sx={{mt: 4, maxWidth: 800, mx: 'auto'}}>
+                    <Box sx={{textAlign: 'center', mb: 4}}>
+                        <Avatar sx={{
+                            bgcolor: 'black',
+                            width: 80,
+                            height: 80,
+                            mx: 'auto',
+                            mb: 2
+                        }}>
+                            <GroupAdd sx={{backgroundColor: "black"}} fontSize="large"/>
+                        </Avatar>
+                        <Typography variant="h4" gutterBottom>
+                            Utwórz nową grupę
+                        </Typography>
+                        <Typography color="textSecondary">
+                            Stwórz przestrzeń do współpracy i wymiany wiedzy
+                        </Typography>
+                    </Box>
 
-      <Dialog open={!!selectedGroup} onClose={() => setSelectedGroup(null)}>
-        <DialogTitle>Dołącz do {selectedGroup?.name}</DialogTitle>
-        <DialogContent>
-          {!selectedGroup?.isPublic && (
-            <TextField
-              autoFocus
-              margin="dense"
-              label="Hasło dostępu"
-              type="password"
-              fullWidth
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-            />
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setSelectedGroup(null)}>Anuluj</Button>
-          <Button onClick={handleJoinGroup} variant="contained">
-            Dołącz
-          </Button>
-        </DialogActions>
-      </Dialog>
+                    <Grid container spacing={4}>
+                        <Grid item xs={12} md={6}>
+                            <Box sx={{p: 3, bgcolor: 'background.paper', borderRadius: 2}}>
+                                <Typography variant="h6" gutterBottom sx={{mb: 3}}>
+                                    <Description sx={{mr: 1, verticalAlign: 'middle'}}/>
+                                    Podstawowe informacje
+                                </Typography>
+
+                                <TextField
+                                    label="Nazwa grupy"
+                                    fullWidth
+                                    value={newGroup.name}
+                                    onChange={(e) => setNewGroup({...newGroup, name: e.target.value})}
+                                    required
+                                    sx={{mb: 3}}
+                                />
+
+                                <TextField
+                                    label="Opis grupy"
+                                    multiline
+                                    rows={4}
+                                    fullWidth
+                                    required
+                                    value={newGroup.description.slice(0, 600)}
+                                    onChange={(e) => setNewGroup({...newGroup, description: e.target.value})}
+                                    helperText={`${newGroup.description.length}/600`}
+                                    sx={{
+                                        '& .MuiFormHelperText-root': {
+                                            textAlign: 'right',  // Aligns helper text to right
+                                            mx: 0,               // Removes default margin
+                                        }
+                                    }}
+                                />
+
+                            </Box>
+                        </Grid>
+
+                        <Grid item xs={12} md={6}>
+                            <Box sx={{p: 3, bgcolor: 'background.paper', borderRadius: 2}}>
+                                <Typography variant="h6" gutterBottom sx={{mb: 3}}>
+                                    <PeopleAlt sx={{mr: 1, verticalAlign: 'middle'}}/>
+                                    Ustawienia dostępu
+                                </Typography>
+
+                                <Grid container spacing={2} pb={3} alignItems="center">
+                                    <Grid item xs={11} md={10}>
+                                        <Box sx={{display: 'flex', alignItems: 'center'}}>
+                                            {newGroup.isPublic ? <Public/> : <Lock/>}
+                                            <Box sx={{ml: 3}}>
+                                                <Typography sx={{textAlign: "left"}}>
+                                                    {newGroup.isPublic ? 'Grupa publiczna' : 'Grupa prywatna'}
+                                                </Typography>
+                                                <Typography sx={{textAlign: "left"}} variant="body2"
+                                                            color="textSecondary">
+                                                    {newGroup.isPublic
+                                                        ? 'Każdy może dołączyć'
+                                                        : 'Wymagane hasło do dołączenia'}
+                                                </Typography>
+                                            </Box>
+                                        </Box>
+                                    </Grid>
+
+                                    <Grid item xs={1} md={2} pb={3}>
+                                        <Box sx={{display: 'flex', justifyContent: 'flex-end'}}>
+                                            <FormControlLabel
+                                                control={
+                                                    <Switch
+                                                        checked={newGroup.isPublic}
+                                                        onChange={(e) => setNewGroup({
+                                                            ...newGroup,
+                                                            isPublic: e.target.checked
+                                                        })}
+                                                        color="primary"
+                                                    />
+                                                }
+                                            />
+                                        </Box>
+                                    </Grid>
+                                </Grid>
+
+
+                                {!newGroup.isPublic && (
+                                    <TextField
+                                        label="Hasło dostępu"
+                                        type={showPassword ? 'text' : 'password'}
+                                        fullWidth
+                                        value={newGroup.password}
+                                        onChange={(e) => setNewGroup({...newGroup, password: e.target.value})}
+                                        sx={{mb: 3}}
+                                        helperText="Pozostaw puste, aby automatycznie ustawić kod dstępu."
+                                        InputProps={{
+                                            endAdornment: (
+                                                <InputAdornment position="end">
+                                                    <IconButton
+                                                        onClick={() => setShowPassword(!showPassword)}
+                                                        edge="end"
+                                                    >
+                                                        {showPassword ? <VisibilityOff/> : <Visibility/>}
+                                                    </IconButton>
+                                                </InputAdornment>
+                                            )
+                                        }}
+                                    />
+                                )}
+
+                                <TextField
+                                    label="Maksymalna liczba członków"
+                                    type="number"
+                                    fullWidth
+                                    value={newGroup.capacity}
+                                    onChange={(e) => setNewGroup({...newGroup, capacity: e.target.value})}
+                                    inputProps={{min: 2, max: 100}}
+                                    helperText="Pozostaw puste, aby utworzyć grupę bez limitu członków."
+                                    sx={{mb: 3}}
+                                />
+
+                                <Divider sx={{my: 3}}/>
+
+                                <Button
+                                    variant="contained"
+                                    size="large"
+                                    fullWidth
+                                    onClick={handleCreateGroup}
+                                    disabled={!newGroup.name || !newGroup.description}
+                                    startIcon={<GroupAdd/>}
+                                >
+                                    Utwórz grupę
+                                </Button>
+                            </Box>
+                        </Grid>
+                    </Grid>
+                </Box>) : null}
+
+            <Dialog open={!!selectedGroup} onClose={() => setSelectedGroup(null)} maxWidth="sm" fullWidth>
+  <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+    {selectedGroup?.isOfficial && <Verified color="primary" />}
+    Dołącz do {selectedGroup?.name}
+  </DialogTitle>
+
+  <DialogContent dividers>
+    {/* Sekcja informacyjna */}
+    <Box sx={{ mb: 3 }}>
+      <Typography variant="subtitle1" gutterBottom>
+        <Box component="span" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          {selectedGroup?.isPublic ? <Public color="primary" /> : <Lock color="secondary" />}
+          {selectedGroup?.isPublic ? 'Grupa publiczna' : 'Grupa prywatna'}
+        </Box>
+      </Typography>
+
+      {selectedGroup?.description && (
+        <>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+            Opis grupy:
+          </Typography>
+          <Typography variant="body1" sx={{
+            p: 2,
+            bgcolor: 'action.hover',
+            borderRadius: 1,
+            whiteSpace: 'pre-wrap'
+          }}>
+            {selectedGroup.description.slice(0,400)}
+          </Typography>
+        </>
+      )}
     </Box>
-  );
+
+    {/* Statystyki grupy */}
+    <Grid container spacing={2} sx={{ mb: 3 }}>
+      <Grid item xs={6}>
+        <Typography variant="body2" color="text.secondary">
+          Członkowie:
+        </Typography>
+        <Typography variant="body1">
+          {selectedGroup?.members?.length || 0}{selectedGroup?.limit ? `/${selectedGroup.limit}` : ''}
+        </Typography>
+      </Grid>
+      <Grid item xs={6}>
+        <Typography variant="body2" color="text.secondary">
+          Data utworzenia:
+        </Typography>
+        <Typography variant="body1">
+          {selectedGroup?.date_created ? new Date(selectedGroup.date_created).toLocaleDateString() : 'Nieznana'}
+        </Typography>
+      </Grid>
+    </Grid>
+
+    {/* Pole hasła dla grup prywatnych */}
+    {!selectedGroup?.isPublic && (
+      <TextField
+        autoFocus
+        margin="dense"
+        label="Hasło dostępu"
+        type="password"
+        fullWidth
+        value={password}
+        onChange={e => setPassword(e.target.value)}
+        sx={{ mt: 2 }}
+      />
+    )}
+  </DialogContent>
+
+  <DialogActions sx={{ p: 2 }}>
+    <Button onClick={() => setSelectedGroup(null)} sx={{ mr: 1 }}>
+      Anuluj
+    </Button>
+    <Button
+      onClick={handleJoinGroup}
+      variant="contained"
+      disabled={!selectedGroup?.isPublic && !password}
+    >
+      Dołącz
+    </Button>
+  </DialogActions>
+</Dialog>
+        </Box>
+    );
 };
 
 export default Groups;

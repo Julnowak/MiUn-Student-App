@@ -4,7 +4,7 @@ from rest_framework import serializers
 # from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, get_user_model
 
-from mainApp.models import Building, Notification, Source, Field, MaturaSubject, News, Course
+from mainApp.models import Building, Notification, Source, Field, MaturaSubject, News, Course, Group, FieldByYear, Event
 
 UserModel = get_user_model()
 
@@ -73,15 +73,36 @@ class MaturaSubjectSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
+class EventSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Event
+        fields = '__all__'
+        depth = 1
+
+
 class CourseSerializer(serializers.ModelSerializer):
     class Meta:
         model = Course
         fields = '__all__'
 
 
+class GroupSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Group
+        fields = '__all__'
+        depth = 1
+
+
 class FieldSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Field
+        fields = '__all__'
+        depth = 1
+
+
+class FieldByYearSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FieldByYear
         fields = '__all__'
         depth = 1

@@ -214,7 +214,6 @@ class VerificationCode(models.Model):
         return f"{self.user.email} - {self.code}"
 
 
-
 class Event(models.Model):
     id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=300)
@@ -238,9 +237,11 @@ class Group(models.Model):
     code = models.CharField(max_length=300, default=get_random_string(32))
     isPublic = models.BooleanField(default=False)
     members = models.ManyToManyField(AppUser, related_name="members")
-    description = models.TextField(blank=True, null=True, max_length=600)
-    limit = models.IntegerField(default=150)
+    description = models.TextField(blank=True, null=True, max_length=400)
+    limit = models.IntegerField(default=150, blank=True, null=True)
     archived = models.BooleanField(default=False)
+    isOfficial = models.BooleanField(default=False)
+    date_created = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return f"Grupa ID-{self.id}: {self.name}"

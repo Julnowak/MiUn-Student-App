@@ -9,32 +9,21 @@ import {
     Button,
     Typography,
     MenuItem,
-    styled, DialogTitle, DialogContent, DialogContentText, Dialog, DialogActions,
+    styled,
+    DialogTitle,
+    DialogContent,
+    DialogContentText,
+    Dialog,
+    DialogActions,
+    FormControlLabel,
+    Switch,
+    InputLabel,
+    FormControl, Select,
 } from "@mui/material";
 import "./myCalendar.css";
 
 const locales = {
     "en-US": require("date-fns/locale/en-US"),
-};
-
-const localizer = dateFnsLocalizer({
-    format,
-    parse,
-    startOfWeek,
-    getDay,
-    locales,
-});
-
-const modalStyle = {
-    position: "absolute",
-    top: "50%",
-    left: "50%",
-    transform: "translate(-50%, -50%)",
-    width: 400,
-    bgcolor: "background.paper",
-    borderRadius: 2,
-    boxShadow: 24,
-    p: 4,
 };
 
 
@@ -310,62 +299,162 @@ const MyCalendar = () => {
                 )}
             </Dialog>
 
-            <Modal open={isModalOpen} onClose={() => setIsModalOpen(false)}>
-                <Box sx={modalStyle}>
-                    <Typography variant="h6" component="h2" mb={2}>
-                        Dodaj nowe wydarzenie
-                    </Typography>
+<Dialog open={isModalOpen} onClose={() => setIsModalOpen(false)} maxWidth="sm" fullWidth>
+  <DialogTitle>
+    {newEvent.id ? "Edytuj wydarzenie" : "Dodaj nowe wydarzenie"}
+  </DialogTitle>
+  <DialogContent dividers>
+    <TextField
+      label="Nazwa wydarzenia"
+      fullWidth
+      margin="normal"
+      value={newEvent.name}
+      onChange={(e) => setNewEvent({...newEvent, name: e.target.value})}
+      required
+    />
 
-                    <TextField
-                        label="Tytuł"
-                        fullWidth
-                        margin="normal"
-                        value={newEvent.title}
-                        onChange={(e) => setNewEvent({...newEvent, title: e.target.value})}
-                    />
-                    <TextField
-                        label="Data rozpoczęcia"
-                        type="datetime-local"
-                        fullWidth
-                        margin="normal"
-                        InputLabelProps={{shrink: true}}
-                        value={newEvent.start}
-                        onChange={(e) => setNewEvent({...newEvent, start: e.target.value})}
-                    />
-                    <TextField
-                        label="Data zakończenia"
-                        type="datetime-local"
-                        fullWidth
-                        margin="normal"
-                        InputLabelProps={{shrink: true}}
-                        value={newEvent.end}
-                        onChange={(e) => setNewEvent({...newEvent, end: e.target.value})}
-                    />
-                    <TextField
-                        label="Kolor"
-                        type="color"
-                        fullWidth
-                        margin="normal"
-                        value={newEvent.color}
-                        onChange={(e) => setNewEvent({...newEvent, color: e.target.value})}
-                    />
+    <Box sx={{ display: 'flex', gap: 2, mt: 2 }}>
+      <TextField
+        label="Data rozpoczęcia"
+        type="datetime-local"
+        fullWidth
+        margin="normal"
+        InputLabelProps={{ shrink: true }}
+        value={newEvent.start}
+        onChange={(e) => setNewEvent({...newEvent, start: e.target.value})}
+        required
+      />
+      <TextField
+        label="Data zakończenia"
+        type="datetime-local"
+        fullWidth
+        margin="normal"
+        InputLabelProps={{ shrink: true }}
+        value={newEvent.end}
+        onChange={(e) => setNewEvent({...newEvent, end: e.target.value})}
+        required
+      />
+    </Box>
 
-                    {error && (
-                        <Typography color="error" variant="body2" mt={1}>
-                            {error}
-                        </Typography>
-                    )}
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 2 }}>
+      <TextField
+        label="Kolor"
+        type="color"
+        sx={{ width: 80 }}
+        value={newEvent.color || '#3f51b5'}
+        onChange={(e) => setNewEvent({...newEvent, color: e.target.value})}
+      />
+      <Typography variant="body2">
+        Wybierz kolor wydarzenia
+      </Typography>
+    </Box>
 
-                    <Box mt={3} display="flex" justifyContent="space-between">
-                        <Button variant="contained" color="success" onClick={handleAddEvent}>
-                            Dodaj
-                        </Button>
-                        <Button variant="outlined" onClick={() => setIsModalOpen(false)}>
-                            Anuluj
-                        </Button>
-                    </Box>
-                </Box>
-            </Modal>
+    <TextField
+      label="Dodatkowe informacje"
+      fullWidth
+      margin="normal"
+      multiline
+      rows={4}
+      value={newEvent.additional_info}
+      onChange={(e) => setNewEvent({...newEvent, additional_info: e.target.value})}
+      sx={{ mt: 2 }}
+    />
+
+    <FormControlLabel
+      control={
+        <Switch
+          checked={newEvent.recurrent || false}
+          onChange={(e) => setNewEvent({...newEvent, recurrent: e.target.checked})}
+        />
+      }
+      label="Wydarzenie cykliczne"
+      sx={{ mt: 2 }}
+    />
+
+    {newEvent.recurrent && (
+      <Box sx={{
+        p: 2,
+        mt: 2,
+        border: '1px solid',
+        borderColor: 'divider',
+        borderRadius: 1
+      }}>
+        <Typography variant="subtitle2" gutterBottom>
+          Ustawienia cykliczności
+        </Typography>
+
+        <Box sx={{ display: 'flex', gap: 2 }}>
+          <TextField
+            label="Co ile"
+            type="number"
+            value={newEvent.recurrency_details?.num || 1}
+            onChange={(e) => setNewEvent({
+              ...newEvent,
+              recurrency_details: {
+                ...newEvent.recurrency_details,
+                num: parseInt(e.target.value) || 1
+              }
+            })}
+            sx={{ width: 100 }}
+          />
+
+          <FormControl fullWidth>
+            <InputLabel>Typ</InputLabel>
+            <Select
+              value={newEvent.recurrency_details?.type || 'days'}
+              onChange={(e) => setNewEvent({
+                ...newEvent,
+                recurrency_details: {
+                  ...newEvent.recurrency_details,
+                  type: e.target.value
+                }
+              })}
+              label="Typ"
+            >
+              <MenuItem value="days">Dni</MenuItem>
+              <MenuItem value="weeks">Tygodnie</MenuItem>
+              <MenuItem value="months">Miesiące</MenuItem>
+              <MenuItem value="years">Lata</MenuItem>
+            </Select>
+          </FormControl>
+        </Box>
+
+        <TextField
+          label="Data zakończenia cyklu"
+          type="date"
+          fullWidth
+          margin="normal"
+          InputLabelProps={{ shrink: true }}
+          value={newEvent.recurrency_details?.until || ''}
+          onChange={(e) => setNewEvent({
+            ...newEvent,
+            recurrency_details: {
+              ...newEvent.recurrency_details,
+              until: e.target.value
+            }
+          })}
+          sx={{ mt: 2 }}
+        />
+      </Box>
+    )}
+
+    {error && (
+      <Typography color="error" variant="body2" mt={2}>
+        {error}
+      </Typography>
+    )}
+  </DialogContent>
+  <DialogActions>
+    <Button onClick={() => setIsModalOpen(false)}>Anuluj</Button>
+    <Button
+      variant="contained"
+      onClick={handleAddEvent}
+      disabled={!newEvent.name || !newEvent.start || !newEvent.end}
+    >
+      {newEvent.id ? "Zapisz zmiany" : "Dodaj wydarzenie"}
+    </Button>
+  </DialogActions>
+</Dialog>
         </div>
     );
 };
