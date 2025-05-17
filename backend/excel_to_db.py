@@ -9,6 +9,10 @@ django.setup()
 
 from mainApp.models import Faculty, Field, Round, Building
 
+Round.objects.all().delete()
+Field.objects.all().delete()
+Faculty.objects.all().delete()
+
 # Paths configuration
 base_dir = os.path.dirname(os.path.abspath(__file__))
 original_file_path = os.path.join(base_dir, "AGH_Progi_punktowe.xlsx")
@@ -63,18 +67,23 @@ try:
         round_names_original = df_original.iloc[0, 1:4].tolist()
         current_faculty = None
 
-        for index in range(len(df_original)):
-            row = df_original.iloc[index]
+        for index, row in df_original.iterrows():
             first_cell = row[0]
             rest_cells = row[1:4]
 
-            if pd.notna(first_cell) and pd.isna(rest_cells).all():
+            # Sprawdzamy czy to wydział (wyjątek jeśli nazwa zaczyna się od 'Wydział')
+            if pd.notna(first_cell) and (pd.isna(rest_cells).all() or str(first_cell).strip().startswith('Wydział')):
                 faculty_name = str(first_cell).strip()
-                current_faculty, _ = Faculty.objects.get_or_create(name=faculty_name, defaults={"building": building})
+                current_faculty, _ = Faculty.objects.get_or_create(
+                    name=faculty_name, defaults={"building": building}
+                )
+                print(f"[INFO] Wykryto wydział: {faculty_name}")
                 continue
 
-            if current_faculty and pd.notna(first_cell):
+            # Sprawdzamy czy to kierunek - pierwsza komórka i przynajmniej jedna z kolejnych są niepuste
+            if current_faculty and pd.notna(first_cell) and rest_cells.notna().any():
                 field_name = str(first_cell).strip()
+                print(f"[INFO] Dodawanie kierunku '{field_name}' do wydziału '{current_faculty.name}'")
                 field_to_faculty_map[field_name] = faculty_name
                 field = create_field_and_add_faculty(field_name, current_faculty)
 
@@ -164,7 +173,9 @@ for file_path, year_label in scraped_files:
                 field_name = row.get("Kierunek studiów", None)
                 if pd.notna(field_name):
                     current_faculty = get_faculty_for_field(field_name.strip())
-                    field = create_field_and_add_faculty(field_name.strip(), current_faculty, study_type=study_type)
+                    field = create_field_and_add_faculty(
+                        field_name.strip(), current_faculty, study_type=study_type
+                    )
 
                     for round_label in rounds:
                         score = row.get(round_label, None)
@@ -178,6 +189,13 @@ for file_path, year_label in scraped_files:
                                     defaults={"min_threshold": min_threshold}
                                 )
                             except ValueError:
-                                print(f"[UWAGA] Niepoprawna wartość progu ({score}) dla kierunku '{field.name}', runda '{round_label}', rok {year_label}")
+                                print(
+                                    f"[UWAGA] Niepoprawna wartość progu ({score}) dla kierunku '{field.name}', runda '{round_label}', rok {year_label}")
+
+        # Wyraźnie ignorujemy arkusze dotyczące II stopnia
+        ignored_sheets = ['studia_stacjonarne_II_st', 'studia_niestacjonarne_II_st']
+        for sheet in ignored_sheets:
+            if sheet in xl_scraped.sheet_names:
+                print(f"[INFO] Ignoruję arkusz '{sheet}' (studia II stopnia).")
 
 print("\nImport wszystkich danych zakończony.")
