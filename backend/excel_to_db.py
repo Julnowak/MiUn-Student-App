@@ -105,7 +105,21 @@ except FileNotFoundError:
     print(f"Plik {original_file_path} nie istnieje. Pominięto import oryginalnego pliku.")
 
 # --- Scraped Excel processing ---
+manual_field_to_faculty_map = {
+    "Chemia Budowlana": "Wydział Inżynierii Materiałowej i Ceramiki",
+    "Informatyka Medyczna": "Wydział Elektrotechniki, Automatyki, Informatyki i Inżynierii Biomedycznej",
+    "Komputerowo Wspomagana Inżynieria Materiałów Budowlanych": "Wydział Inżynierii Materiałowej i Ceramiki",
+    "Mechanical Engineering": "Wydział Inżynierii Mechanicznej i Robotyki",
+}
+
 def get_faculty_for_field(field_name):
+    # Sprawdzenie w ręcznej mapie wyjątków
+    if field_name in manual_field_to_faculty_map:
+        faculty_name = manual_field_to_faculty_map[field_name]
+        faculty, _ = Faculty.objects.get_or_create(name=faculty_name, defaults={"building": building})
+        return faculty
+
+    # Sprawdzenie w mapie z pliku AGH_Progi_punktowe
     faculty_name = field_to_faculty_map.get(field_name)
     if faculty_name:
         faculty, _ = Faculty.objects.get_or_create(name=faculty_name, defaults={"building": building})
@@ -129,9 +143,24 @@ for file_path, year_label in scraped_files:
         print(f"Błąd podczas otwierania pliku {file_path}: {e}")
         continue
 
-    if year_label == "2023/2024" or year_label == "2024/2025":
+    if year_label in ["2023/2024", "2024/2025"]:
         for sheet_name in xl_scraped.sheet_names:
-            print(f"[INFO] Przetwarzanie arkusza '{sheet_name}' dla roku {year_label}...")
+
+            # Ignorowanie arkuszy drugiego stopnia
+            if "II_st" in sheet_name:
+                print(f"[INFO] Ignoruję arkusz '{sheet_name}' (studia II stopnia).")
+                continue
+
+            # Ustalamy typ studiów na podstawie nazwy arkusza
+            if "niestacjonarne" in sheet_name.lower():
+                study_type = 'niestacjonarne'
+            elif "stacjonarne" in sheet_name.lower():
+                study_type = 'stacjonarne'
+            else:
+                print(f"[UWAGA] Nieznany typ studiów w arkuszu '{sheet_name}'. Domyślnie ustawiam 'stacjonarne'.")
+                study_type = 'stacjonarne'
+
+            print(f"[INFO] Przetwarzanie arkusza '{sheet_name}' dla roku {year_label}, typ studiów: {study_type}...")
             df = pd.read_excel(file_path, sheet_name=sheet_name)
             valid_rounds = [col for col in df.columns if "cykl" in col.lower()]
 
@@ -139,7 +168,9 @@ for file_path, year_label in scraped_files:
                 field_name = row.get("Kierunek studiów", None)
                 if pd.notna(field_name):
                     current_faculty = get_faculty_for_field(field_name.strip())
-                    field = create_field_and_add_faculty(field_name.strip(), current_faculty, study_type='stacjonarne')
+                    field = create_field_and_add_faculty(
+                        field_name.strip(), current_faculty, study_type=study_type
+                    )
 
                     for round_label in valid_rounds:
                         score = row.get(round_label, None)
@@ -154,48 +185,8 @@ for file_path, year_label in scraped_files:
                                     defaults={"min_threshold": min_threshold}
                                 )
                             except ValueError:
-                                print(f"[UWAGA] Niepoprawna wartość progu ({score}) dla kierunku '{field.name}', runda '{round_label}', rok {year_label}")
-    else:
-        scraper_sheet_names = [
-            ('studia_stacjonarne_I_st', 'stacjonarne', 'I'),
-            ('studia_niestacjonarne_I_st', 'niestacjonarne', 'I'),
-        ]
-
-        for sheet_name, study_type, degree in scraper_sheet_names:
-            if sheet_name not in xl_scraped.sheet_names:
-                print(f"[UWAGA] Arkusz '{sheet_name}' nie istnieje w pliku {file_path}. Pominięto.")
-                continue
-
-            df = pd.read_excel(file_path, sheet_name=sheet_name)
-            rounds = df.columns[2:].tolist()
-
-            for _, row in df.iterrows():
-                field_name = row.get("Kierunek studiów", None)
-                if pd.notna(field_name):
-                    current_faculty = get_faculty_for_field(field_name.strip())
-                    field = create_field_and_add_faculty(
-                        field_name.strip(), current_faculty, study_type=study_type
-                    )
-
-                    for round_label in rounds:
-                        score = row.get(round_label, None)
-                        if pd.notna(score):
-                            try:
-                                min_threshold = int(score)
-                                Round.objects.get_or_create(
-                                    name=round_label.strip(),
-                                    field=field,
-                                    year=year_label,
-                                    defaults={"min_threshold": min_threshold}
-                                )
-                            except ValueError:
                                 print(
-                                    f"[UWAGA] Niepoprawna wartość progu ({score}) dla kierunku '{field.name}', runda '{round_label}', rok {year_label}")
-
-        # Wyraźnie ignorujemy arkusze dotyczące II stopnia
-        ignored_sheets = ['studia_stacjonarne_II_st', 'studia_niestacjonarne_II_st']
-        for sheet in ignored_sheets:
-            if sheet in xl_scraped.sheet_names:
-                print(f"[INFO] Ignoruję arkusz '{sheet}' (studia II stopnia).")
+                                    f"[UWAGA] Niepoprawna wartość progu ({score}) dla kierunku '{field.name}', runda '{round_label}', rok {year_label}"
+                                )
 
 print("\nImport wszystkich danych zakończony.")
