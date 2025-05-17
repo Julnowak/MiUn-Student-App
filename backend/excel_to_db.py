@@ -149,9 +149,7 @@ for file_path, year_label in scraped_files:
     else:
         scraper_sheet_names = [
             ('studia_stacjonarne_I_st', 'stacjonarne', 'I'),
-            ('studia_stacjonarne_II_st', 'stacjonarne', 'II'),
             ('studia_niestacjonarne_I_st', 'niestacjonarne', 'I'),
-            ('studia_niestacjonarne_II_st', 'niestacjonarne', 'II'),
         ]
 
         for sheet_name, study_type, degree in scraper_sheet_names:
