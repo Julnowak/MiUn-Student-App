@@ -28,18 +28,22 @@ if not building:
 
 # --- Helpers ---
 def create_field_and_add_faculty(field_name, current_faculty, formula="2*M+3*G1+G2", study_type="stacjonarne"):
-    existing_fields = Field.objects.filter(name=field_name, type=study_type)
-    for existing_field in existing_fields:
-        if current_faculty in existing_field.faculty.all():
-            return existing_field
-    field = Field.objects.create(
+    # Pobierz lub utwórz pole na podstawie unikalnej kombinacji nazwa + typ studiów
+    field, created = Field.objects.get_or_create(
         name=field_name,
-        formula=formula,
         type=study_type,
-        description="",
-        specialization=""
+        defaults={
+            "formula": formula,
+            "description": "",
+            "specialization": ""
+        }
     )
-    field.faculty.add(current_faculty)
+
+    # Sprawdź, czy wydział już jest przypisany — jeśli nie, dodaj
+    if current_faculty not in field.faculty.all():
+        field.faculty.add(current_faculty)
+        print(f"[INFO] Dodano wydział '{current_faculty.name}' do kierunku '{field_name}'")
+
     return field
 
 def convert_cycle_to_tura(label):
