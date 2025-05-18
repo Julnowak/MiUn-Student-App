@@ -9,6 +9,10 @@ django.setup()
 
 from mainApp.models import Faculty, Field, Round, Building
 
+Round.objects.all().delete()
+Field.objects.all().delete()
+Faculty.objects.all().delete()
+
 # Paths configuration
 base_dir = os.path.dirname(os.path.abspath(__file__))
 original_file_path = os.path.join(base_dir, "AGH_Progi_punktowe.xlsx")
@@ -24,18 +28,22 @@ if not building:
 
 # --- Helpers ---
 def create_field_and_add_faculty(field_name, current_faculty, formula="2*M+3*G1+G2", study_type="stacjonarne"):
-    existing_fields = Field.objects.filter(name=field_name, type=study_type)
-    for existing_field in existing_fields:
-        if current_faculty in existing_field.faculty.all():
-            return existing_field
-    field = Field.objects.create(
+    # Pobierz lub utwórz pole na podstawie unikalnej kombinacji nazwa + typ studiów
+    field, created = Field.objects.get_or_create(
         name=field_name,
-        formula=formula,
         type=study_type,
-        description="",
-        specialization=""
+        defaults={
+            "formula": formula,
+            "description": "",
+            "specialization": ""
+        }
     )
-    field.faculty.add(current_faculty)
+
+    # Sprawdź, czy wydział już jest przypisany — jeśli nie, dodaj
+    if current_faculty not in field.faculty.all():
+        field.faculty.add(current_faculty)
+        print(f"[INFO] Dodano wydział '{current_faculty.name}' do kierunku '{field_name}'")
+
     return field
 
 def convert_cycle_to_tura(label):
@@ -63,18 +71,23 @@ try:
         round_names_original = df_original.iloc[0, 1:4].tolist()
         current_faculty = None
 
-        for index in range(len(df_original)):
-            row = df_original.iloc[index]
+        for index, row in df_original.iterrows():
             first_cell = row[0]
             rest_cells = row[1:4]
 
-            if pd.notna(first_cell) and pd.isna(rest_cells).all():
+            # Sprawdzamy czy to wydział (wyjątek jeśli nazwa zaczyna się od 'Wydział')
+            if pd.notna(first_cell) and (pd.isna(rest_cells).all() or str(first_cell).strip().startswith('Wydział')):
                 faculty_name = str(first_cell).strip()
-                current_faculty, _ = Faculty.objects.get_or_create(name=faculty_name, defaults={"building": building})
+                current_faculty, _ = Faculty.objects.get_or_create(
+                    name=faculty_name, defaults={"building": building}
+                )
+                print(f"[INFO] Wykryto wydział: {faculty_name}")
                 continue
 
-            if current_faculty and pd.notna(first_cell):
+            # Sprawdzamy czy to kierunek - pierwsza komórka i przynajmniej jedna z kolejnych są niepuste
+            if current_faculty and pd.notna(first_cell) and rest_cells.notna().any():
                 field_name = str(first_cell).strip()
+                print(f"[INFO] Dodawanie kierunku '{field_name}' do wydziału '{current_faculty.name}'")
                 field_to_faculty_map[field_name] = faculty_name
                 field = create_field_and_add_faculty(field_name, current_faculty)
 
@@ -96,7 +109,21 @@ except FileNotFoundError:
     print(f"Plik {original_file_path} nie istnieje. Pominięto import oryginalnego pliku.")
 
 # --- Scraped Excel processing ---
+manual_field_to_faculty_map = {
+    "Chemia Budowlana": "Wydział Inżynierii Materiałowej i Ceramiki",
+    "Informatyka Medyczna": "Wydział Elektrotechniki, Automatyki, Informatyki i Inżynierii Biomedycznej",
+    "Komputerowo Wspomagana Inżynieria Materiałów Budowlanych": "Wydział Inżynierii Materiałowej i Ceramiki",
+    "Mechanical Engineering": "Wydział Inżynierii Mechanicznej i Robotyki",
+}
+
 def get_faculty_for_field(field_name):
+    # Sprawdzenie w ręcznej mapie wyjątków
+    if field_name in manual_field_to_faculty_map:
+        faculty_name = manual_field_to_faculty_map[field_name]
+        faculty, _ = Faculty.objects.get_or_create(name=faculty_name, defaults={"building": building})
+        return faculty
+
+    # Sprawdzenie w mapie z pliku AGH_Progi_punktowe
     faculty_name = field_to_faculty_map.get(field_name)
     if faculty_name:
         faculty, _ = Faculty.objects.get_or_create(name=faculty_name, defaults={"building": building})
@@ -120,9 +147,24 @@ for file_path, year_label in scraped_files:
         print(f"Błąd podczas otwierania pliku {file_path}: {e}")
         continue
 
-    if year_label == "2023/2024" or year_label == "2024/2025":
+    if year_label in ["2023/2024", "2024/2025"]:
         for sheet_name in xl_scraped.sheet_names:
-            print(f"[INFO] Przetwarzanie arkusza '{sheet_name}' dla roku {year_label}...")
+
+            # Ignorowanie arkuszy drugiego stopnia
+            if "II_st" in sheet_name:
+                print(f"[INFO] Ignoruję arkusz '{sheet_name}' (studia II stopnia).")
+                continue
+
+            # Ustalamy typ studiów na podstawie nazwy arkusza
+            if "niestacjonarne" in sheet_name.lower():
+                study_type = 'niestacjonarne'
+            elif "stacjonarne" in sheet_name.lower():
+                study_type = 'stacjonarne'
+            else:
+                print(f"[UWAGA] Nieznany typ studiów w arkuszu '{sheet_name}'. Domyślnie ustawiam 'stacjonarne'.")
+                study_type = 'stacjonarne'
+
+            print(f"[INFO] Przetwarzanie arkusza '{sheet_name}' dla roku {year_label}, typ studiów: {study_type}...")
             df = pd.read_excel(file_path, sheet_name=sheet_name)
             valid_rounds = [col for col in df.columns if "cykl" in col.lower()]
 
@@ -130,7 +172,9 @@ for file_path, year_label in scraped_files:
                 field_name = row.get("Kierunek studiów", None)
                 if pd.notna(field_name):
                     current_faculty = get_faculty_for_field(field_name.strip())
-                    field = create_field_and_add_faculty(field_name.strip(), current_faculty, study_type='stacjonarne')
+                    field = create_field_and_add_faculty(
+                        field_name.strip(), current_faculty, study_type=study_type
+                    )
 
                     for round_label in valid_rounds:
                         score = row.get(round_label, None)
@@ -145,41 +189,8 @@ for file_path, year_label in scraped_files:
                                     defaults={"min_threshold": min_threshold}
                                 )
                             except ValueError:
-                                print(f"[UWAGA] Niepoprawna wartość progu ({score}) dla kierunku '{field.name}', runda '{round_label}', rok {year_label}")
-    else:
-        scraper_sheet_names = [
-            ('studia_stacjonarne_I_st', 'stacjonarne', 'I'),
-            ('studia_stacjonarne_II_st', 'stacjonarne', 'II'),
-            ('studia_niestacjonarne_I_st', 'niestacjonarne', 'I'),
-            ('studia_niestacjonarne_II_st', 'niestacjonarne', 'II'),
-        ]
-
-        for sheet_name, study_type, degree in scraper_sheet_names:
-            if sheet_name not in xl_scraped.sheet_names:
-                print(f"[UWAGA] Arkusz '{sheet_name}' nie istnieje w pliku {file_path}. Pominięto.")
-                continue
-
-            df = pd.read_excel(file_path, sheet_name=sheet_name)
-            rounds = df.columns[2:].tolist()
-
-            for _, row in df.iterrows():
-                field_name = row.get("Kierunek studiów", None)
-                if pd.notna(field_name):
-                    current_faculty = get_faculty_for_field(field_name.strip())
-                    field = create_field_and_add_faculty(field_name.strip(), current_faculty, study_type=study_type)
-
-                    for round_label in rounds:
-                        score = row.get(round_label, None)
-                        if pd.notna(score):
-                            try:
-                                min_threshold = int(score)
-                                Round.objects.get_or_create(
-                                    name=round_label.strip(),
-                                    field=field,
-                                    year=year_label,
-                                    defaults={"min_threshold": min_threshold}
+                                print(
+                                    f"[UWAGA] Niepoprawna wartość progu ({score}) dla kierunku '{field.name}', runda '{round_label}', rok {year_label}"
                                 )
-                            except ValueError:
-                                print(f"[UWAGA] Niepoprawna wartość progu ({score}) dla kierunku '{field.name}', runda '{round_label}', rok {year_label}")
 
 print("\nImport wszystkich danych zakończony.")
