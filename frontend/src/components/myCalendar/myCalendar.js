@@ -140,7 +140,7 @@ const MyCalendar = () => {
     const handleNavigate = (date) => setCurrentDate(date);
 
     return (
-        <div className="calendar-container" style={{ margin: 20, paddingBottom: 1500}}>
+        <div className="calendar-container" style={{ paddingBottom: 1000, maxWidth: 1000, margin: "auto"}}>
             <Typography variant="h3" sx={{
                 textAlign: "center",
                 my: 4,
