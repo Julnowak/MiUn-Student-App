@@ -1,24 +1,21 @@
-import React, {useEffect, useRef, useState} from "react";
-import {MapContainer, TileLayer, Marker, Popup, useMap} from "react-leaflet";
+import React, { useEffect, useRef, useState } from "react";
+import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
-import "./locations.css";
 import 'leaflet-routing-machine';
 import client from "../../client";
-import {API_BASE_URL} from "../../config";
+import { API_BASE_URL } from "../../config";
 import Alert from '@mui/material/Alert';
-import {Autocomplete, TextField} from "@mui/material";
+import { Autocomplete, TextField, Button, Box, Typography, Container } from "@mui/material";
+import { LocationOn, Search, Directions } from "@mui/icons-material";
 
+// Fix for default marker icons
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
     iconRetinaUrl: require("leaflet/dist/images/marker-icon-2x.png"),
     iconUrl: require("leaflet/dist/images/marker-icon.png"),
     shadowUrl: require("leaflet/dist/images/marker-shadow.png"),
 });
-
-// const locations = [
-//     {id: 1, name: "Kraków", latitude: 50.064496663386926, longitude: 19.92334282951794, description: "A-0"},
-// ];
 
 const Locations = () => {
     const [userLocation, setUserLocation] = useState(null);
@@ -28,9 +25,8 @@ const Locations = () => {
     const [error, setError] = useState("");
     const [flag, setFlag] = useState(false);
     const token = localStorage.getItem("access");
-    const markerRef = useRef(null);
-    const [mapCenter, setMapCenter] = useState(null);
-
+    const mapRef = useRef(null);
+    const [bounds, setBounds] = useState(null);
 
     useEffect(() => {
         const fetchLocations = async () => {
@@ -42,8 +38,15 @@ const Locations = () => {
                 });
                 setLocations(response.data);
                 setAllLocations(response.data);
+
+                // Calculate bounds to fit all markers
+                if (response.data.length > 0) {
+                    const coords = response.data.map(loc => [loc.latitude, loc.longitude]);
+                    const newBounds = L.latLngBounds(coords);
+                    setBounds(newBounds);
+                }
             } catch (error) {
-                console.log("Nie udało się zalogować");
+                console.log("Nie udało się pobrać lokalizacji");
             }
         };
 
@@ -53,7 +56,6 @@ const Locations = () => {
     }, [token]);
 
     useEffect(() => {
-        // Get user's current position
         navigator.geolocation.getCurrentPosition(
             (position) => {
                 setUserLocation({
@@ -68,7 +70,6 @@ const Locations = () => {
     }, []);
 
     const handleOpenRoute = (endCoords) => {
-        console.log(endCoords)
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
                 (position) => {
@@ -86,10 +87,9 @@ const Locations = () => {
     };
 
     async function findPlace(pin) {
-        setFlag(false)
+        setFlag(false);
         if (!pin) {
-            setError("Proszę wpisać budynek.")
-            console.error("PIN cannot be empty");
+            setError("Proszę wpisać budynek.");
             return;
         }
 
@@ -100,180 +100,205 @@ const Locations = () => {
                 },
             });
 
-            setLocations([response.data]); // Ensure it's an array
-            console.log(response.data);
+            setLocations([response.data]);
+            setError(null);
+
+            // Center map on the found location
+            if (response.data?.latitude && response.data?.longitude) {
+                const newBounds = L.latLngBounds([
+                    [response.data.latitude, response.data.longitude]
+                ]);
+                setBounds(newBounds.pad(0.5)); // Add some padding
+            }
 
             return response.data;
         } catch (error) {
-            setError("Nie znaleziono budynku.")
-            console.error("Nie udało się pobrać danych:", error);
+            setError("Nie znaleziono budynku.");
             return null;
         }
     }
 
-    const ChangeMapCenter = ({lat, lon}) => {
-        const map = useMap();  // Access the map object using useMap hook
-        if (lat && lon) {
-            map.setView([lat, lon], 16);  // Set new center with zoom level 16
-            markerRef.current?.openPopup();
-        }
-        return null; // This component doesn't need to render anything
+    const FitBounds = () => {
+        const map = useMap();
+
+        useEffect(() => {
+            if (bounds) {
+                map.fitBounds(bounds, { padding: [50, 50] });
+            }
+        }, [bounds, map]);
+
+        return null;
     };
 
-
-    useEffect(() => {
-        if (mapCenter && markerRef.current) {
-            // małe opóźnienie, żeby upewnić się, że marker już się pojawił
-            setTimeout(() => {
-                markerRef.current.openPopup();
-            }, 100);
-        }
-    }, [mapCenter]);
-
     return (
-        <div className="p-4" style={{color: "black"}}>
-            <div style={{textAlign: "center", marginBottom: 160}}>
-
-
-                {error ?
-                    <Alert style={{backgroundColor: "rgba(255,161,161,0.76)", marginBottom: 10}}
-                           severity="error">{error}</Alert>
-                    : null}
-
-                <h2 className="about-us-title" style={{fontSize: "2rem", fontWeight: "bold"}}>
-                    Zagubiony? Pomożemy!
-                </h2>
-
-                <p style={{fontSize: "1rem", color: "#505050", marginBottom: "20px"}}>
-                    Wybierz budynek na kampusie, który chcesz odnaleźć:
-                </p>
-
-                <Autocomplete
-                    freeSolo
-                    disableClearable
-                    id="free-solo-2-demo"
-                    options={allLocations?.map((option) => option.name)}
-                    onInputChange={(event, newInputValue) => {
-                        setQuery(newInputValue); // gdy użytkownik wpisuje ręcznie
-                    }}
-                    onChange={(event, value) => {
-                        setQuery(value); // gdy wybierze z listy
-                        setError(null)
-                    }}
-                    renderInput={(params) => (
-                        <TextField
-                            {...params}
-                            label="Search input"
-                            type="search"
-                        />
-                    )}
-                    style={{maxWidth: 800, margin: "auto",}}
-                />
-
-                <button
-                    type="button"
-                    className="btn"
-                    style={{
-                        padding: "10px 20px",
-                        fontSize: "1rem",
-                        backgroundColor: "rgb(219,15,173)",
-                        borderRadius: "5px",
-                        cursor: "pointer",
-                        display: "inline",
-                        color: "white",
-                    }}
-                    onClick={() => {
-                        if (!query) return;
-                        findPlace(query)?.then((data) => {
-                            if (data?.latitude && data?.longitude) {
-                                setMapCenter({lat: data.latitude, lon: data.longitude});
-                            }
-                        });
-                    }}
-                >
-                    Szukaj
-                </button>
-            </div>
-
-            {/* Map Section */}
-            <div
-                style={{
-                    maxWidth: "1000px",
-                    margin: "auto",
-                    padding: "20px",
-                    borderRadius: "10px",
-                    color: "white",
-                }}
-            >
-                <div>
-                    <MapContainer
-                        center={[50.064496663386926, 19.92334282951794]}
-                        zoom={16}
-                        style={{
-                            height: "500px",
-                            width: "100%",
-                            borderRadius: "10px",
-                            overflow: "hidden",
-                            marginTop: "20px",
+        <Container maxWidth="lg" sx={{ py: 4 }}>
+            <Box sx={{
+                textAlign: "center",
+                mb: 8,
+                px: 2
+            }}>
+                {error && (
+                    <Alert
+                        severity="error"
+                        sx={{
+                            mb: 2,
+                            backgroundColor: 'error.light',
+                            color: 'error.contrastText'
                         }}
                     >
-                        <TileLayer
-                            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                        />
-                        {locations?.map((loc) => (
-                            <Marker
-                                ref={markerRef}
-                                key={loc.id}
-                                position={[loc.latitude, loc.longitude]}
-                            >
-                                <Popup>
-                                    <h5
-                                        style={{
-                                            borderBottom: "2px solid black",
-                                            paddingBottom: "5px",
-                                            marginBottom: "5px",
-                                            color: "rgb(0,0,0)",
-                                        }}
-                                    >
-                                        {loc.name}
-                                    </h5>
-                                    <h6>
-                                        {loc.symbol && loc.symbol !== "brak" ? loc.symbol : null} {loc.symbol !== loc.abbreviation ? `(${loc.abbreviation})` : null}
-                                    </h6>
-                                    <p style={{fontSize: "14px", color: "black"}}>
-                                        {loc.function}
-                                        <br></br>
-                                        {loc.address}
-                                    </p>
+                        {error}
+                    </Alert>
+                )}
 
-                                    <p>
-                                        <button className={"btn btn-dark"}
-                                                onClick={() => handleOpenRoute(`${loc.latitude},${loc.longitude}`)}>Wyznacz
-                                            trasę
-                                        </button>
-                                    </p>
-                                </Popup>
-                            </Marker>
-                        ))}
+                <Typography
+                    variant="h3"
+                    component="h1"
+                    sx={{
+                        fontWeight: 700,
+                        mb: 2,
+                        color: 'primary.main'
+                    }}
+                >
+                    Zagubiony? Pomożemy!
+                </Typography>
 
-                        {mapCenter && (
-                            <ChangeMapCenter lat={mapCenter.lat} lon={mapCenter.lon}/>
+                <Typography
+                    variant="subtitle1"
+                    sx={{
+                        mb: 4,
+                        color: 'text.secondary'
+                    }}
+                >
+                    Znajdź budynek na kampusie AGH
+                </Typography>
+
+                <Box sx={{
+                    display: 'flex',
+                    gap: 2,
+                    justifyContent: 'center',
+                    flexDirection: { xs: 'column', sm: 'row' },
+                    maxWidth: 800,
+                    mx: 'auto'
+                }}>
+                    <Autocomplete
+                        freeSolo
+                        disableClearable
+                        options={allLocations?.map((option) => option.name)}
+                        onInputChange={(event, newInputValue) => {
+                            setQuery(newInputValue);
+                        }}
+                        onChange={(event, value) => {
+                            setQuery(value);
+                            setError(null);
+                        }}
+                        renderInput={(params) => (
+                            <TextField
+                                {...params}
+                                label="Wpisz nazwę budynku"
+                                InputProps={{
+                                    ...params.InputProps,
+                                    startAdornment: <LocationOn sx={{ color: 'action.active', mr: 1 }} />,
+                                }}
+                                fullWidth
+                            />
                         )}
-                    </MapContainer>
-                </div>
-            </div>
+                        sx={{ flex: 1 }}
+                    />
 
-            {/* Image Section */}
-            <div className="mt-6 text-center">
-                <h2 className="text-xl font-semibold mb-2">Mapa miasteczka AGH</h2>
-                <img
+                    <Button
+                        variant="contained"
+                        startIcon={<Search />}
+                        onClick={() => {
+                            if (!query) return;
+                            findPlace(query);
+                        }}
+                        sx={{
+                            height: '56px',
+                            px: 4,
+                            whiteSpace: 'nowrap'
+                        }}
+                    >
+                        Szukaj
+                    </Button>
+                </Box>
+            </Box>
+
+            <Box sx={{
+                borderRadius: 2,
+                overflow: 'hidden',
+                boxShadow: 3,
+                mb: 6
+            }}>
+                <MapContainer
+                    center={[50.064496663386926, 19.92334282951794]}
+                    zoom={16}
+                    style={{
+                        height: "500px",
+                        width: "100%",
+                    }}
+                    whenCreated={(map) => {
+                        mapRef.current = map;
+                    }}
+                >
+                    <TileLayer
+                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                    />
+
+                    <FitBounds />
+
+                    {locations?.map((loc) => (
+                        <Marker
+                            key={loc.id}
+                            position={[loc.latitude, loc.longitude]}
+                        >
+                            <Popup>
+                                <Typography variant="h6" sx={{ fontWeight: 600, mb: 1 }}>
+                                    {loc.name}
+                                </Typography>
+                                <Typography variant="body2" sx={{ mb: 1 }}>
+                                    {loc.symbol && loc.symbol !== "brak" ? loc.symbol : ''}
+                                    {loc.symbol !== loc.abbreviation ? ` (${loc.abbreviation})` : ''}
+                                </Typography>
+                                <Typography variant="body2" sx={{ mb: 1 }}>
+                                    {loc.function}
+                                </Typography>
+                                <Typography variant="body2" sx={{ mb: 2 }}>
+                                    {loc.address}
+                                </Typography>
+                                <Button
+                                    variant="outlined"
+                                    size="small"
+                                    startIcon={<Directions />}
+                                    onClick={() => handleOpenRoute(`${loc.latitude},${loc.longitude}`)}
+                                >
+                                    Wyznacz trasę
+                                </Button>
+                            </Popup>
+                        </Marker>
+                    ))}
+                </MapContainer>
+            </Box>
+
+            <Box sx={{ textAlign: 'center', mb: 4 }}>
+                <Typography variant="h5" sx={{ mb: 2, fontWeight: 600 }}>
+                    Mapa miasteczka AGH
+                </Typography>
+                <Box
+                    component="img"
                     src="images/basic/mapa_agh.jpg"
                     alt="Mapa miasteczka AGH"
-                    className="w-full max-w-lg mx-auto rounded-lg shadow-md responsive-image"
+                    sx={{
+
+                        p: 3,
+                        height: 'auto',
+                        borderRadius: 2,
+                        boxShadow: 3,
+                        maxWidth: '100%',
+                    }}
                 />
-            </div>
-        </div>
+            </Box>
+        </Container>
     );
 };
 

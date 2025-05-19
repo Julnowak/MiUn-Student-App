@@ -1,6 +1,6 @@
 from django.contrib import admin
 from .models import (AppUser, Building, Notification, Faculty, Field, Source, Course, Event, FieldByYear,
-                     VerificationCode, Semester, Group, MaturaSubject, News)
+                     VerificationCode, Semester, Group, MaturaSubject, News, Round, Attachment)
 
 # Register your models here.
 admin.site.register(AppUser)
@@ -17,3 +17,5 @@ admin.site.register(VerificationCode)
 admin.site.register(Group)
 admin.site.register(MaturaSubject)
 admin.site.register(News)
+admin.site.register(Round)
+admin.site.register(Attachment)

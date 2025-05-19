@@ -230,9 +230,66 @@ class SourceAPI(APIView):
     permission_classes = (permissions.IsAuthenticated,)  # Only authenticated users can log out
 
     def get(self, request):
-        sources = Source.objects.all() ##########################
-        serializer = SourceSerializer(sources, many=True)
+        sources_public = Source.objects.filter(availability="PUBLIC")
+        user_groups = Group.objects.filter(members=request.user)
+        group_members = AppUser.objects.filter(
+            id__in=Group.objects.filter(
+                id__in=user_groups.values_list('id', flat=True)
+            ).values_list('members', flat=True)
+        ).distinct()
+
+        sources_restricted = Source.objects.filter(
+            availability="RESTRICTED",
+            added_by__in=group_members
+        )
+
+        sources_private = Source.objects.filter(availability="PRIVATE", added_by=request.user)
+
+        combined_sources = (sources_public | sources_restricted | sources_private).distinct()
+
+        print(request.query_params)
+        name = request.query_params.get('name', None)
+        field_id = request.query_params.get('kierunek', None)
+        subject_id = request.query_params.get('przedmiot', None)
+        tylko_moje = request.query_params.get('tylko_moje', None)
+        zweryfikowane = request.query_params.get('zweryfikowane', None)
+        ordering = request.query_params.get('ordering', '-date_added')
+
+        if name:
+            combined_sources = combined_sources.filter(title__icontains=name)
+        if field_id:
+            combined_sources = combined_sources.filter(field__id=field_id)
+        if subject_id:
+            combined_sources = combined_sources.filter(course__id=subject_id)
+        if tylko_moje and tylko_moje.lower() == 'true':
+            combined_sources = combined_sources.filter(added_by=request.user)
+        if zweryfikowane and zweryfikowane.lower() == 'true':
+            combined_sources = combined_sources.filter(verified=True)
+
+        combined_sources = combined_sources.order_by(ordering)
+
+        serializer = SourceSerializer(combined_sources, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def post(self, request):
+        print(request.data)
+
+        if request.data['type'] == "PLIK":
+
+            source = Source.objects.create(title=request.data['title'], description=request.data['description'], added_by=request.user,
+                                           field_id=int(request.data['field']), course_id=int(request.data['subject']) if 'subject' in request.data and request.data['subject'] != '' else None,
+                                           type=request.data['type'], availability=request.data['availability'], file=request.data['file'])
+        else:
+            source = Source.objects.create(title=request.data['title'], description=request.data['description'],
+                                           added_by=request.user,
+                                           field_id=int(request.data['field']),
+                                           course_id=int(request.data['subject']) if 'subject' in request.data and
+                                                                                     request.data[
+                                                                                         'subject'] != '' else None,
+                                           type=request.data['type'], availability=request.data['availability'],
+                                           link=request.data['link'])
+
+        return Response( status=status.HTTP_200_OK)
 
 
 class MaturaSubjectsAPI(APIView):

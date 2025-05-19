@@ -98,7 +98,7 @@ class FieldSerializer(serializers.ModelSerializer):
     class Meta:
         model = Field
         fields = '__all__'
-        depth = 1
+        depth = 2
 
 
 class FieldByYearSerializer(serializers.ModelSerializer):
