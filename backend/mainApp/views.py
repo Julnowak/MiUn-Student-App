@@ -3,6 +3,7 @@ import urllib.parse
 
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth import get_user_model
+from django.db.models import Q
 
 # Create your views here.
 from rest_framework import permissions, status
@@ -12,10 +13,10 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from mainApp.models import AppUser, Building, Notification, Source, Field, MaturaSubject, News, Course, Group, \
-    FieldByYear, Event
+    FieldByYear, Event, Round
 from mainApp.serializers import UserRegisterSerializer, UserSerializer, BuildingSerializer, NotificationSerializer, \
     SourceSerializer, FieldSerializer, MaturaSubjectSerializer, NewsSerializer, CourseSerializer, GroupSerializer, \
-    FieldByYearSerializer, EventSerializer
+    FieldByYearSerializer, EventSerializer, RoundSerializer
 
 from .utils import send_verification_email
 from .calc_score.calc_score import calc_score_fun
@@ -383,18 +384,79 @@ class OneGroupAPI(APIView):
         return Response(status=status.HTTP_406_NOT_ACCEPTABLE)
 
 
+def calculate_scores(data):
+    # Pobierz ID przedmiotów z danych wejściowych
+    subject_ids = [subject['id'] for subject in data['przedmioty']]
+    results = data['wyniki']
+
+    # Znajdź przedmioty maturalne w bazie danych
+    matura_subjects = MaturaSubject.objects.filter(id__in=subject_ids)
+
+    # Znajdź kierunki, które mają przynajmniej jeden przedmiot z G1 i G2 w wybranych przedmiotach
+    fields = Field.objects.filter(
+        Q(G1_subject__in=matura_subjects) | Q(G2_subject__in=matura_subjects),
+        isActive=True
+    ).distinct()
+
+    print(Field)
+
+    final_results = []
+
+    for field in fields:
+        # Pobierz najlepszy wynik z grupy G1
+        g1_subjects = field.G1_subject.filter(id__in=subject_ids)
+        g1_scores = [results.get(str(subject.id), 0) for subject in g1_subjects]
+        best_g1 = max(g1_scores) if g1_scores else 0
+
+        # Pobierz najlepszy wynik z grupy G2
+        g2_subjects = field.G2_subject.filter(id__in=subject_ids)
+        g2_scores = [results.get(str(subject.id), 0) for subject in g2_subjects]
+        best_g2 = max(g2_scores) if g2_scores else 0
+
+        # Znajdź wynik z matematyki PD
+        math_pd = next((subj for subj in data['przedmioty'] if subj['name'] == 'Matematyka' and subj['level'] == 'PD'),
+                       None)
+        math_score = results.get(str(math_pd['id']), 0) if math_pd else 0
+
+        final_results.append({
+            "field": field.name,
+            "field_id": field.id,
+            "field_description": field.description,
+            "G1": best_g1,
+            "G2": best_g2,
+            "M": math_score
+        })
+
+    return final_results
+
+
 class CalculationAPI(APIView):
     permission_classes = (permissions.IsAuthenticated,)  # Only authenticated users can log out
 
     def post(self, request):
-        G1 = request.data.get('G1')
-        G2 = request.data.get('G2')
-        M = request.data.get('M')
-        data = {"M": int(M), "G1": int(G1), "G2": int(G2), "formula": "2*M+3*G1+G2"}
-        score = calc_score_fun(data)
-        print(score)
-        return Response({"score": score}, status=status.HTTP_200_OK)
 
+        if request.data.get('tryb') == "one":
+            G1 = request.data.get('G1')
+            G2 = request.data.get('G2')
+            M = request.data.get('M')
+            field = request.data.get('field')
+            data = {"M": int(M), "G1": int(G1), "G2": int(G2), "formula": "2*M+3*G1+G2"}
+            score = calc_score_fun(data)
+            print(field)
+            rounds = Round.objects.filter(field__id=field["id"])
+            serializer = RoundSerializer(rounds, many=True)
+            print(rounds)
+            return Response({"score": score, "rounds": serializer.data}, status=status.HTTP_200_OK)
+        else:
+            wyn = calculate_scores(request.data)
+            d = wyn.copy()
+            num = 0
+            for w in wyn:
+                score = calc_score_fun({"M": int(w['M']), "G1": int(w['G1']), "G2": int(w['G2']), "formula": "2*M+3*G1+G2"})
+                d[num]["score"] = score
+                num += 1
+            print(d)
+            return Response(d,  status=status.HTTP_200_OK)
 
 class NewsAPI(APIView):
     permission_classes = (permissions.IsAuthenticated,)  # Only authenticated users can log out
@@ -419,15 +481,24 @@ model = genai.GenerativeModel('gemini-2.0-flash')
 @api_view(['POST'])
 def ask_gemini(request):
     user_prompt = request.data.get("prompt")
+    results = request.data.get("results")
+
+    print(results)
 
     if not user_prompt:
         return Response({"error": "No prompt provided."}, status=400)
 
     # Get data from DB (example: all products)
     products = Building.objects.all()
-    context_data = "\n".join(
-        [f"Nazwa: {p.name}, Funkcja: {p.function}, Adres: {p.address}" for p in products]
-    )
+    items = []
+    desc_field = []
+
+    for result in results:
+        items.append(f"-{result['field']} – {result['score']}/1000 punktów")
+        desc_field.append(f"-{result['field']} – {result['field_description']}")
+
+    points_text = "\n".join(items)
+    description_text = "\n".join(items)
 
     # Combine context and user prompt
     # full_prompt = f"""
@@ -440,48 +511,13 @@ def ask_gemini(request):
     # """
 
     full_prompt = f"""
-    Użytkownik aplikował na trzy zupełnie różne kierunki studiów i uzyskał następujące wyniki punktowe w procesie rekrutacyjnym:
-
-    -Informatyka stosowana – 87,5 punktów
+    Użytkownik uzyskał następujące wyniki punktowe w procesie rekrutacyjnym:
     
-    -Filologia klasyczna – 61,0 punktów
+    {points_text}
     
-    -Inżynieria biomedyczna – 78,3 punktów
-    
-    -Automatyka i robotyka – 84,2 pkt
-
-    -Psychologia – 76,0 pkt
-    
-    -Sztuki piękne – 62,3 pkt
-    
-    -Fizyka techniczna – 85,1 pkt
-    
-    -Pedagogika przedszkolna i wczesnoszkolna – 70,6 pkt
-    
-    -Muzykologia – 24,9 pkt
-        
     Opis kierunków:
     
-    -Informatyka stosowana:
-    Kierunek skupia się na praktycznym wykorzystaniu narzędzi informatycznych w rozwiązywaniu rzeczywistych problemów. Obejmuje naukę programowania, algorytmiki, baz danych, systemów operacyjnych oraz nowoczesnych technologii webowych i mobilnych. Absolwenci często pracują jako programiści, analitycy danych czy specjaliści ds. IT.
-    
-    -Filologia klasyczna:
-    Ten humanistyczny kierunek koncentruje się na językach starożytnych, takich jak łacina i greka, oraz literaturze i kulturze antycznej Grecji i Rzymu. Studenci uczą się tłumaczenia tekstów źródłowych i zgłębiają klasyczne dzieła filozoficzne i historyczne. Absolwenci znajdują zatrudnienie m.in. w edukacji, bibliotekach, wydawnictwach lub instytucjach kultury.
-    
-    -Inżynieria biomedyczna:
-    Interdyscyplinarny kierunek łączący wiedzę z zakresu inżynierii, medycyny i biologii. Studenci uczą się projektowania nowoczesnych urządzeń medycznych, analizy sygnałów biologicznych oraz tworzenia systemów wspomagających diagnostykę i terapię. Po studiach mogą pracować w branży medtech, szpitalach, firmach farmaceutycznych lub instytutach badawczych.
-    
-    -Automatyka i robotyka: Tworzenie i programowanie systemów mechatronicznych.
-    
-    -Psychologia: Badanie ludzkiego zachowania, emocji i procesów poznawczych.
-    
-    -Sztuki piękne: Rozwijanie kreatywności poprzez malarstwo, rzeźbę i inne dziedziny sztuki.
-    
-    -Fizyka techniczna: Zastosowanie fizyki w nowoczesnych technologiach i badaniach.
-
-    -Pedagogika: Przygotowanie do pracy z dziećmi w wieku przedszkolnym i wczesnoszkolnym.
-    
-    -Muzykologia: Badanie historii, teorii i kultury muzycznej.
+    {description_text} 
     
     Użytkownik opisał również swoje zainteresowania i predyspozycje:
     {user_prompt}
@@ -490,8 +526,9 @@ def ask_gemini(request):
     Przy podawaniu decyzji weź pod uwagę, że użytkownik prawdopodobnie nie dostanie się na kierunek, jeśli ma mniej niż 50 pkt. Zwracaj się do użytkownika bezpośrednio, jakbyś rozmawiał z 19-letnim kolegą.
     """
 
+    print(full_prompt)
     try:
         response = model.generate_content(full_prompt)
-        return Response({"response": response.text})
+        return Response({"response": response.text, "results": results})
     except Exception as e:
         return Response({"error": str(e)}, status=500)

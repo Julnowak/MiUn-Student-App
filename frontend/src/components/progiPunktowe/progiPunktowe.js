@@ -37,6 +37,8 @@ import client from "../../client";
 import {API_BASE_URL} from "../../config";
 import {all} from "axios";
 import GeminiPrompt from "../geminiPrompt/geminiPrompt";
+import {Delete} from "@mui/icons-material";
+import ResultsStep from "./resultStep";
 
 ChartJS.register(
     LineElement,
@@ -50,7 +52,6 @@ ChartJS.register(
 );
 
 
-
 const ProgiPunktowe = () => {
     const [selectedTab, setSelectedTab] = useState(0);
     const [trybWszystkie, setTrybWszystkie] = useState(false);
@@ -62,30 +63,40 @@ const ProgiPunktowe = () => {
     const [mScore, setMScore] = useState(0);
     const [val, setVal] = useState(0);
     const [results, setResults] = useState([]);
+    const [resultsAll, setResultsAll] = useState([]);
     const [fields, setFields] = useState([]);
     const [allSubjects, setAllSubjects] = useState([]);
     const [allScores, setAllScores] = useState([]);
+    const [rounds, setRounds] = useState([]);
 
 
     const handleTabChange = (_, newValue) => setSelectedTab(newValue);
 
     const handleCalculate = async () => {
         if (trybWszystkie) {
-            const wyniki = fields.map((kierunek) => {
-                const score = kierunek.g1.concat(kierunek.g2).reduce((acc, subj) => {
-                    return acc + (allSubjects[subj] || 0);
-                }, 0);
-                return {kierunek: kierunek.label, score};
-            }).sort((a, b) => b.score - a.score);
-            setResults(wyniki);
+
+            const response = await client.post(API_BASE_URL + "calculation/", {
+                    "tryb": "many",
+                    "przedmioty": allSubjects,
+                    "wyniki": allScores
+                },
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                });
+
+            setResultsAll(response.data)
             setSelectedTab(1);
         } else {
 
             try {
                 const response = await client.post(API_BASE_URL + "calculation/", {
+                        "tryb": "one",
                         "G1": g1Score,
                         "G2": g2Score,
-                        "M": mScore
+                        "M": mScore,
+                        "field": selectedKierunek
                     },
                     {
                         headers: {
@@ -94,6 +105,8 @@ const ProgiPunktowe = () => {
                     });
                 console.log(response.data.score)
                 setVal(response.data.score)
+                setRounds(response.data.rounds)
+                console.log(response.data.rounds)
             } catch (error) {
                 console.error("Błąd pobierania danych:", error);
             }
@@ -145,70 +158,80 @@ const ProgiPunktowe = () => {
     const [activeStep, setActiveStep] = useState(0);
     const labels = ['2021', '2022', '2023', '2024', '2025'];
 
-    const data = {
-        labels,
-        datasets: [
-            {
-                label: 'Tura 1',
-                data: [85, 87, 88, 89, 91],
-                borderColor: theme.palette.primary.main,
-                backgroundColor: theme.palette.primary.light,
+
+    const processRecruitmentData = (toursData, userValue) => {
+        // 1. Grupowanie danych po turze i roku
+        const tours = {};
+        const yearsSet = new Set();
+
+        toursData.forEach(tour => {
+            const year = tour.year.split('/')[0]; // np. "2021/2022" → "2021"
+            const tourName = tour.name.replace(' TURA', '').trim(); // "I TURA" → "I"
+
+            if (!tours[tourName]) {
+                tours[tourName] = {};
+            }
+            tours[tourName][year] = tour.min_threshold;
+            yearsSet.add(year);
+        });
+
+        // 2. Dodanie dodatkowego roku (ostatni rok + 1)
+        const sortedYears = Array.from(yearsSet).sort();
+        const lastYear = parseInt(sortedYears[sortedYears.length - 1]);
+        const extendedYears = [...sortedYears, String(lastYear + 1)];
+        const labels = extendedYears;
+
+        // 3. Kolory dla różnych tur (możesz dostosować)
+        const tourColors = {
+            'I': {
+                border: theme.palette.primary.main,
+                background: 'rgba(63, 81, 181, 0.2)', // półprzezroczysty primary
+            },
+            'II': {
+                border: theme.palette.success.main,
+                background: 'rgba(76, 175, 80, 0.2)', // półprzezroczysty success
+            },
+            'III': {
+                border: theme.palette.warning.main,
+                background: 'rgba(255, 152, 0, 0.2)', // półprzezroczysty warning
+            },
+        };
+
+        // 4. Tworzenie datasetów dla każdej tury (z wypełnieniem)
+        const datasets = Object.keys(tours).map(tourName => {
+            const data = extendedYears.map(year => tours[tourName][year] || null);
+
+            return {
+                label: `Tura ${tourName}`,
+                data,
+                borderColor: tourColors[tourName]?.border,
+                backgroundColor: tourColors[tourName]?.background,
                 pointRadius: 4,
                 tension: 0.4,
-            },
-            {
-                label: 'Tura 2',
-                data: [84, 86, 89, 90, 92],
-                borderColor: theme.palette.success.main,
-                backgroundColor: theme.palette.success.light,
-                pointRadius: 4,
-                tension: 0.4,
-            },
-            {
-                label: 'Tura 3',
-                data: [86, 88, 90, 91, 93],
-                borderColor: theme.palette.warning.main,
-                backgroundColor: theme.palette.warning.light,
-                pointRadius: 4,
-                tension: 0.4,
-            },
-            {
-                label: 'Predykcja - środek',
-                data: [null, null, null, 92, 94],
-                borderColor: theme.palette.error.main,
-                pointRadius: 3,
-                borderDash: [6, 4],
-                tension: 0.3,
-            },
-            {
-                label: 'Predykcja - zakres',
-                data: [null, null, null, 89, 91],
-                borderColor: 'rgba(255, 87, 34, 0.2)',
-                backgroundColor: 'rgba(255, 87, 34, 0.2)',
-                pointRadius: 0,
-                fill: {
-                    target: '+1', // fill between this and the next dataset
-                    above: 'rgba(255, 87, 34, 0.2)',
-                    below: 'rgba(255, 87, 34, 0.2)',
-                },
-            },
-            {
-                label: 'Predykcja - górna',
-                data: [null, null, null, 95, 97],
-                borderColor: 'rgba(255, 87, 34, 0.0)',
-                pointRadius: 0,
-            },
-            {
-                label: 'Użytkownik',
-                data: [null, null, null, val, null],
+                fill: true, // wypełnienie pod linią
+            };
+        });
+
+        // 5. Dodanie wartości użytkownika (tylko ostatni rok)
+        if (userValue !== undefined) {
+            const userData = extendedYears.map(() => null);
+            userData[extendedYears.length - 2] = userValue; // przedostatni rok (bo ostatni to dodany)
+
+            datasets.push({
+                label: 'Twój wynik',
+                data: userData,
                 borderColor: theme.palette.error.dark,
                 backgroundColor: theme.palette.error.dark,
                 pointRadius: 7,
                 type: 'line',
                 showLine: false,
-            },
-        ],
+            });
+        }
+
+        return {labels, datasets};
     };
+
+    const data = processRecruitmentData(rounds, val);
 
     const options = {
         responsive: true,
@@ -300,128 +323,181 @@ const ProgiPunktowe = () => {
             </Tabs>
 
             {trybWszystkie ? (
-   <Box sx={{ margin: 3 }}>
-    <Stepper activeStep={activeStep} alternativeLabel sx={{ mb: 4 }}>
-      {['Przedmioty', 'Zainteresowania', 'Wynik'].map((label) => (
-        <Step key={label}>
-          <StepLabel>{label}</StepLabel>
-        </Step>
-      ))}
-    </Stepper>
+                <Box sx={{margin: 3}}>
+                    <Stepper activeStep={activeStep} alternativeLabel sx={{mb: 4}}>
+                        {['Przedmioty', 'Zainteresowania', 'Wynik'].map((label) => (
+                            <Step key={label}>
+                                <StepLabel>{label}</StepLabel>
+                            </Step>
+                        ))}
+                    </Stepper>
 
-    {activeStep === 0 && (
-      <Grid container spacing={3}>
-        <Grid item xs={12}>
-          <Typography variant="h6" gutterBottom sx={{ fontWeight: 600, color: 'primary.main' }}>
-            Wprowadź swoje wyniki maturalne
-          </Typography>
-        </Grid>
+                    {activeStep === 0 && (
+                        <Grid container spacing={3}>
+                            <Grid item xs={12}>
+                                <Typography variant="h6" gutterBottom sx={{fontWeight: 600, color: 'primary.main'}}>
+                                    Wprowadź swoje wyniki maturalne
+                                </Typography>
+                            </Grid>
 
-        {['PD', 'ROZ'].map((level) => (
-          <Grid item xs={12} md={6} key={level}>
-            <Paper sx={{ p: 3, borderRadius: 4, boxShadow: 3 }}>
-              <Typography variant="subtitle1" sx={{ mb: 2, color: 'text.secondary' }}>
-                Poziom {level === 'PD' ? 'podstawowy' : 'rozszerzony'}
-              </Typography>
+                            {['PD', 'ROZ'].map((level) => {
+                                // Lista dostępnych przedmiotów dla danego poziomu
+                                const availableSubjects = [
+                                    'Matematyka',
+                                    'Język polski',
+                                    'Język angielski',
+                                    'Fizyka',
+                                    'Chemia',
+                                    'Biologia',
+                                    'Geografia',
+                                    'Historia',
+                                    'WOS',
+                                    'Informatyka'
+                                ].filter(subjectName =>
+                                    !allSubjects.some(s => s.name === subjectName && s.level === level)
+                                );
 
-              {allSubjects.filter(subject => subject.level === level).map((subject) => (
-                <Box key={subject.id} sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  mb: 2,
-                  p: 2,
-                  borderRadius: 2,
-                  '&:hover': { bgcolor: 'action.hover' }
-                }}>
-                  <Typography sx={{ flexGrow: 1, mr: 2 }}>
-                    {subject.name}
-                  </Typography>
-                    <TextField
-                      type="number"
-                      variant="outlined"
-                      size="small"
-                      value={allScores[subject.id] || ''}
-                      onChange={(e) => setAllScores({
-                        ...allScores,
-                        [subject.id]: Math.max(0, Math.min(100, parseInt(e.target.value) || 0))
-                      })}
-                      inputProps={{
-                        min: 0,
-                        max: 100,
-                        style: { textAlign: 'center' }
-                      }}
-                      sx={{ width: 100 }}
-                    />
+                                return (
+                                    <Grid item xs={12} md={6} key={level}>
+                                        <Paper sx={{p: 3, borderRadius: 4, boxShadow: 3}}>
+                                            <Box sx={{
+                                                display: 'flex',
+                                                justifyContent: 'space-between',
+                                                alignItems: 'center',
+                                                mb: 2
+                                            }}>
+                                                <Typography variant="subtitle1" sx={{color: 'text.secondary'}}>
+                                                    Poziom {level === 'PD' ? 'podstawowy' : 'rozszerzony'}
+                                                </Typography>
+
+                                                <Box sx={{display: 'flex', gap: 1}}>
+                                                    <FormControl size="small" sx={{minWidth: 180}}>
+                                                        <Select
+                                                            value=""
+                                                            onChange={(e) => {
+                                                                const newSubject = {
+                                                                    id: `${level}-${e.target.value}-${Date.now()}`,
+                                                                    name: e.target.value,
+                                                                    level: level
+                                                                };
+                                                                setAllSubjects([...allSubjects, newSubject]);
+                                                            }}
+                                                            displayEmpty
+                                                            disabled={availableSubjects.length === 0}
+                                                        >
+                                                            <MenuItem value="" disabled>
+                                                                {availableSubjects.length === 0 ? 'Brak przedmiotów' : 'Wybierz przedmiot'}
+                                                            </MenuItem>
+                                                            {availableSubjects.map((subject) => (
+                                                                <MenuItem key={subject} value={subject}>
+                                                                    {subject}
+                                                                </MenuItem>
+                                                            ))}
+                                                        </Select>
+                                                    </FormControl>
+                                                </Box>
+                                            </Box>
+
+                                            {/* Wyświetlanie dodanych przedmiotów */}
+                                            {allSubjects
+                                                .filter(subject => subject.level === level)
+                                                .map((subject) => (
+                                                    <Box key={subject.id} sx={{
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        mb: 2,
+                                                        p: 2,
+                                                        borderRadius: 2,
+                                                        bgcolor: 'background.paper',
+                                                        '&:hover': {bgcolor: 'action.hover'}
+                                                    }}>
+                                                        <Typography sx={{flexGrow: 1, mr: 2}}>
+                                                            {subject.name}
+                                                        </Typography>
+                                                        <TextField
+                                                            type="number"
+                                                            variant="outlined"
+                                                            size="small"
+                                                            value={allScores[subject.id] || ''}
+                                                            onChange={(e) => setAllScores({
+                                                                ...allScores,
+                                                                [subject.id]: Math.max(0, Math.min(100, parseInt(e.target.value) || 0))
+                                                            })}
+                                                            inputProps={{
+                                                                min: 0,
+                                                                max: 100,
+                                                                style: {textAlign: 'center'}
+                                                            }}
+                                                            sx={{width: 100}}
+                                                        />
+                                                        <IconButton
+                                                            onClick={() => {
+                                                                const filteredSubjects = allSubjects.filter(s => s.id !== subject.id);
+                                                                setAllSubjects(filteredSubjects);
+
+                                                                const newScores = {...allScores};
+                                                                delete newScores[subject.id];
+                                                                setAllScores(newScores);
+                                                            }}
+                                                            sx={{ml: 1}}
+                                                        >
+                                                            <Delete fontSize="small"/>
+                                                        </IconButton>
+                                                    </Box>
+                                                ))}
+                                        </Paper>
+                                    </Grid>
+                                );
+                            })}
+
+
+                        </Grid>
+                    )}
+
+                    {activeStep === 1 && (
+                        <Box sx={{
+                            textAlign: 'center',
+                            p: 4,
+                            border: '2px dashed',
+                            borderColor: 'divider',
+                            borderRadius: 4
+                        }}>
+                            <GeminiPrompt results={resultsAll}/>
+                        </Box>
+                    )}
+
+                    {activeStep === 2 && (
+                        <ResultsStep results={results} setActiveStep={setActiveStep}/>
+                    )}
+
+                    <Box sx={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        mt: 4,
+                        gap: 2
+                    }}>
+
+                        {activeStep < 2 ? (
+                            <>
+                                <Button
+                                    variant="outlined"
+                                    disabled={activeStep === 0}
+                                    onClick={() => setActiveStep(s => s - 1)}
+                                >
+                                    Wstecz
+                                </Button>
+                                <Button
+                                    variant="contained"
+                                    onClick={() => setActiveStep(s => s + 1)}
+
+                                >
+                                    {activeStep === 1 ? 'Oblicz' : 'Dalej'}
+                                </Button>
+                            </>
+
+                        ) : null}
+                    </Box>
                 </Box>
-              ))}
-            </Paper>
-          </Grid>
-        ))}
-      </Grid>
-    )}
-
-    {activeStep === 1 && (
-      <Box sx={{
-        textAlign: 'center',
-        p: 4,
-        border: '2px dashed',
-        borderColor: 'divider',
-        borderRadius: 4
-      }}>
-        <GeminiPrompt />
-      </Box>
-    )}
-
-    {activeStep === 2 && (
-      <Paper sx={{ p: 4, borderRadius: 4, bgcolor: 'background.paper' }}>
-        <Typography variant="h5" sx={{ mb: 2, fontWeight: 600 }}>
-          Twój wynik rekrutacyjny
-        </Typography>
-        <Box sx={{
-          display: 'inline-block',
-          p: 3,
-          borderRadius: 4,
-          bgcolor: 'primary.light',
-          color: 'primary.contrastText'
-        }}>
-          <Typography variant="h3">
-            {val} punktów
-          </Typography>
-        </Box>
-      </Paper>
-    )}
-
-    <Box sx={{
-      display: 'flex',
-      justifyContent: 'space-between',
-      mt: 4,
-      gap: 2
-    }}>
-      <Button
-        variant="outlined"
-        disabled={activeStep === 0}
-        onClick={() => setActiveStep(s => s - 1)}
-      >
-        Wstecz
-      </Button>
-
-      {activeStep < 2 ? (
-        <Button
-          variant="contained"
-          onClick={() => setActiveStep(s => s + 1)}
-        >
-          {activeStep === 1 ? 'Oblicz' : 'Dalej'}
-        </Button>
-      ) : (
-        <Button
-          variant="contained"
-          onClick={() => setActiveStep(0)}
-        >
-          Nowe obliczenia
-        </Button>
-      )}
-    </Box>
-  </Box>
             ) : (
                 <Box margin={2}>
                     <Autocomplete

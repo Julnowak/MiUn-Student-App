@@ -10,8 +10,9 @@ import {
 } from "@mui/material";
 import SendIcon from "@mui/icons-material/Send";
 import {API_BASE_URL} from "../../config";
+import client from "../../client";
 
-const GeminiPrompt = () => {
+const GeminiPrompt = ({results}) => {
   const [prompt, setPrompt] = useState("");
   const [response, setResponse] = useState("");
   const [loading, setLoading] = useState(false);
@@ -25,13 +26,18 @@ const GeminiPrompt = () => {
     setError("");
 
     try {
-      const res = await fetch(API_BASE_URL + "ask-gemini/", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ prompt }),
-      });
+      const res = await client.post(
+            API_BASE_URL + "ask-gemini/",
+            {
+              prompt: prompt,
+              results: results
+            },
+            {
+              headers: {
+                "Content-Type": "application/json",
+              },
+            }
+          );
 
       const data = await res.json();
 

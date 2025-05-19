@@ -458,7 +458,7 @@ const Learning = () => {
                                         <InsertDriveFileIcon color="action"/>
                                     </Badge>
                                 </ListItemIcon>
-                                <ListItemText 
+                                <ListItemText
                                     primary={
                                         <Typography variant="subtitle1" sx={{fontWeight: 500}}>
                                             {resource.title}

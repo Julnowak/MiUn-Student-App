@@ -109,8 +109,8 @@ class MaturaSubject(models.Model):
 
 
 STUDIES_CHOICES = (
-    ("STACJONARNE", "for all users"),
-    ("NIESTACJONARNE", "for me and my group-mates"),
+    ("stacjonarne", "stacjonarne"),
+    ("niestacjonarne", "niestacjonarne"),
 )
 
 
@@ -129,7 +129,7 @@ class Field(models.Model):
     isActive = models.BooleanField(default=True)
 
     def __str__(self):
-        return f"Kierunek ID-{self.id}: {self.name}"
+        return f"Kierunek ID-{self.id}: {self.name} ({self.type}, {self.level}, spec: {self.specialization})"
 
 
 class Semester(models.Model):
