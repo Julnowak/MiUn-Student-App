@@ -39,14 +39,9 @@ const GeminiPrompt = ({results}) => {
             }
           );
 
-      const data = await res.json();
-
-      if (res.ok) {
-        setResponse(data.response);
-      } else {
-        setError(data.error || "Something went wrong.");
-      }
+      setResponse(res.data.response);
     } catch (err) {
+      console.log(err)
       setError("Network error.");
     } finally {
       setLoading(false);
