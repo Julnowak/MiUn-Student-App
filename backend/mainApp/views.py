@@ -1,5 +1,6 @@
 import json
 import urllib.parse
+from datetime import datetime
 
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth import get_user_model
@@ -371,8 +372,6 @@ class OneGroupAPI(APIView):
 
     def post(self, request, group_id):
         group = Group.objects.get(id=group_id)
-        print(group.code)
-        print(request.data['code'])
         if group.isPublic:
             return Response(status=status.HTTP_200_OK)
         else:
@@ -385,47 +384,78 @@ class OneGroupAPI(APIView):
 
 
 def calculate_scores(data):
+    current_year = datetime.now().year
+    previous_year = current_year - 1
+
     # Pobierz ID przedmiotów z danych wejściowych
     subject_ids = [subject['id'] for subject in data['przedmioty']]
     results = data['wyniki']
 
-    # Znajdź przedmioty maturalne w bazie danych
-    matura_subjects = MaturaSubject.objects.filter(id__in=subject_ids)
-
     # Znajdź kierunki, które mają przynajmniej jeden przedmiot z G1 i G2 w wybranych przedmiotach
     fields = Field.objects.filter(
-        Q(G1_subject__in=matura_subjects) | Q(G2_subject__in=matura_subjects),
+        (Q(G1_subject__id__in=subject_ids) | Q(G2_subject__id__in=subject_ids)),
         isActive=True
     ).distinct()
-
-    print(Field)
 
     final_results = []
 
     for field in fields:
-        # Pobierz najlepszy wynik z grupy G1
-        g1_subjects = field.G1_subject.filter(id__in=subject_ids)
-        g1_scores = [results.get(str(subject.id), 0) for subject in g1_subjects]
-        best_g1 = max(g1_scores) if g1_scores else 0
+        # Pobierz wszystkie przedmioty G1 i G2 (mogą być takie same)
+        all_subjects = list(field.G1_subject.all()) + list(field.G2_subject.all())
 
-        # Pobierz najlepszy wynik z grupy G2
-        g2_subjects = field.G2_subject.filter(id__in=subject_ids)
-        g2_scores = [results.get(str(subject.id), 0) for subject in g2_subjects]
-        best_g2 = max(g2_scores) if g2_scores else 0
+        # Filtruj tylko przedmioty, dla których użytkownik podał wyniki
+        available_subjects = [s for s in all_subjects if s.id in subject_ids]
+
+        # Posortuj przedmioty według wyników (malejąco)
+        available_subjects.sort(key=lambda x: results.get(str(x.id), 0), reverse=True)
+
+        used_subjects = set()
+        best_g1 = 0
+        best_g2 = 0
+
+        for subject in available_subjects:
+            if subject.id in used_subjects:
+                continue
+
+            score = results.get(str(subject.id), 0)
+
+            # Przypisz do G1 jeśli jeszcze nie ma wyniku
+            if best_g1 == 0 and subject in field.G1_subject.all():
+                best_g1 = score
+                used_subjects.add(subject.id)
+            # Lub przypisz do G2 jeśli jeszcze nie ma wyniku
+            elif best_g2 == 0 and subject in field.G2_subject.all():
+                best_g2 = score
+                used_subjects.add(subject.id)
+
+            # Przerwij jeśli mamy już oba wyniki
+            if best_g1 > 0 and best_g2 > 0:
+                break
 
         # Znajdź wynik z matematyki PD
         math_pd = next((subj for subj in data['przedmioty'] if subj['name'] == 'Matematyka' and subj['level'] == 'PD'),
                        None)
         math_score = results.get(str(math_pd['id']), 0) if math_pd else 0
 
-        final_results.append({
-            "field": field.name,
-            "field_id": field.id,
-            "field_description": field.description,
-            "G1": best_g1,
-            "G2": best_g2,
-            "M": math_score
-        })
+        rounds = Round.objects.filter(
+            field=field,
+            year=f"{str(previous_year - 1)}/{str(previous_year)}"
+        ).order_by('name')
+
+        result_str = f" - {field.name} ({str(previous_year)}): "
+        for i in range(len(rounds)):
+            result_str += f"{rounds[i].name} - {rounds[i].min_threshold},"
+
+        if best_g1 > 0 or best_g2 > 0:
+            final_results.append({
+                "field": field.name,
+                "field_id": field.id,
+                "field_description": field.description,
+                "G1": best_g1,
+                "G2": best_g2,
+                "M": math_score,
+                "progi": result_str
+            })
 
     return final_results
 
@@ -442,10 +472,8 @@ class CalculationAPI(APIView):
             field = request.data.get('field')
             data = {"M": int(M), "G1": int(G1), "G2": int(G2), "formula": "2*M+3*G1+G2"}
             score = calc_score_fun(data)
-            print(field)
             rounds = Round.objects.filter(field__id=field["id"])
             serializer = RoundSerializer(rounds, many=True)
-            print(rounds)
             return Response({"score": score, "rounds": serializer.data}, status=status.HTTP_200_OK)
         else:
             wyn = calculate_scores(request.data)
@@ -455,7 +483,6 @@ class CalculationAPI(APIView):
                 score = calc_score_fun({"M": int(w['M']), "G1": int(w['G1']), "G2": int(w['G2']), "formula": "2*M+3*G1+G2"})
                 d[num]["score"] = score
                 num += 1
-            print(d)
             return Response(d,  status=status.HTTP_200_OK)
 
 class NewsAPI(APIView):
@@ -470,7 +497,6 @@ class NewsAPI(APIView):
         news = News.objects.get(pk=news_id)
         serializer = NewsSerializer(news)
         return Response(serializer.data, status=status.HTTP_200_OK)
-
 
 
 # Configure Gemini
@@ -492,26 +518,20 @@ def ask_gemini(request):
     products = Building.objects.all()
     items = []
     desc_field = []
+    progi_items = []
 
     for result in results:
         items.append(f"-{result['field']} – {result['score']}/1000 punktów")
         desc_field.append(f"-{result['field']} – {result['field_description']}")
+        progi_items.append(f"{result['progi']}")
 
     points_text = "\n".join(items)
-    description_text = "\n".join(items)
+    description_text = "\n".join(desc_field)
+    progi_text = "\n".join(progi_items)
 
-    # Combine context and user prompt
-    # full_prompt = f"""
-    # Bazując na następujących danych opisujących budynki uczelni:
-    #
-    # {context_data}
-    #
-    # Odpowiedz na następujące pytanie użytkownika:
-    # {user_prompt}
-    # """
 
     full_prompt = f"""
-    Użytkownik uzyskał następujące wyniki punktowe w procesie rekrutacyjnym:
+    Na podstawie wyników maturalnych użytkownika przeliczono ile punktów uzyska on na dostępne na uczelni kierunki:
     
     {points_text}
     
@@ -519,14 +539,19 @@ def ask_gemini(request):
     
     {description_text} 
     
+    W zeszłym roku, progi na kierunki dla których liczono punktację wynosiły odpowiednio w każdej turze:
+    {progi_text}
+    
     Użytkownik opisał również swoje zainteresowania i predyspozycje:
     {user_prompt}
     
     Na podstawie wszystkich danych, uszereguj propozycje kierunków dla użytkownika w taki sposób, w jaki byś je zarekomendował, a następnie przedstaw krótko dlaczego uważasz, że odnajdzie się na pierwszym z wyznaczonych kierunków.
-    Przy podawaniu decyzji weź pod uwagę, że użytkownik prawdopodobnie nie dostanie się na kierunek, jeśli ma mniej niż 50 pkt. Zwracaj się do użytkownika bezpośrednio, jakbyś rozmawiał z 19-letnim kolegą.
+    Przy podawaniu decyzji weź pod uwagę, że użytkownik prawdopodobnie nie dostanie się na kierunek, jeśli nie spełnia progu punktowego z poprzednich lat (jeśli ma mniej niż 50 punktów od progu, prawdopodobnie się nie dostanie). 
+    Przedstaw max. 6 propozycji kierunków i uzasadnij, czemu są twoim dalszym wyborem po pierwszym.
+    Zwracaj się do użytkownika bezpośrednio, jakbyś rozmawiał z 19-latkiem/latką.
     """
 
-    print(full_prompt)
+    # print(full_prompt)
     try:
         response = model.generate_content(full_prompt)
         return Response({"response": response.text, "results": results})

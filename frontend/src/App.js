@@ -23,7 +23,6 @@ import Exchange from "./components/exchange/exchange";
 import MyOffers from "./components/exchange/myOffers";
 import Groups from "./components/groups/groups";
 import Actualities from "./components/actualities/actualities";
-import GeminiPrompt from "./components/geminiPrompt/geminiPrompt";
 import NotFoundPage from "./components/notFoundPage/notFoundPage";
 import Forum from "./components/forum/forum";
 import OfferPage from "./components/exchange/offerPage";
@@ -64,7 +63,6 @@ function App() {
                         <Route path="/group/:id" element={<GroupPage />} />
 
                         <Route path="/actual-info" element={<Actualities />} />
-                        <Route path="/chat" element={<GeminiPrompt />} />
                         <Route path="/forum" element={<Forum />} />
                         <Route path="/offer-page/:id" element={<OfferPage />} />
                         <Route path="*" element={<NotFoundPage />} />

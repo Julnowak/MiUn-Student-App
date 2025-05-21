@@ -13,7 +13,7 @@ import {
     TextField,
     Typography,
     Paper,
-    Stack, Grid, FormHelperText, Stepper, Step, StepLabel,
+    Stack, Grid, FormHelperText, Stepper, Step, StepLabel, CircularProgress,
 } from '@mui/material';
 
 import {
@@ -35,10 +35,9 @@ import {
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import client from "../../client";
 import {API_BASE_URL} from "../../config";
-import {all} from "axios";
-import GeminiPrompt from "../geminiPrompt/geminiPrompt";
 import {Delete} from "@mui/icons-material";
 import ResultsStep from "./resultStep";
+import SendIcon from "@mui/icons-material/Send";
 
 ChartJS.register(
     LineElement,
@@ -66,8 +65,47 @@ const ProgiPunktowe = () => {
     const [resultsAll, setResultsAll] = useState([]);
     const [fields, setFields] = useState([]);
     const [allSubjects, setAllSubjects] = useState([]);
+    const [allMenuSubjects, setAllMenuSubjects] = useState([]);
+    const [allBasicSubjects, setAllBasicSubjects] = useState([]);
     const [allScores, setAllScores] = useState([]);
     const [rounds, setRounds] = useState([]);
+
+    const [prompt, setPrompt] = useState("");
+    const [response, setResponse] = useState("");
+    const [GeminiResults, setGeminiResults] = useState("");
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState("");
+
+    const handleSubmit = async () => {
+        if (!prompt.trim()) return;
+
+        setLoading(true);
+        setResponse("");
+        setError("");
+
+        try {
+            const res = await client.post(
+                API_BASE_URL + "ask-gemini/",
+                {
+                    prompt: prompt,
+                    results: resultsAll
+                },
+                {
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                }
+            );
+
+            setResponse(res.data.response);
+            setGeminiResults(res.data.results);
+        } catch (err) {
+            console.log(err)
+            setError("Network error.");
+        } finally {
+            setLoading(false);
+        }
+    };
 
 
     const handleTabChange = (_, newValue) => setSelectedTab(newValue);
@@ -77,7 +115,7 @@ const ProgiPunktowe = () => {
 
             const response = await client.post(API_BASE_URL + "calculation/", {
                     "tryb": "many",
-                    "przedmioty": allSubjects,
+                    "przedmioty": allBasicSubjects,
                     "wyniki": allScores
                 },
                 {
@@ -103,10 +141,8 @@ const ProgiPunktowe = () => {
                             Authorization: `Bearer ${token}`,
                         },
                     });
-                console.log(response.data.score)
                 setVal(response.data.score)
                 setRounds(response.data.rounds)
-                console.log(response.data.rounds)
             } catch (error) {
                 console.error("Błąd pobierania danych:", error);
             }
@@ -127,7 +163,6 @@ const ProgiPunktowe = () => {
                     Authorization: `Bearer ${token}`,
                 },
             });
-            console.log(response.data)
             setFields(response.data);
         } catch (error) {
             console.error("Błąd pobierania danych:", error);
@@ -139,8 +174,9 @@ const ProgiPunktowe = () => {
                     Authorization: `Bearer ${token}`,
                 },
             });
-            console.log(response.data)
             setAllSubjects(response.data);
+            setAllBasicSubjects(response.data.filter(sub => sub.name === "Matematyka"));
+            setAllMenuSubjects(response.data.filter(sub => sub.name !== "Matematyka"));
         } catch (error) {
             console.error("Błąd pobierania danych:", error);
         }
@@ -156,8 +192,6 @@ const ProgiPunktowe = () => {
     const theme = useTheme();
     const chartRef = React.useRef(null);
     const [activeStep, setActiveStep] = useState(0);
-    const labels = ['2021', '2022', '2023', '2024', '2025'];
-
 
     const processRecruitmentData = (toursData, userValue) => {
         // 1. Grupowanie danych po turze i roku
@@ -342,21 +376,6 @@ const ProgiPunktowe = () => {
 
                             {['PD', 'ROZ'].map((level) => {
                                 // Lista dostępnych przedmiotów dla danego poziomu
-                                const availableSubjects = [
-                                    'Matematyka',
-                                    'Język polski',
-                                    'Język angielski',
-                                    'Fizyka',
-                                    'Chemia',
-                                    'Biologia',
-                                    'Geografia',
-                                    'Historia',
-                                    'WOS',
-                                    'Informatyka'
-                                ].filter(subjectName =>
-                                    !allSubjects.some(s => s.name === subjectName && s.level === level)
-                                );
-
                                 return (
                                     <Grid item xs={12} md={6} key={level}>
                                         <Paper sx={{p: 3, borderRadius: 4, boxShadow: 3}}>
@@ -372,35 +391,49 @@ const ProgiPunktowe = () => {
 
                                                 <Box sx={{display: 'flex', gap: 1}}>
                                                     <FormControl size="small" sx={{minWidth: 180}}>
-                                                        <Select
-                                                            value=""
-                                                            onChange={(e) => {
-                                                                const newSubject = {
-                                                                    id: `${level}-${e.target.value}-${Date.now()}`,
-                                                                    name: e.target.value,
-                                                                    level: level
-                                                                };
-                                                                setAllSubjects([...allSubjects, newSubject]);
-                                                            }}
-                                                            displayEmpty
-                                                            disabled={availableSubjects.length === 0}
-                                                        >
-                                                            <MenuItem value="" disabled>
-                                                                {availableSubjects.length === 0 ? 'Brak przedmiotów' : 'Wybierz przedmiot'}
-                                                            </MenuItem>
-                                                            {availableSubjects.map((subject) => (
-                                                                <MenuItem key={subject} value={subject}>
-                                                                    {subject}
-                                                                </MenuItem>
-                                                            ))}
-                                                        </Select>
+<Select
+    value=""
+    onChange={(e) => {
+        const selectedSubject = allMenuSubjects.find(
+            subject => subject.id === e.target.value
+        );
+        if (selectedSubject) {
+            setAllBasicSubjects([...allBasicSubjects, selectedSubject]);
+            setAllMenuSubjects(allMenuSubjects.filter(
+                subject => subject.id !== selectedSubject.id
+            ));
+        }
+    }}
+    displayEmpty
+    disabled={allMenuSubjects.filter(subject => subject.level === level).length === 0}
+    MenuProps={{
+        PaperProps: {
+            style: {
+                maxHeight: 250,  // Maksymalna wysokość przed pojawieniem się scrollbara
+                overflow: 'auto', // Wymusza pojawienie się scrollbara
+            },
+        },
+    }}
+>
+    <MenuItem value="" disabled>
+        {allMenuSubjects.filter(subject => subject.level === level).length === 0
+            ? 'Brak przedmiotów'
+            : 'Wybierz przedmiot'}
+    </MenuItem>
+    {allMenuSubjects
+        .filter(subject => subject.level === level)
+        .map((subject) => (
+            <MenuItem key={subject.id} value={subject.id}>
+                {subject.name}
+            </MenuItem>
+        ))}
+</Select>
                                                     </FormControl>
                                                 </Box>
                                             </Box>
 
                                             {/* Wyświetlanie dodanych przedmiotów */}
-                                            {allSubjects
-                                                .filter(subject => subject.level === level)
+                                            {allBasicSubjects.filter(sub => sub.level === level)
                                                 .map((subject) => (
                                                     <Box key={subject.id} sx={{
                                                         display: 'flex',
@@ -432,8 +465,9 @@ const ProgiPunktowe = () => {
                                                         />
                                                         <IconButton
                                                             onClick={() => {
-                                                                const filteredSubjects = allSubjects.filter(s => s.id !== subject.id);
-                                                                setAllSubjects(filteredSubjects);
+                                                                const filteredSubjects = allBasicSubjects.filter(s => s.id !== subject.id);
+                                                                setAllMenuSubjects([...allMenuSubjects, subject])
+                                                                setAllBasicSubjects(filteredSubjects);
 
                                                                 const newScores = {...allScores};
                                                                 delete newScores[subject.id];
@@ -462,12 +496,34 @@ const ProgiPunktowe = () => {
                             borderColor: 'divider',
                             borderRadius: 4
                         }}>
-                            <GeminiPrompt results={resultsAll}/>
+                            <Container maxWidth="sm" sx={{mt: 6}}>
+                                <Paper elevation={4} sx={{p: 4, borderRadius: 4}}>
+                                    <Typography variant="h5" sx={{textAlign: "left"}} gutterBottom>
+                                        Cześć!
+                                    </Typography>
+                                    <Typography variant="body2" sx={{textAlign: "left", pb: 2}} gutterBottom>
+                                        Wpisz swoje zainteresowania i preferencje odnośnie kierunku, a MiUn postara się
+                                        wybrać dla Ciebie najodpowiedniejsze kierunki.
+                                    </Typography>
+                                    <TextField
+                                        label="Opowiedz nam coś o sobie!"
+                                        multiline
+                                        rows={4}
+                                        fullWidth
+                                        value={prompt}
+                                        onChange={(e) => setPrompt(e.target.value)}
+                                        variant="outlined"
+                                        sx={{mb: 2}}
+                                    />
+
+
+                                </Paper>
+                            </Container>
                         </Box>
                     )}
 
                     {activeStep === 2 && (
-                        <ResultsStep results={results} setActiveStep={setActiveStep}/>
+                        <ResultsStep results={GeminiResults} response={response} setActiveStep={setActiveStep}/>
                     )}
 
                     <Box sx={{
@@ -488,10 +544,18 @@ const ProgiPunktowe = () => {
                                 </Button>
                                 <Button
                                     variant="contained"
-                                    onClick={() => setActiveStep(s => s + 1)}
+                                    onClick={async () => {
+                                        if (activeStep === 0) {
+                                            await handleCalculate();
+                                        }
+                                        if (activeStep === 1) {
+                                            await handleSubmit();
 
+                                        }
+                                        setActiveStep(s => s + 1);
+                                    }}
                                 >
-                                    {activeStep === 1 ? 'Oblicz' : 'Dalej'}
+                                    {activeStep === 1 ? (loading ? <CircularProgress size={24} color="inherit"/> : "Dalej") : 'Dalej'}
                                 </Button>
                             </>
 
@@ -507,7 +571,6 @@ const ProgiPunktowe = () => {
                         getOptionKey={(option) => option.id}  // Explicitly specify unique key
                         onChange={(_, value) => {
                             setSelectedKierunek(value);
-                            console.log(value);
                             setG1('');
                             setG2('');
                         }}
@@ -540,7 +603,17 @@ const ProgiPunktowe = () => {
                                         type="number"
                                         label="Wynik M"
                                         value={mScore}
-                                        onChange={(e) => setMScore(e.target.value)}
+                                        onChange={(e) => {
+                                            console.log(e.target.value)
+                                            if (e.target.value > 100) {
+                                                setMScore(100)
+                                            } else if (e.target.value < 0) {
+                                                setMScore(0)
+                                            } else {
+                                                setMScore(e.target.value)
+                                            }
+
+                                        }}
                                         sx={{mb: 2}}
                                         inputProps={{min: 0, max: 100}}
                                     />
@@ -559,7 +632,7 @@ const ProgiPunktowe = () => {
                                         >
                                             {availableG1Subjects.map((subject) => (
                                                 <MenuItem key={subject.id} value={subject.id}>
-                                                    {subject.name}
+                                                    {subject.name} rozszerzona
                                                 </MenuItem>
                                             ))}
                                         </Select>
@@ -571,9 +644,20 @@ const ProgiPunktowe = () => {
                                         type="number"
                                         label="Wynik G1"
                                         value={g1Score}
-                                        onChange={(e) => setG1Score(e.target.value)}
+                                        onChange={(e) => {
+                                            console.log(e.target.value)
+                                            if (e.target.value > 100) {
+                                                setG1Score(100)
+                                            } else if (e.target.value < 0) {
+                                                setG1Score(0)
+                                            } else {
+                                                setG1Score(e.target.value)
+                                            }
+
+                                        }}
                                         sx={{mb: 2}}
                                         inputProps={{min: 0, max: 100}}
+                                        disabled={g1 ? false : true}
                                     />
                                 </Grid>
                             </Grid>
@@ -589,7 +673,7 @@ const ProgiPunktowe = () => {
                                         >
                                             {availableG2Subjects.map((subject) => (
                                                 <MenuItem key={subject.id} value={subject.id}>
-                                                    {subject.name}
+                                                    {subject.name} rozszerzona
                                                 </MenuItem>
                                             ))}
                                         </Select>
@@ -601,9 +685,20 @@ const ProgiPunktowe = () => {
                                         type="number"
                                         label="Wynik G2"
                                         value={g2Score}
-                                        onChange={(e) => setG2Score(e.target.value)}
+                                        onChange={(e) => {
+                                            console.log(e.target.value)
+                                            if (e.target.value > 100) {
+                                                setG2Score(100)
+                                            } else if (e.target.value < 0) {
+                                                setG2Score(0)
+                                            } else {
+                                                setG2Score(e.target.value)
+                                            }
+
+                                        }}
                                         sx={{mb: 2}}
                                         inputProps={{min: 0, max: 100}}
+                                        disabled={g2 ? false : true}
                                     />
                                 </Grid>
                             </Grid>
@@ -612,11 +707,13 @@ const ProgiPunktowe = () => {
                 </Box>
             )}
 
-            <Box mt={3}>
-                <Button variant="contained" onClick={handleCalculate}>Oblicz</Button>
-            </Box>
+            {selectedTab === 0 &&
+                (<Box mt={3}>
+                    <Button variant="contained" onClick={handleCalculate}>Oblicz</Button>
+                </Box>)
+            }
 
-            {selectedTab === 0 && !trybWszystkie && results.length > 0 && (
+            {selectedTab === 0 && !trybWszystkie && results.length > 0 && selectedKierunek && g1 && g2 && (
                 <Paper sx={{p: 3, mt: 4}}>
                     <Stack direction="row" alignItems="center" justifyContent="space-between">
                         <Typography variant="h6">Wynik użytkownika: {val} punktów</Typography>
