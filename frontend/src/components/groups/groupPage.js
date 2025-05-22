@@ -50,21 +50,16 @@ import {
   Link
 } from '@mui/icons-material';
 import { useTheme } from '@mui/material/styles';
+import client from "../../client";
+import {API_BASE_URL} from "../../config";
+import L from "leaflet";
 
-// Mockowane dane
-const mockCurrentUser = {
-  id: 1,
-  name: 'Jan Kowalski',
-  avatar: 'JK',
-  isAdmin: true,
-  joinedAt: '2023-01-15'
-};
 
 const mockGroup = {
   id: 1,
   name: 'React Polska',
   description: 'Grupa dla polskich developerów React. Dzielimy się wiedzą, organizujemy meetupy i wspieramy początkujących.',
-  coverImage: 'https://source.unsplash.com/random/800x300/?coding',
+  coverImage: 'https://omegakarmy.pl/wp-content/uploads/2024/08/kot-himalajski.jpg',
   avatar: 'RP',
   isPublic: true,
   isOfficial: true,
@@ -96,11 +91,12 @@ const mockGroup = {
 };
 
 const GroupPage = () => {
-  const { groupId } = useParams();
+  const params = useParams();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
   const [group, setGroup] = useState(null);
+  const [numActive, setNumActive] = useState(0);
   const [currentUser, setCurrentUser] = useState(null);
   const [activeTab, setActiveTab] = useState('discussions');
   const [showMemberList, setShowMemberList] = useState(false);
@@ -108,15 +104,32 @@ const GroupPage = () => {
   const [showNotificationsDialog, setShowNotificationsDialog] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+  const token = localStorage.getItem("access");
 
-  // Symulacja ładowania danych
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setGroup(mockGroup);
-      setCurrentUser(mockCurrentUser);
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [groupId]);
+      useEffect(() => {
+        const fetchGroupData = async () => {
+            try {
+                const response = await client.get(API_BASE_URL + `group/${params.id}`, {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                });
+                setGroup(response.data.group_data);
+                // setGroup(mockGroup);
+                setCurrentUser(response.data.user_data);
+                setNumActive(response.data.user_active);
+                console.log(response.data)
+            } catch (error) {
+                console.log("Nie udało się pobrać lokalizacji");
+            }
+        };
+
+        if (!group) {
+            fetchGroupData();
+        }
+    }, [token]);
+
+
 
   if (!group || !currentUser) {
     return (
@@ -127,7 +140,7 @@ const GroupPage = () => {
   }
 
   const isAdmin = currentUser.id === group.admin.id;
-  const isModerator = group.moderators.some(m => m.id === currentUser.id);
+  const isModerator = group.moderators?.some(m => m.id === currentUser.id);
   const isMember = group.members.some(m => m.id === currentUser.id);
 
   // Funkcje administracyjne
@@ -159,7 +172,7 @@ const GroupPage = () => {
           <Box
             sx={{
               height: 200,
-              backgroundImage: `url(${group.coverImage})`,
+              backgroundImage: `url(${group.coverImage?.toString().slice(15)})`,
               backgroundSize: 'cover',
               backgroundPosition: 'center',
               [theme.breakpoints.up('md')]: {
@@ -182,9 +195,9 @@ const GroupPage = () => {
               fontSize: 32,
               border: '3px solid white',
               bgcolor: theme.palette.primary.main
-            }}>
-              {group.avatar}
-            </Avatar>
+            }}
+              src={group.avatar?.toString().slice(15)}
+            />
 
             <Box sx={{ mb: 1 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -201,7 +214,7 @@ const GroupPage = () => {
               <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mt: 1 }}>
                 <Chip
                   icon={<People />}
-                  label={`${group.memberCount} członków`}
+                  label={`${group.members.length} członków`}
                   size="small"
                   sx={{ backgroundColor: 'rgba(255,255,255,0.9)' }}
                 />
@@ -343,7 +356,7 @@ const GroupPage = () => {
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                   <Event fontSize="small" color="action" />
                   <Typography variant="body2">
-                    Założona {new Date(group.createdAt).toLocaleDateString()}
+                    Założona {new Date(group.date_created).toLocaleDateString()}
                   </Typography>
                 </Box>
               </CardContent>
@@ -358,22 +371,22 @@ const GroupPage = () => {
                 <List dense>
                   <ListItem>
                     <ListItemAvatar>
-                      <Avatar>{group.admin.avatar}</Avatar>
+                      <Avatar src={group.admin.profile_picture?.toString().slice(15)}/>
                     </ListItemAvatar>
                     <ListItemText
-                      primary={group.admin.name}
+                      primary={group.admin.username}
                       secondary="Założyciel grupy"
                       secondaryTypographyProps={{ sx: { display: 'flex', alignItems: 'center' } }}
                     />
-                    <AdminPanelSettings color="primary" />
+                    <AdminPanelSettings color="black" />
                   </ListItem>
 
-                  {group.moderators.map(mod => (
+                  {group.moderators?.map(mod => (
                     <ListItem key={mod.id}>
                       <ListItemAvatar>
-                        <Avatar>{mod.avatar}</Avatar>
+                        <Avatar>{mod.profile_picture?.toString().slice(15)}</Avatar>
                       </ListItemAvatar>
-                      <ListItemText primary={mod.name} secondary="Moderator" />
+                      <ListItemText primary={mod.username} secondary="Moderator" />
                     </ListItem>
                   ))}
                 </List>
@@ -387,7 +400,7 @@ const GroupPage = () => {
                   Ostatnia aktywność
                 </Typography>
                 <List dense>
-                  {group.recentActivity.map(activity => (
+                  {group.recentActivity.length > 0? group.recentActivity.map(activity => (
                     <ListItem key={activity.id}>
                       <ListItemAvatar>
                         <Avatar sx={{ bgcolor: theme.palette.primary.main }}>
@@ -399,7 +412,10 @@ const GroupPage = () => {
                         secondary={`${activity.author.name}, ${new Date(activity.date).toLocaleDateString()}`}
                       />
                     </ListItem>
-                  ))}
+                  )) :
+                  <Typography color={"gray"} >
+                    Brak ostatnich wydarzeń
+                  </Typography>}
                 </List>
               </CardContent>
             </Card>
@@ -555,7 +571,7 @@ const GroupPage = () => {
         <Box
           sx={{
             height: 200,
-            backgroundImage: `url(${group.coverImage})`,
+            backgroundImage: `${group.coverImage?.toString().slice(15)}`,
             backgroundSize: 'cover',
             backgroundPosition: 'center',
             [theme.breakpoints.up('md')]: {
@@ -579,8 +595,10 @@ const GroupPage = () => {
             border: '3px solid white',
             bgcolor: theme.palette.primary.main
           }}>
-            {group.avatar}
+            {group.avatar?.toString().slice(20)}
           </Avatar>
+
+
 
           <Box sx={{ mb: 1 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -686,6 +704,7 @@ const GroupPage = () => {
                   <Typography variant="h6" gutterBottom>
                     Najnowsze dyskusje
                   </Typography>
+
                   <Typography color="textSecondary">
                     Tutaj pojawią się wątki dyskusyjne
                   </Typography>
@@ -695,7 +714,7 @@ const GroupPage = () => {
 
             {activeTab === 'rules' && (
               <Card>
-                <CardContent>
+                <CardContent sx={{textAlign: "left"}}>
                   <Typography variant="h6" gutterBottom>
                     Zasady grupy
                   </Typography>
@@ -738,7 +757,7 @@ const GroupPage = () => {
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                 <Event fontSize="small" color="action" />
                 <Typography variant="body2">
-                  Założona {new Date(group.createdAt).toLocaleDateString()}
+                  Założona {new Date(group.date_created).toLocaleDateString()}
                 </Typography>
               </Box>
             </CardContent>

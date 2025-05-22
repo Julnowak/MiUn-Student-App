@@ -44,12 +44,6 @@ import {API_BASE_URL} from "../../config";
 import {useNavigate} from "react-router-dom";
 
 
-const mockFieldByYears = [
-    {id: 1, year: 2023, fieldName: 'Informatyka'},
-    {id: 2, year: 2023, fieldName: 'Matematyka'},
-    {id: 3, year: 2022, fieldName: 'Fizyka'},
-];
-
 const Groups = () => {
     const [activeTab, setActiveTab] = useState(0);
     const [search, setSearch] = useState({
@@ -169,10 +163,10 @@ const Groups = () => {
                     code: password
                 },
                 {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
-            })
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                })
 
             navigate(`/group/${selectedGroup.id}`)
 
@@ -180,7 +174,6 @@ const Groups = () => {
             alert('Nieprawidłowe hasło!');
             console.error("Błąd pobierania danych:", error);
         }
-
 
 
         setSelectedGroup(null);
@@ -217,15 +210,18 @@ const Groups = () => {
 
             {activeTab === 0 ? (
                 <Box sx={{mt: 2}}>
-                    <List sx={{display: 'flex', flexDirection: 'column', alignItems: 'center'}}>
+
+                    <List>
                         {userGroups?.length > 0 ? (
                             <>
                                 {userGroups
                                     ?.slice(userGroupsPage * rowsPerPage, userGroupsPage * rowsPerPage + rowsPerPage)
                                     .map(g => (
-                                        <ListItem onClick={() => {
-                                            navigate(`/group/${g.id}`)
-                                        }} key={g.id} sx={{ cursor: "pointer", width: '100%', maxWidth: 400}}>
+                                        <ListItem key={g.id}
+                                                  button
+                                                  onClick={() => userGroups.some(group => group.id === g.id) ? navigate(`/group/${g.id}`) : (g.archived ? null : setSelectedGroup(g))}
+                                                  disabled={g.members.includes(userId)}
+                                                  sx={g.archived && !userGroups.some(group => group.id === g.id) ? null : {cursor: "pointer"}}>
                                             <ListItemText
                                                 primary={<Box sx={{display: 'flex', alignItems: 'center', gap: 1}}>
                                                     {g.isOfficial ?
@@ -537,86 +533,86 @@ const Groups = () => {
                 </Box>) : null}
 
             <Dialog open={!!selectedGroup} onClose={() => setSelectedGroup(null)} maxWidth="sm" fullWidth>
-  <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-    {selectedGroup?.isOfficial && <Verified color="primary" />}
-    Dołącz do {selectedGroup?.name}
-  </DialogTitle>
+                <DialogTitle sx={{display: 'flex', alignItems: 'center', gap: 2}}>
+                    {selectedGroup?.isOfficial && <Verified color="primary"/>}
+                    Dołącz do {selectedGroup?.name}
+                </DialogTitle>
 
-  <DialogContent dividers>
-    {/* Sekcja informacyjna */}
-    <Box sx={{ mb: 3 }}>
-      <Typography variant="subtitle1" gutterBottom>
-        <Box component="span" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          {selectedGroup?.isPublic ? <Public color="primary" /> : <Lock color="secondary" />}
-          {selectedGroup?.isPublic ? 'Grupa publiczna' : 'Grupa prywatna'}
-        </Box>
-      </Typography>
+                <DialogContent dividers>
+                    {/* Sekcja informacyjna */}
+                    <Box sx={{mb: 3}}>
+                        <Typography variant="subtitle1" gutterBottom>
+                            <Box component="span" sx={{display: 'flex', alignItems: 'center', gap: 1}}>
+                                {selectedGroup?.isPublic ? <Public color="primary"/> : <Lock color="secondary"/>}
+                                {selectedGroup?.isPublic ? 'Grupa publiczna' : 'Grupa prywatna'}
+                            </Box>
+                        </Typography>
 
-      {selectedGroup?.description && (
-        <>
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-            Opis grupy:
-          </Typography>
-          <Typography variant="body1" sx={{
-            p: 2,
-            bgcolor: 'action.hover',
-            borderRadius: 1,
-            whiteSpace: 'pre-wrap'
-          }}>
-            {selectedGroup.description.slice(0,400)}
-          </Typography>
-        </>
-      )}
-    </Box>
+                        {selectedGroup?.description && (
+                            <>
+                                <Typography variant="body2" color="text.secondary" sx={{mt: 1}}>
+                                    Opis grupy:
+                                </Typography>
+                                <Typography variant="body1" sx={{
+                                    p: 2,
+                                    bgcolor: 'action.hover',
+                                    borderRadius: 1,
+                                    whiteSpace: 'pre-wrap'
+                                }}>
+                                    {selectedGroup.description.slice(0, 400)}
+                                </Typography>
+                            </>
+                        )}
+                    </Box>
 
-    {/* Statystyki grupy */}
-    <Grid container spacing={2} sx={{ mb: 3 }}>
-      <Grid item xs={6}>
-        <Typography variant="body2" color="text.secondary">
-          Członkowie:
-        </Typography>
-        <Typography variant="body1">
-          {selectedGroup?.members?.length || 0}{selectedGroup?.limit ? `/${selectedGroup.limit}` : ''}
-        </Typography>
-      </Grid>
-      <Grid item xs={6}>
-        <Typography variant="body2" color="text.secondary">
-          Data utworzenia:
-        </Typography>
-        <Typography variant="body1">
-          {selectedGroup?.date_created ? new Date(selectedGroup.date_created).toLocaleDateString() : 'Nieznana'}
-        </Typography>
-      </Grid>
-    </Grid>
+                    {/* Statystyki grupy */}
+                    <Grid container spacing={2} sx={{mb: 3}}>
+                        <Grid item xs={6}>
+                            <Typography variant="body2" color="text.secondary">
+                                Członkowie:
+                            </Typography>
+                            <Typography variant="body1">
+                                {selectedGroup?.members?.length || 0}{selectedGroup?.limit ? `/${selectedGroup.limit}` : ''}
+                            </Typography>
+                        </Grid>
+                        <Grid item xs={6}>
+                            <Typography variant="body2" color="text.secondary">
+                                Data utworzenia:
+                            </Typography>
+                            <Typography variant="body1">
+                                {selectedGroup?.date_created ? new Date(selectedGroup.date_created).toLocaleDateString() : 'Nieznana'}
+                            </Typography>
+                        </Grid>
+                    </Grid>
 
-    {/* Pole hasła dla grup prywatnych */}
-    {!selectedGroup?.isPublic && (
-      <TextField
-        autoFocus
-        margin="dense"
-        label="Hasło dostępu"
-        type="password"
-        fullWidth
-        value={password}
-        onChange={e => setPassword(e.target.value)}
-        sx={{ mt: 2 }}
-      />
-    )}
-  </DialogContent>
+                    {/* Pole hasła dla grup prywatnych */}
+                    {!selectedGroup?.isPublic && (
+                        <TextField
+                            autoFocus
+                            margin="dense"
+                            label="Hasło dostępu"
+                            type="password"
+                            fullWidth
+                            value={password}
+                            onChange={e => setPassword(e.target.value)}
+                            sx={{mt: 2}}
+                        />
+                    )}
+                </DialogContent>
 
-  <DialogActions sx={{ p: 2 }}>
-    <Button onClick={() => setSelectedGroup(null)} sx={{ mr: 1 }}>
-      Anuluj
-    </Button>
-    <Button
-      onClick={handleJoinGroup}
-      variant="contained"
-      disabled={!selectedGroup?.isPublic && !password}
-    >
-      Dołącz
-    </Button>
-  </DialogActions>
-</Dialog>
+                <DialogActions sx={{p: 2}}>
+                    <Button onClick={() => setSelectedGroup(null)} sx={{mr: 1}}>
+                        Anuluj
+                    </Button>
+                    <Button
+                        onClick={handleJoinGroup}
+                        variant="contained"
+                        disabled={!selectedGroup?.isPublic && !password}
+                    >
+                        Dołącz
+                    </Button>
+                </DialogActions>
+            </Dialog>
         </Box>
     );
 };

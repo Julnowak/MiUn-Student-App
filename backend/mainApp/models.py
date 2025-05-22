@@ -52,6 +52,7 @@ class AppUser(AbstractBaseUser, PermissionsMixin):
 
     is_staff = models.BooleanField(default=False)
     is_superuser = models.BooleanField(default=False)
+    is_online = models.BooleanField(default=False)
 
     def __str__(self):
         return self.username
@@ -238,11 +239,16 @@ class Group(models.Model):
     code = models.CharField(max_length=300, default=get_random_string(32))
     isPublic = models.BooleanField(default=False)
     members = models.ManyToManyField(AppUser, related_name="members")
+    moderators = models.ManyToManyField(AppUser, related_name="moderators", blank=True)
+    recentActivity = models.ManyToManyField(Event, related_name="recentActivity", blank=True)
+    rules = models.TextField(blank=True, null=True)
     description = models.TextField(blank=True, null=True, max_length=400)
     limit = models.IntegerField(default=150, blank=True, null=True)
     archived = models.BooleanField(default=False)
     isOfficial = models.BooleanField(default=False)
     date_created = models.DateTimeField(auto_now_add=True)
+    coverImage = models.ImageField(blank=True, null=True, upload_to="group_files_cover")
+    avatar = models.ImageField(blank=True, null=True, upload_to="group_files_avatar")
 
     def __str__(self):
         return f"Grupa ID-{self.id}: {self.name}"

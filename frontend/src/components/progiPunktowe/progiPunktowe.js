@@ -391,43 +391,43 @@ const ProgiPunktowe = () => {
 
                                                 <Box sx={{display: 'flex', gap: 1}}>
                                                     <FormControl size="small" sx={{minWidth: 180}}>
-<Select
-    value=""
-    onChange={(e) => {
-        const selectedSubject = allMenuSubjects.find(
-            subject => subject.id === e.target.value
-        );
-        if (selectedSubject) {
-            setAllBasicSubjects([...allBasicSubjects, selectedSubject]);
-            setAllMenuSubjects(allMenuSubjects.filter(
-                subject => subject.id !== selectedSubject.id
-            ));
-        }
-    }}
-    displayEmpty
-    disabled={allMenuSubjects.filter(subject => subject.level === level).length === 0}
-    MenuProps={{
-        PaperProps: {
-            style: {
-                maxHeight: 250,  // Maksymalna wysokość przed pojawieniem się scrollbara
-                overflow: 'auto', // Wymusza pojawienie się scrollbara
-            },
-        },
-    }}
->
-    <MenuItem value="" disabled>
-        {allMenuSubjects.filter(subject => subject.level === level).length === 0
-            ? 'Brak przedmiotów'
-            : 'Wybierz przedmiot'}
-    </MenuItem>
-    {allMenuSubjects
-        .filter(subject => subject.level === level)
-        .map((subject) => (
-            <MenuItem key={subject.id} value={subject.id}>
-                {subject.name}
-            </MenuItem>
-        ))}
-</Select>
+                                                        <Select
+                                                            value=""
+                                                            onChange={(e) => {
+                                                                const selectedSubject = allMenuSubjects.find(
+                                                                    subject => subject.id === e.target.value
+                                                                );
+                                                                if (selectedSubject) {
+                                                                    setAllBasicSubjects([...allBasicSubjects, selectedSubject]);
+                                                                    setAllMenuSubjects(allMenuSubjects.filter(
+                                                                        subject => subject.id !== selectedSubject.id
+                                                                    ));
+                                                                }
+                                                            }}
+                                                            displayEmpty
+                                                            disabled={allMenuSubjects.filter(subject => subject.level === level).length === 0}
+                                                            MenuProps={{
+                                                                PaperProps: {
+                                                                    style: {
+                                                                        maxHeight: 250,  // Maksymalna wysokość przed pojawieniem się scrollbara
+                                                                        overflow: 'auto', // Wymusza pojawienie się scrollbara
+                                                                    },
+                                                                },
+                                                            }}
+                                                        >
+                                                            <MenuItem value="" disabled>
+                                                                {allMenuSubjects.filter(subject => subject.level === level).length === 0
+                                                                    ? 'Brak przedmiotów'
+                                                                    : 'Wybierz przedmiot'}
+                                                            </MenuItem>
+                                                            {allMenuSubjects
+                                                                .filter(subject => subject.level === level)
+                                                                .map((subject) => (
+                                                                    <MenuItem key={subject.id} value={subject.id}>
+                                                                        {subject.name}
+                                                                    </MenuItem>
+                                                                ))}
+                                                        </Select>
                                                     </FormControl>
                                                 </Box>
                                             </Box>
@@ -451,7 +451,7 @@ const ProgiPunktowe = () => {
                                                             type="number"
                                                             variant="outlined"
                                                             size="small"
-                                                            value={allScores[subject.id] || ''}
+                                                            value={allScores[subject.id] || 0}
                                                             onChange={(e) => setAllScores({
                                                                 ...allScores,
                                                                 [subject.id]: Math.max(0, Math.min(100, parseInt(e.target.value) || 0))
@@ -555,7 +555,8 @@ const ProgiPunktowe = () => {
                                         setActiveStep(s => s + 1);
                                     }}
                                 >
-                                    {activeStep === 1 ? (loading ? <CircularProgress size={24} color="inherit"/> : "Dalej") : 'Dalej'}
+                                    {activeStep === 1 ? (loading ?
+                                        <CircularProgress size={24} color="inherit"/> : "Dalej") : 'Dalej'}
                                 </Button>
                             </>
 

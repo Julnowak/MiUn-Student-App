@@ -90,6 +90,8 @@ class UserLogin(APIView):
         if user is None:
             return Response({"error": "Invalid credentials", "type": "credentials"}, status=status.HTTP_401_UNAUTHORIZED)
 
+        user.is_online = True
+        user.save()
         # Generate JWT tokens
         refresh = RefreshToken.for_user(user)
         return Response({
@@ -100,6 +102,9 @@ class UserLogin(APIView):
 
 class UserLogout(APIView):
     def post(self, request):
+        user = request.user
+        user.is_online = False
+        user.save()
         return Response(status=status.HTTP_200_OK)
 
 
@@ -368,7 +373,16 @@ class OneGroupAPI(APIView):
         group = Group.objects.get(id=group_id)
         serializer = GroupSerializer(group)
 
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        num = group.members.count()
+        num_active = group.members.filter(is_online=True).count()
+
+        user_serializer = UserSerializer(request.user)
+
+        return Response({"group_data": serializer.data,
+                              "user_data": user_serializer.data,
+                              "user_active": num_active,
+                              "member_count": num,
+                              }, status=status.HTTP_200_OK)
 
     def post(self, request, group_id):
         group = Group.objects.get(id=group_id)
