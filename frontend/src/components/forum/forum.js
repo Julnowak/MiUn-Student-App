@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
     Box, Card, CardContent, CardHeader, Avatar, Typography, TextField, Button,
-    IconButton, Divider, MenuItem, Select, FormControl, InputLabel, Dialog,
-    DialogContent, Fab, Badge, Chip, Grid, useMediaQuery
+    IconButton, MenuItem, Select, FormControl, InputLabel, Dialog,
+    DialogContent, useMediaQuery
 } from '@mui/material';
 import {
     Comment, ThumbUp, ThumbDown, Close, SentimentSatisfiedAlt, Image,
-    MoreHoriz, Share, Bookmark, Send, Search
+    MoreHoriz, Share, Send, Search
 } from '@mui/icons-material';
 import { useTheme, styled, alpha } from '@mui/material/styles';
 import { motion } from 'framer-motion';

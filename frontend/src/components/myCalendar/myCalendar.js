@@ -14,13 +14,20 @@ import {
   InputLabel,
   colors,
   IconButton,
-  useTheme
+  useTheme,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  useMediaQuery
 } from '@mui/material';
-import { Add, Event, Upload, Close } from '@mui/icons-material';
-import { DateCalendar, LocalizationProvider } from '@mui/x-date-pickers';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { Add, Event, Upload, Close, ChevronLeft, ChevronRight } from '@mui/icons-material';
+import { format, parseISO, addMonths, subMonths, isSameMonth, isSameDay } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { format, parseISO } from 'date-fns';
+import { isWithinInterval} from 'date-fns';
 
 const colorOptions = [
   { value: colors.blue[500], label: 'Niebieski' },
@@ -30,10 +37,64 @@ const colorOptions = [
   { value: colors.purple[500], label: 'Fioletowy' },
 ];
 
+const WeekView = ({ events, selectedDate, daysOfWeek, getEventsForDay }) => {
+  // Wyznacz pierwszy dzień tygodnia (poniedziałek)
+  const startOfWeek = new Date(selectedDate);
+  startOfWeek.setDate(selectedDate.getDate() - ((selectedDate.getDay() + 6) % 7));
+  const days = Array.from({length: 7}, (_, i) => {
+    const d = new Date(startOfWeek);
+    d.setDate(startOfWeek.getDate() + i);
+    return d;
+  });
+
+  return (
+    <Table>
+      <TableHead>
+        <TableRow>
+          {days.map((day, idx) => (
+            <TableCell key={idx}>{daysOfWeek[idx]}<br/>{day.getDate()}</TableCell>
+          ))}
+        </TableRow>
+      </TableHead>
+      <TableBody>
+        <TableRow>
+          {days.map((day, idx) => (
+            <TableCell key={idx}>
+              {getEventsForDay(day).map(event => (
+                <Box key={event.id} sx={{ bgcolor: event.color, color: '#fff', mb: 0.5, p: 0.5, borderRadius: 1 }}>
+                  {event.name}
+                </Box>
+              ))}
+            </TableCell>
+          ))}
+        </TableRow>
+      </TableBody>
+    </Table>
+  );
+};
+
+const DayView = ({ events, date }) => (
+  <Box>
+    <Typography variant="h6">
+      {format(date, "EEEE, d MMMM yyyy", { locale: pl })}
+    </Typography>
+    {events.map(event => (
+      <Box key={event.id} sx={{ bgcolor: event.color, color: '#fff', mb: 1, p: 1, borderRadius: 1 }}>
+        <b>{event.name}</b><br/>
+        {format(parseISO(event.start), "HH:mm")} - {format(parseISO(event.end), "HH:mm")}
+        <div>{event.additional_info}</div>
+      </Box>
+    ))}
+    {events.length === 0 && <Typography>Brak wydarzeń</Typography>}
+  </Box>
+);
+
 const MyCalendar = () => {
   const theme = useTheme();
+  const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
   const [events, setEvents] = useState([]);
   const [openDialog, setOpenDialog] = useState(false);
+  const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [newEvent, setNewEvent] = useState({
     name: '',
@@ -44,6 +105,24 @@ const MyCalendar = () => {
     recurrent: false,
     recurrency_details: null
   });
+
+  const generateCalendarDays = () => {
+    const startDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
+    const endDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0);
+
+    const days = [];
+    const startDay = startDate.getDay() === 0 ? 6 : startDate.getDay() - 1;
+
+    for (let i = 0; i < startDay; i++) {
+      days.push(null);
+    }
+
+    for (let i = 1; i <= endDate.getDate(); i++) {
+      days.push(new Date(currentMonth.getFullYear(), currentMonth.getMonth(), i));
+    }
+
+    return days;
+  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -73,161 +152,267 @@ const MyCalendar = () => {
     });
   };
 
-  const handleFileUpload = (e) => {
-    // Symulacja importu z pliku
-    const fakeImportedEvents = [
-      {
-        id: Date.now() + 1,
-        name: 'Spotkanie z klientem',
-        start: '2023-12-15T10:00:00',
-        end: '2023-12-15T11:30:00',
-        color: colors.blue[500],
-        additional_info: 'Prezentacja nowego produktu',
-        recurrent: false,
-        user: "current_user_id"
-      },
-      {
-        id: Date.now() + 2,
-        name: 'Przegląd projektu',
-        start: '2023-12-16T14:00:00',
-        end: '2023-12-16T15:00:00',
-        color: colors.green[500],
-        additional_info: '',
-        recurrent: true,
-        recurrency_details: { num: 1, type: "weeks", until: '2024-01-16' },
-        user: "current_user_id"
-      }
-    ];
 
-    setEvents([...events, ...fakeImportedEvents]);
-    alert('Zaimportowano 2 wydarzenia z pliku (symulacja)');
+  const [view, setView] = useState('month'); // 'month' | 'week' | 'day'
+
+  const getEventsForDay = (day) => {
+    if (!day) return [];
+    return events.filter(event => {
+      const start = parseISO(event.start);
+      const end = parseISO(event.end);
+      return isWithinInterval(day, { start, end });
+    });
   };
 
-  const renderDay = (day, _selectedDays, pickersDayProps) => {
-    const dayEvents = events.filter(event => {
-      const eventDate = parseISO(event.start);
-      return eventDate.getDate() === day.getDate() &&
-        eventDate.getMonth() === day.getMonth() &&
-        eventDate.getFullYear() === day.getFullYear();
-    });
-
-    return (
-      <Box sx={{ position: 'relative', height: '100%' }}>
-        <Box {...pickersDayProps} />
-        {dayEvents.length > 0 && (
-          <Box sx={{
-            position: 'absolute',
-            bottom: 4,
-            left: 0,
-            right: 0,
-            display: 'flex',
-            justifyContent: 'center',
-            gap: 0.5
-          }}>
-            {dayEvents.slice(0, 3).map((event, index) => (
-              <Box key={index} sx={{
-                width: 8,
-                height: 8,
-                borderRadius: '50%',
-                bgcolor: event.color
-              }} />
-            ))}
-            {dayEvents.length > 3 && (
-              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                +{dayEvents.length - 3}
-              </Typography>
-            )}
-          </Box>
-        )}
-      </Box>
+  const handleMonthChange = (direction) => {
+    setCurrentMonth(direction === 'next'
+      ? addMonths(currentMonth, 1)
+      : subMonths(currentMonth, 1)
     );
   };
 
+  const calendarDays = generateCalendarDays();
+  const monthsPL = [
+  "Styczeń", "Luty", "Marzec", "Kwiecień", "Maj", "Czerwiec",
+  "Lipiec", "Sierpień", "Wrzesień", "Październik", "Listopad", "Grudzień"
+];
+  const daysOfWeek = ['Pn', 'Wt', 'Śr', 'Cz', 'Pt', 'Sb', 'Nd'];
+
   return (
-    <Box sx={{ p: 3, maxWidth: 1000, mx: 'auto' }}>
+    <Box sx={{ p: isSmallScreen ? 1 : 3, maxWidth: 1000, mx: 'auto' }}>
       <Box sx={{
         display: 'flex',
+        flexDirection: isSmallScreen ? 'column' : 'row',
         justifyContent: 'space-between',
-        alignItems: 'center',
-        mb: 3
+        alignItems: isSmallScreen ? 'flex-start' : 'center',
+        gap: isSmallScreen ? 1 : 2,
+        mb: 2
       }}>
-        <Typography variant="h4" sx={{ display: 'flex', alignItems: 'center' }}>
-          <Event color="primary" sx={{ mr: 1 }} /> Kalendarz
+        <Typography variant={isSmallScreen ? "h6" : "h4"} sx={{ display: 'flex', alignItems: 'center' }}>
+          <Event color="primary" sx={{ mr: 1, fontSize: isSmallScreen ? '1.25rem' : '1.5rem' }} />
+          Kalendarz
         </Typography>
-        <Box sx={{ display: 'flex', gap: 2 }}>
+        <Box sx={{
+          display: 'flex',
+          gap: 1,
+          width: isSmallScreen ? '100%' : 'auto',
+          '& .MuiButton-root': {
+            fontSize: isSmallScreen ? '0.75rem' : '0.875rem',
+            padding: isSmallScreen ? '6px 8px' : '8px 16px'
+          }
+        }}>
           <Button
             variant="contained"
-            startIcon={<Upload />}
+            startIcon={<Upload sx={{ fontSize: isSmallScreen ? '1rem' : '1.25rem' }} />}
             component="label"
+            sx={{ flex: isSmallScreen ? 1 : 0 }}
           >
-            Importuj z pliku
-            <input
-              type="file"
-              hidden
-              accept=".csv,.xlsx,.xls"
-              onChange={handleFileUpload}
-            />
+            {isSmallScreen ? 'Import' : 'Importuj z pliku'}
+            <input type="file" hidden accept=".csv,.xlsx,.xls" />
           </Button>
           <Button
             variant="contained"
-            startIcon={<Add />}
+            startIcon={<Add sx={{ fontSize: isSmallScreen ? '1rem' : '1.25rem' }} />}
             onClick={() => setOpenDialog(true)}
+            sx={{ flex: isSmallScreen ? 1 : 0 }}
           >
-            Nowe wydarzenie
+            {isSmallScreen ? 'Dodaj' : 'Nowe wydarzenie'}
           </Button>
         </Box>
       </Box>
 
-      <Box sx={{
-        bgcolor: 'background.paper',
-        borderRadius: 4,
-        p: 3,
-        boxShadow: theme.shadows[2]
-      }}>
-        <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={pl}>
-          <DateCalendar
-            value={selectedDate}
-            onChange={(newDate) => setSelectedDate(newDate)}
-            slots={{ day: renderDay }}
-            sx={{
-              '& .MuiPickersDay-root': {
-                height: 48,
-                width: 48,
-                fontSize: '0.875rem',
-              },
-              '& .Mui-selected': {
-                backgroundColor: `${theme.palette.primary.main} !important`,
-                color: theme.palette.primary.contrastText,
-              }
-            }}
-          />
-        </LocalizationProvider>
+      <Box sx={{ mb: 2 }}>
+        <Button onClick={() => setView('day')}>Dzień</Button>
+        <Button onClick={() => setView('week')}>Tydzień</Button>
+        <Button onClick={() => setView('month')}>Miesiąc</Button>
       </Box>
 
-      {/* Dialog dodawania wydarzenia */}
-      <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Typography variant="h6">Dodaj nowe wydarzenie</Typography>
-          <IconButton onClick={() => setOpenDialog(false)}>
+      {/* Kalendarz */}
+      {view === 'month' && (
+      <Paper elevation={3} sx={{ mb: 3, borderRadius: 2 }}>
+        <Box sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          p: 1,
+          borderBottom: `1px solid ${theme.palette.divider}`
+        }}>
+          <IconButton onClick={() => handleMonthChange('prev')} size={isSmallScreen ? "small" : "medium"}>
+            <ChevronLeft />
+          </IconButton>
+          <Typography variant={isSmallScreen ? "subtitle1" : "h6"}>
+            {monthsPL[currentMonth.getMonth()]} {currentMonth.getFullYear()}
+          </Typography>
+          <IconButton onClick={() => handleMonthChange('next')} size={isSmallScreen ? "small" : "medium"}>
+            <ChevronRight />
+          </IconButton>
+        </Box>
+
+        <TableContainer>
+          <Table sx={{ tableLayout: 'fixed' }}>
+            <TableHead>
+              <TableRow>
+                {daysOfWeek.map(day => (
+                  <TableCell
+                    key={day}
+                    align="center"
+                    sx={{
+                      fontWeight: 'bold',
+                      p: 0.5,
+                      fontSize: isSmallScreen ? '0.7rem' : '0.875rem'
+                    }}
+                  >
+                    {day}
+                  </TableCell>
+                ))}
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {[...Array(Math.ceil(calendarDays.length / 7)).keys()].map(week => (
+                <TableRow key={week}>
+                  {[...Array(7).keys()].map(day => {
+                    const dayIndex = week * 7 + day;
+                    const dayObj = calendarDays[dayIndex];
+                    const dayEvents = getEventsForDay(dayObj);
+
+                    return (
+                      <TableCell
+                        key={dayIndex}
+                        align="center"
+                        sx={{
+                          height: isSmallScreen ? 60 : 80,
+                          p: 0.5,
+                          border: `1px solid ${theme.palette.divider}`,
+                          bgcolor: dayObj && isSameDay(dayObj, selectedDate)
+                            ? theme.palette.primary.main
+                            : 'inherit',
+                          cursor: dayObj ? 'pointer' : 'default',
+                          overflow: 'hidden'
+                        }}
+                        onClick={() => dayObj && setSelectedDate(dayObj)}
+                      >
+                        {dayObj && (
+                          <>
+                            <Typography
+                              variant="caption"
+                              sx={{
+                                fontWeight: isSameDay(dayObj, new Date()) ? 'bold' : 'normal',
+                                color: !isSameMonth(dayObj, currentMonth)
+                                  ? theme.palette.text.disabled
+                                  : 'inherit',
+                                fontSize: isSmallScreen ? '0.65rem' : '0.75rem'
+                              }}
+                            >
+                              {dayObj.getDate()}
+                            </Typography>
+                            <Box sx={{
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: 0.25,
+                              mt: 0.25,
+                              maxHeight: isSmallScreen ? 30 : 50,
+                              overflow: 'hidden'
+                            }}>
+                              {dayEvents.slice(0, isSmallScreen ? 1 : 2).map((event, idx) => (
+                                <Box
+                                  key={idx}
+                                  sx={{
+                                    bgcolor: event.color,
+                                    color: 'white',
+                                    borderRadius: 0.5,
+                                    p: '1px 2px',
+                                    fontSize: isSmallScreen ? '0.55rem' : '0.65rem',
+                                    whiteSpace: 'nowrap',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis'
+                                  }}
+                                >
+                                  {isSmallScreen ?
+                                    format(parseISO(event.start), 'HH:mm') :
+                                    `${format(parseISO(event.start), 'HH:mm')} ${event.name.substring(0, 3)}...`}
+                                </Box>
+                              ))}
+                              {dayEvents.length > (isSmallScreen ? 1 : 2) && (
+                                <Typography
+                                  variant="caption"
+                                  color="text.secondary"
+                                  sx={{ fontSize: isSmallScreen ? '0.5rem' : '0.6rem' }}
+                                >
+                                  +{dayEvents.length - (isSmallScreen ? 1 : 2)}
+                                </Typography>
+                              )}
+                            </Box>
+                          </>
+                        )}
+                      </TableCell>
+                    );
+                  })}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      </Paper>)}
+{view === 'week' && (
+  // Wyświetl tydzień zawierający selectedDate
+  <WeekView
+    events={events}
+    selectedDate={selectedDate}
+    daysOfWeek={daysOfWeek}
+    getEventsForDay={getEventsForDay}
+    // ...inne propsy
+  />
+)}
+{view === 'day' && (
+  // Wyświetl szczegóły dla wybranego dnia
+  <DayView
+    events={getEventsForDay(selectedDate)}
+    date={selectedDate}
+    // ...inne propsy
+  />
+)}
+
+      {/* Dialog dodawania wydarzenia - responsywny */}
+      <Dialog
+        open={openDialog}
+        onClose={() => setOpenDialog(false)}
+        fullWidth
+        fullScreen={isSmallScreen}
+      >
+        <DialogTitle sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          p: isSmallScreen ? 1 : 2,
+          pb: isSmallScreen ? 0 : 1
+        }}>
+          <Typography variant={isSmallScreen ? "subtitle1" : "h6"}>Dodaj wydarzenie</Typography>
+          <IconButton
+            onClick={() => setOpenDialog(false)}
+            size={isSmallScreen ? "small" : "medium"}
+            sx={{ mr: -1 }}
+          >
             <Close />
           </IconButton>
         </DialogTitle>
-        <DialogContent sx={{ pt: 2 }}>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+        <DialogContent sx={{ p: isSmallScreen ? 1 : 2 }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             <TextField
-              label="Nazwa wydarzenia"
+              label="Nazwa"
               name="name"
+              size={isSmallScreen ? "small" : "medium"}
               value={newEvent.name}
               onChange={handleInputChange}
               fullWidth
               required
             />
 
-            <Box sx={{ display: 'flex', gap: 2 }}>
+            <Box sx={{ display: 'flex', gap: 1 }}>
               <TextField
-                label="Data i czas rozpoczęcia"
+                label="Rozpoczęcie"
                 type="datetime-local"
                 name="start"
+                size={isSmallScreen ? "small" : "medium"}
                 value={newEvent.start}
                 onChange={handleInputChange}
                 fullWidth
@@ -235,9 +420,10 @@ const MyCalendar = () => {
                 InputLabelProps={{ shrink: true }}
               />
               <TextField
-                label="Data i czas zakończenia"
+                label="Zakończenie"
                 type="datetime-local"
                 name="end"
+                size={isSmallScreen ? "small" : "medium"}
                 value={newEvent.end}
                 onChange={handleInputChange}
                 fullWidth
@@ -246,7 +432,7 @@ const MyCalendar = () => {
               />
             </Box>
 
-            <FormControl fullWidth>
+            <FormControl fullWidth size={isSmallScreen ? "small" : "medium"}>
               <InputLabel>Kolor</InputLabel>
               <Select
                 name="color"
@@ -264,7 +450,7 @@ const MyCalendar = () => {
                         borderRadius: '50%',
                         mr: 1.5
                       }} />
-                      {color.label}
+                      <Typography variant="body2">{color.label}</Typography>
                     </Box>
                   </MenuItem>
                 ))}
@@ -272,19 +458,21 @@ const MyCalendar = () => {
             </FormControl>
 
             <TextField
-              label="Dodatkowe informacje"
+              label="Notatki"
               name="additional_info"
+              size={isSmallScreen ? "small" : "medium"}
               value={newEvent.additional_info}
               onChange={handleInputChange}
               fullWidth
               multiline
-              rows={3}
+              rows={isSmallScreen ? 2 : 3}
             />
 
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
-              <Typography variant="body1" sx={{ mr: 2 }}>Cykliczne:</Typography>
+              <Typography variant="body2" sx={{ mr: 1 }}>Cykliczne:</Typography>
               <Button
                 variant={newEvent.recurrent ? "contained" : "outlined"}
+                size="small"
                 onClick={() => setNewEvent(prev => ({ ...prev, recurrent: !prev.recurrent }))}
               >
                 {newEvent.recurrent ? "Tak" : "Nie"}
@@ -292,11 +480,12 @@ const MyCalendar = () => {
             </Box>
 
             {newEvent.recurrent && (
-              <Box sx={{ display: 'flex', gap: 2 }}>
+              <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                 <TextField
-                  label="Co ile"
+                  label="Co"
                   type="number"
                   name="recurrency_num"
+                  size="small"
                   value={newEvent.recurrency_details?.num || ''}
                   onChange={(e) => setNewEvent(prev => ({
                     ...prev,
@@ -305,10 +494,10 @@ const MyCalendar = () => {
                       num: parseInt(e.target.value) || 1
                     }
                   }))}
-                  sx={{ width: 100 }}
+                  sx={{ width: 70 }}
                 />
-                <FormControl sx={{ minWidth: 120 }}>
-                  <InputLabel>Typ cyklu</InputLabel>
+                <FormControl sx={{ minWidth: 90 }} size="small">
+                  <InputLabel>Typ</InputLabel>
                   <Select
                     value={newEvent.recurrency_details?.type || 'days'}
                     onChange={(e) => setNewEvent(prev => ({
@@ -318,7 +507,7 @@ const MyCalendar = () => {
                         type: e.target.value
                       }
                     }))}
-                    label="Typ cyklu"
+                    label="Typ"
                   >
                     <MenuItem value="days">Dni</MenuItem>
                     <MenuItem value="weeks">Tygodnie</MenuItem>
@@ -327,9 +516,10 @@ const MyCalendar = () => {
                   </Select>
                 </FormControl>
                 <TextField
-                  label="Data końcowa"
+                  label="Do"
                   type="date"
                   name="recurrency_until"
+                  size="small"
                   value={newEvent.recurrency_details?.until || ''}
                   onChange={(e) => setNewEvent(prev => ({
                     ...prev,
@@ -345,67 +535,64 @@ const MyCalendar = () => {
             )}
           </Box>
         </DialogContent>
-        <DialogActions sx={{ p: 3 }}>
-          <Button onClick={() => setOpenDialog(false)}>Anuluj</Button>
+        <DialogActions sx={{ p: isSmallScreen ? 1 : 2 }}>
+          <Button
+            onClick={() => setOpenDialog(false)}
+            size={isSmallScreen ? "small" : "medium"}
+          >
+            Anuluj
+          </Button>
           <Button
             variant="contained"
             onClick={handleAddEvent}
             disabled={!newEvent.name || !newEvent.start || !newEvent.end}
+            size={isSmallScreen ? "small" : "medium"}
           >
-            Dodaj wydarzenie
+            Zapisz
           </Button>
         </DialogActions>
       </Dialog>
 
-      {/* Lista wydarzeń */}
-      <Box sx={{ mt: 4 }}>
-        <Typography variant="h6" sx={{ mb: 2 }}>
-          Nadchodzące wydarzenia ({format(selectedDate, 'dd MMMM yyyy', { locale: pl })})
+      {/* Lista wydarzeń - wersja mobilna */}
+      <Box sx={{ mt: 2 }}>
+        <Typography variant={isSmallScreen ? "subtitle1" : "h6"} sx={{ mb: 1 }}>
+          {format(selectedDate, 'dd MMMM yyyy', { locale: pl })}
         </Typography>
-        {events.filter(event => {
-          const eventDate = parseISO(event.start);
-          return eventDate.getDate() === selectedDate.getDate() &&
-            eventDate.getMonth() === selectedDate.getMonth() &&
-            eventDate.getFullYear() === selectedDate.getFullYear();
-        }).length > 0 ? (
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            {events
-              .filter(event => {
-                const eventDate = parseISO(event.start);
-                return eventDate.getDate() === selectedDate.getDate() &&
-                  eventDate.getMonth() === selectedDate.getMonth() &&
-                  eventDate.getFullYear() === selectedDate.getFullYear();
-              })
+        {getEventsForDay(selectedDate).length > 0 ? (
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+            {getEventsForDay(selectedDate)
               .sort((a, b) => new Date(a.start) - new Date(b.start))
               .map(event => (
                 <Box
                   key={event.id}
                   sx={{
-                    p: 2,
-                    borderLeft: `4px solid ${event.color}`,
+                    p: 1.5,
+                    borderLeft: `3px solid ${event.color}`,
                     bgcolor: 'background.paper',
                     borderRadius: 1,
                     boxShadow: theme.shadows[1]
                   }}
                 >
-                  <Typography variant="subtitle1" fontWeight="bold">{event.name}</Typography>
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography variant="subtitle2" fontWeight="bold">{event.name}</Typography>
+                  <Typography variant="caption" color="text.secondary" display="block">
                     {format(parseISO(event.start), 'HH:mm')} - {format(parseISO(event.end), 'HH:mm')}
                   </Typography>
                   {event.additional_info && (
-                    <Typography variant="body2" sx={{ mt: 1 }}>{event.additional_info}</Typography>
+                    <Typography variant="caption" sx={{ mt: 0.5, display: 'block' }}>
+                      {event.additional_info.substring(0, 50)}{event.additional_info.length > 50 ? '...' : ''}
+                    </Typography>
                   )}
                   {event.recurrent && (
-                    <Typography variant="caption" sx={{ display: 'block', mt: 1, color: 'text.secondary' }}>
-                      Wydarzenie cykliczne
+                    <Typography variant="caption" sx={{ display: 'block', mt: 0.5, color: 'text.secondary' }}>
+                      Cykliczne
                     </Typography>
                   )}
                 </Box>
               ))}
           </Box>
         ) : (
-          <Typography variant="body1" color="text.secondary">
-            Brak wydarzeń w wybranym dniu
+          <Typography variant="body2" color="text.secondary">
+            Brak wydarzeń
           </Typography>
         )}
       </Box>
