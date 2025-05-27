@@ -499,6 +499,21 @@ class CalculationAPI(APIView):
                 num += 1
             return Response(d,  status=status.HTTP_200_OK)
 
+
+class ForumAPI(APIView):
+    permission_classes = (permissions.IsAuthenticated,)  # Only authenticated users can log out
+
+    def get(self, request):
+        my_groups = Group.objects.filter(members__id=request.user.id)
+        serializer = GroupSerializer(my_groups, many=True)
+        return Response({"groups": serializer.data}, status=status.HTTP_200_OK)
+
+    # def post(self, request, news_id):
+    #     news = News.objects.get(pk=news_id)
+    #     serializer = NewsSerializer(news)
+    #     return Response(serializer.data, status=status.HTTP_200_OK)
+
+
 class NewsAPI(APIView):
     permission_classes = (permissions.IsAuthenticated,)  # Only authenticated users can log out
 

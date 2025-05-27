@@ -709,7 +709,7 @@ const ProgiPunktowe = () => {
             )}
 
             {selectedTab === 0 &&
-                (<Box mt={3}>
+                (<Box sx={{margin: " 3 auto"}}>
                     <Button variant="contained" onClick={handleCalculate}>Oblicz</Button>
                 </Box>)
             }

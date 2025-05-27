@@ -310,3 +310,39 @@ class News(models.Model):
 
     def __str__(self):
         return f"News ID-{self.id}: {self.name}"
+
+
+class Like(models.Model):
+    id = models.AutoField(primary_key=True)
+    user = models.ForeignKey(AppUser, on_delete=models.CASCADE)
+    value = models.BooleanField(null=True, blank=True)
+
+    def __str__(self):
+        return f"Like ID-{self.id}: {self.user.username}"
+
+
+class Post(models.Model):
+    id = models.AutoField(primary_key=True)
+    user = models.ForeignKey(AppUser, on_delete=models.CASCADE)
+    title = models.CharField(max_length=300)
+    group = models.ForeignKey(Group, on_delete=models.CASCADE)
+    content = models.TextField(blank=True, null=True)
+    likes = models.ManyToManyField(Like)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Post ID-{self.id}: {self.title}"
+
+
+class Comment(models.Model):
+    id = models.AutoField(primary_key=True)
+    user = models.ForeignKey(AppUser, on_delete=models.CASCADE)
+    content = models.TextField(blank=True, null=True)
+    likes = models.ManyToManyField(Like)
+    created_at = models.DateTimeField(auto_now_add=True)
+    visible = models.BooleanField(default=True)
+    post = models.ForeignKey(Post, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return f"Like ID-{self.id}: {self.user.username}"
+

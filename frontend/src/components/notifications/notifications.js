@@ -140,19 +140,6 @@ const Notifications = () => {
                         Powiadomienia
                     </Typography>
                 </Box>
-                <Box sx={{
-                    position: 'absolute',
-                    right: 0,
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    height: '60px'
-                }}>
-                    <img
-                        src="images/basic/owl.png"
-                        alt="Owl icon"
-                        style={{height: '100%', width: 'auto'}}
-                    />
-                </Box>
             </Box>
 
             <TextField
