@@ -11,11 +11,12 @@ import {
     Badge,
     IconButton,
     Typography,
-    styled
+    styled, Button
 } from "@mui/material";
-import {Delete, Mail, CircleNotifications} from "@mui/icons-material";
+import {Delete, Mail, CircleNotifications, MessageOutlined} from "@mui/icons-material";
 import client from "../../client";
 import {API_BASE_URL} from "../../config";
+import {useNavigate} from "react-router-dom";
 
 const ModernListItem = styled(ListItem)(({theme, selected}) => ({
     borderRadius: "12px",
@@ -85,7 +86,7 @@ const Notifications = () => {
         ));
 
         try {
-            const response = await client.patch(API_BASE_URL + `notifications/${id}/`, {},{
+            const response = await client.patch(API_BASE_URL + `notifications/${id}/`, {}, {
                 headers: {
                     Authorization: `Bearer ${token}`,
                 },
@@ -105,18 +106,43 @@ const Notifications = () => {
     const endIndex = startIndex + perPage;
     const paginatedNotifications = filteredNotifications.slice(startIndex, endIndex);
     const totalPages = Math.ceil(Math.max(filteredNotifications.length, 1) / perPage);
+    const navigate = useNavigate()
 
     const handleDelete = async (id) => {
         setNotifications(notifications.filter(n => n.id !== id));
         if (selectedNotification?.id === id) setSelectedNotification(null);
         try {
-            const response = await client.delete(API_BASE_URL + `notifications/${id}`, {
+            const response = await client.delete(API_BASE_URL + `notifications/${id}/`, {
                 headers: {
                     Authorization: `Bearer ${token}`,
                 },
             });
         } catch (error) {
             console.log("Nie udało się");
+        }
+    };
+
+    const handleJoinGroup = async (group, type) => {
+        try {
+            console.log(group)
+            const response = await client.post(API_BASE_URL + `group/${group}`,
+                {
+                    type: type,
+                    notification: selectedNotification
+                },
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                })
+
+            setSelectedNotification(prev => ({
+              ...prev,
+              isAnswered: true
+            }));
+
+        } catch (error) {
+            console.error("Błąd pobierania danych:", error);
         }
     };
 
@@ -199,7 +225,8 @@ const Notifications = () => {
                                                 {notification.title}
                                             </Typography>
                                         }
-                                        secondary={
+                                        secondary={<Box>
+
                                             <Typography
                                                 variant="body2"
                                                 sx={{
@@ -209,8 +236,10 @@ const Notifications = () => {
                                                     overflow: "hidden"
                                                 }}
                                             >
-                                                {notification.message? notification.message.slice(0, 50) + "..." : "(Wiadomość pusta)"}
+                                                {notification.message ? notification.message.slice(0, 50) + "..." : "(Wiadomość pusta)"}
                                             </Typography>
+
+                                        </Box>
                                         }
                                     />
                                     <Chip
@@ -246,7 +275,7 @@ const Notifications = () => {
                 {/* Panel szczegółów */}
                 <DetailPanel sx={{flex: 1}}>
                     {selectedNotification ? (
-                        <>
+                            <>
                             <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
                                 <Typography variant="h5" fontWeight="600">
                                     {selectedNotification.title}
@@ -256,38 +285,50 @@ const Notifications = () => {
                                     color="black"
                                 />
                             </Box>
+                            <Box>
                             <Typography variant="body1" paragraph sx={{lineHeight: 1.7}}>
                                 {selectedNotification.message}
                             </Typography>
-                            <IconButton
-                                onClick={() => handleDelete(selectedNotification.id)}
-                                sx={{mt: 2, color: "error.main"}}
-                            >
-                                <Delete/>
-                                <Typography variant="body2" sx={{ml: 1}}>
-                                    Usuń powiadomienie
-                                </Typography>
-                            </IconButton>
+                            {selectedNotification.type === "GROUP INVITATION" && !selectedNotification.isAnswered && (
+                                <Box sx={{textAlign: "center"}}>
+                                    <Button  variant={"outlined"} color={"success"} sx={{m:2}}
+                                    onClick={() => handleJoinGroup(selectedNotification.group, "notification")}>
+                                        Dołącz
+                                    </Button>
+                                    <Button variant={"outlined"} color={"error"} sx={{m:2}}
+                                    onClick={() => handleJoinGroup(selectedNotification.group, "notification_refused")}>
+                                        Odrzuć
+                                    </Button>
+                                </Box>
+                            )}
+
+                                {selectedNotification.type === "GROUP INVITATION" && selectedNotification.isAnswered && (
+                                    <Typography sx={{textAlign: "center", color: "gray"}}>
+                                        Już przesłano swoją odpowiedź
+                                    </Typography>
+                                )}
+                            </Box>
                         </>
-                    ) : (
+                        ) : (
                         <Box
-                            display="flex"
-                            flexDirection="column"
-                            alignItems="center"
-                            justifyContent="center"
-                            height="100%"
-                            textAlign="center"
+                        display="flex"
+                        flexDirection="column"
+                        alignItems="center"
+                        justifyContent="center"
+                        height="100%"
+                        textAlign="center"
                         >
-                            <OwlIcon src="images/basic/owl.png" alt="Owl"/>
-                            <Typography variant="h6" color="text.secondary" sx={{mt: 2}}>
-                                Wybierz powiadomienie, aby zobaczyć szczegóły
-                            </Typography>
-                        </Box>
-                    )}
-                </DetailPanel>
+                        <Mail fontSize={"large"}/>
+                        <Typography variant="h6" color="text.secondary" sx={{mt: 2}}>
+                    Wybierz powiadomienie, aby zobaczyć szczegóły
+                </Typography>
             </Box>
-        </Box>
-    );
+            )}
+        </DetailPanel>
+</Box>
+</Box>
+)
+    ;
 };
 
 export default Notifications;

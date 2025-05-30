@@ -46,6 +46,7 @@ class AppUser(AbstractBaseUser, PermissionsMixin):
     surname = models.CharField(max_length=200,blank=True, null=True)
     profile_picture = models.ImageField(blank=True, null=True, upload_to="images")
     is_verified = models.BooleanField(default=False)
+    joined_at = models.DateTimeField(default=timezone.now)
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username']
     objects = AppUserManager()
@@ -71,18 +72,6 @@ class Building(models.Model):
     def __str__(self):
         return f"Budynek ID-{self.id}: {self.name}"
 
-
-class Notification(models.Model):
-    id = models.AutoField(primary_key=True)
-    user = models.ForeignKey(AppUser, on_delete=models.CASCADE)
-    title = models.CharField(max_length=300)
-    isRead = models.BooleanField(default=False)
-    message = models.CharField(max_length=1000)
-    time_triggered = models.DateTimeField()
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"Powiadomienie ID-{self.id}: {self.title}"
 
 
 class Faculty(models.Model):
@@ -216,6 +205,13 @@ class VerificationCode(models.Model):
         return f"{self.user.email} - {self.code}"
 
 
+EVENT_CHOICES = (
+    ("GROUP EVENT", "group event"),
+    ("USER EVENT", "user event"),
+    ("FIELD EVENT", "field by year event"),
+)
+
+
 class Event(models.Model):
     id = models.AutoField(primary_key=True)
     name = models.CharField(max_length=300)
@@ -226,6 +222,7 @@ class Event(models.Model):
     recurrent = models.BooleanField(default=False)
     recurrency_details = models.JSONField(blank=True, null=True) # {'num': 2, 'type': "days", until: DATE}
     user = models.ForeignKey(AppUser, on_delete=models.CASCADE)
+    type = models.CharField(max_length=300, choices=EVENT_CHOICES, default="USER EVENT")
 
     def __str__(self):
         return f"Wydarzenie ID-{self.id}: {self.name}"
@@ -252,6 +249,30 @@ class Group(models.Model):
 
     def __str__(self):
         return f"Grupa ID-{self.id}: {self.name}"
+
+
+NOTIFICATION_CHOICES = (
+    ("NORMAL", "normal"),
+    ("GROUP INVITATION", "group invitation"),
+)
+
+
+class Notification(models.Model):
+    id = models.AutoField(primary_key=True)
+    user = models.ForeignKey(AppUser, on_delete=models.CASCADE)
+    title = models.CharField(max_length=300)
+    isRead = models.BooleanField(default=False)
+    message = models.CharField(max_length=1000)
+    time_triggered = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    type = models.CharField(max_length=100, choices=NOTIFICATION_CHOICES, default="NORMAL")
+    group = models.ForeignKey(Group, on_delete=models.CASCADE, blank=True, null=True)
+    isAnswered = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"Powiadomienie ID-{self.id}: {self.title}"
+
+
 
 
 AVAILABILTY_CHOICES = (

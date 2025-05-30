@@ -262,7 +262,7 @@ const fetchMediaFiles = async () => {
                   </ListItemAvatar>
                   <ListItemText
                     primary={file.name}
-                    secondary={`Dodane przez: ${file.user.username} • ${new Date(file.uploaded_at).toLocaleString()}`}
+                    secondary={`Dodane przez: ${file.user?.username} • ${new Date(file.uploaded_at).toLocaleString()}`}
                   />
                 </ListItem>
               ))}

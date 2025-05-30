@@ -91,7 +91,7 @@ class GroupSerializer(serializers.ModelSerializer):
     class Meta:
         model = Group
         fields = '__all__'
-        depth = 1
+        depth = 2
 
 
 class FieldSerializer(serializers.ModelSerializer):

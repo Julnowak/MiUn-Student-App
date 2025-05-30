@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, {useState, useEffect, useRef} from 'react';
 import {
     Box, Card, CardContent, CardHeader, Avatar, Typography, TextField, Button,
     IconButton, MenuItem, Select, FormControl, InputLabel, Dialog,
@@ -8,14 +8,14 @@ import {
     Comment, ThumbUp, ThumbDown, Close, SentimentSatisfiedAlt, Image,
     MoreHoriz, Share, Send, Search
 } from '@mui/icons-material';
-import { useTheme, styled, alpha } from '@mui/material/styles';
-import { motion } from 'framer-motion';
+import {useTheme, styled, alpha} from '@mui/material/styles';
+import {motion} from 'framer-motion';
 import client from "../../client";
-import { API_BASE_URL } from "../../config";
+import {API_BASE_URL} from "../../config";
 import EmojiPicker from 'emoji-picker-react';
 
 // Stylizowane komponenty
-const PostCard = styled(Card)(({ theme }) => ({
+const PostCard = styled(Card)(({theme}) => ({
     borderRadius: '12px',
     boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
     marginBottom: theme.spacing(3),
@@ -24,7 +24,7 @@ const PostCard = styled(Card)(({ theme }) => ({
     }
 }));
 
-const ActionButton = styled(Button)(({ theme }) => ({
+const ActionButton = styled(Button)(({theme}) => ({
     color: theme.palette.text.secondary,
     fontWeight: 500,
     textTransform: 'none',
@@ -35,14 +35,14 @@ const ActionButton = styled(Button)(({ theme }) => ({
     }
 }));
 
-const CommentInput = styled(TextField)(({ theme }) => ({
+const CommentInput = styled(TextField)(({theme}) => ({
     '& .MuiOutlinedInput-root': {
         borderRadius: '20px',
         backgroundColor: theme.palette.mode === 'light' ? '#f0f2f5' : '#3a3b3c'
     }
 }));
 
-const Forum = ({ userId }) => {
+const Forum = ({userId}) => {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
     const [selectedGroup, setSelectedGroup] = useState('all');
@@ -72,13 +72,13 @@ const Forum = ({ userId }) => {
                 content: 'Jak prawidłowo implementować ładowanie danych z API przy użyciu Suspense?',
                 timestamp: '2023-08-15T14:30:00Z',
                 comments: [
-                    { id: 1, author: 'Anna Nowak', content: 'Użyj React Query', timestamp: '2023-08-15T15:00:00Z' },
-                    { id: 2, author: 'Piotr Wiśniewski', content: 'Spróbuj z SWR', timestamp: '2023-08-15T15:30:00Z' }
+                    {id: 1, author: 'Anna Nowak', content: 'Użyj React Query', timestamp: '2023-08-15T15:00:00Z'},
+                    {id: 2, author: 'Piotr Wiśniewski', content: 'Spróbuj z SWR', timestamp: '2023-08-15T15:30:00Z'}
                 ],
                 likes: 5,
                 userLiked: false,
                 userDisliked: false,
-                images: ["https://omegakarmy.pl/wp-content/uploads/2024/06/Oblizujacy-sie-kot.jpg","https://omegakarmy.pl/wp-content/uploads/2024/06/Oblizujacy-sie-kot.jpg","https://omegakarmy.pl/wp-content/uploads/2024/06/Oblizujacy-sie-kot.jpg","https://omegakarmy.pl/wp-content/uploads/2024/06/Oblizujacy-sie-kot.jpg","https://omegakarmy.pl/wp-content/uploads/2024/06/Oblizujacy-sie-kot.jpg"]
+                images: ["https://omegakarmy.pl/wp-content/uploads/2024/06/Oblizujacy-sie-kot.jpg", "https://omegakarmy.pl/wp-content/uploads/2024/06/Oblizujacy-sie-kot.jpg", "https://omegakarmy.pl/wp-content/uploads/2024/06/Oblizujacy-sie-kot.jpg", "https://omegakarmy.pl/wp-content/uploads/2024/06/Oblizujacy-sie-kot.jpg", "https://omegakarmy.pl/wp-content/uploads/2024/06/Oblizujacy-sie-kot.jpg"]
             },
         ];
         setPosts(mockPosts);
@@ -91,7 +91,7 @@ const Forum = ({ userId }) => {
         return matchesGroup && matchesSearch;
     });
 
-        const token = localStorage.getItem("access")
+    const token = localStorage.getItem("access")
     useEffect(() => {
         const fetchGroupData = async () => {
             try {
@@ -254,11 +254,11 @@ const Forum = ({ userId }) => {
     };
 
     return (
-        <Box sx={{ p: { xs: 1, sm: 3 }, maxWidth: 800, margin: '0 auto' }}>
+        <Box sx={{p: {xs: 1, sm: 3}, maxWidth: 800, margin: '0 auto'}}>
             {/* Composer Button */}
-            <Card sx={{ mb: 3, borderRadius: '12px' }}>
-                <CardContent sx={{ display: 'flex', alignItems: 'center' }}>
-                    <Avatar sx={{ mr: 2 }} />
+            <Card sx={{mb: 3, borderRadius: '12px'}}>
+                <CardContent sx={{display: 'flex', alignItems: 'center'}}>
+                    <Avatar sx={{mr: 2}}/>
                     <Button
                         fullWidth
                         variant="outlined"
@@ -277,7 +277,7 @@ const Forum = ({ userId }) => {
             </Card>
 
             {/* Filters */}
-            <Box sx={{ display: 'flex', gap: 2, mb: 3, flexDirection: { xs: 'column', sm: 'row' } }}>
+            <Box sx={{display: 'flex', gap: 2, mb: 3, flexDirection: {xs: 'column', sm: 'row'}}}>
                 <TextField
                     fullWidth
                     variant="outlined"
@@ -285,30 +285,30 @@ const Forum = ({ userId }) => {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     InputProps={{
-                        startAdornment: <Search sx={{ color: 'text.disabled', mr: 1 }} />,
-                        sx: { borderRadius: '20px' }
+                        startAdornment: <Search sx={{color: 'text.disabled', mr: 1}}/>,
+                        sx: {borderRadius: '20px'}
                     }}
                 />
 
-                <FormControl sx={{ minWidth: 200 }}>
+                <FormControl sx={{minWidth: 200}}>
                     <InputLabel>Grupa</InputLabel>
                     <Select
                         value={selectedGroup}
                         onChange={(e) => setSelectedGroup(e.target.value)}
                         label="Grupa"
-                        sx={{ borderRadius: '20px' }}
+                        sx={{borderRadius: '20px'}}
                     >
                         <MenuItem value="all">Wszystkie grupy</MenuItem>
                         {groups.map(group => (
                             <MenuItem key={group.id} value={group.id}>
-                                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                <Box sx={{display: 'flex', alignItems: 'center'}}>
                                     <Box sx={{
                                         width: 8,
                                         height: 8,
                                         bgcolor: group.color,
                                         borderRadius: '50%',
                                         mr: 1.5
-                                    }} />
+                                    }}/>
                                     {group.name}
                                 </Box>
                             </MenuItem>
@@ -321,25 +321,25 @@ const Forum = ({ userId }) => {
             {filteredPosts.map(post => (
                 <motion.div
                     key={post.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3 }}
+                    initial={{opacity: 0, y: 20}}
+                    animate={{opacity: 1, y: 0}}
+                    transition={{duration: 0.3}}
                 >
                     <PostCard>
                         <CardHeader
-                            avatar={<Avatar src={post.authorAvatar} />}
+                            avatar={<Avatar src={post.authorAvatar}/>}
                             action={
                                 <IconButton>
-                                    <MoreHoriz />
+                                    <MoreHoriz/>
                                 </IconButton>
                             }
                             title={post.author}
                             subheader={formatDate(post.timestamp)}
-                            titleTypographyProps={{ fontWeight: 600 }}
-                            subheaderTypographyProps={{ variant: 'caption' }}
+                            titleTypographyProps={{fontWeight: 600}}
+                            subheaderTypographyProps={{variant: 'caption'}}
                         />
 
-                        <CardContent sx={{ pt: 0 }}>
+                        <CardContent sx={{pt: 0}}>
                             <Typography variant="h6" gutterBottom>
                                 {post.title}
                             </Typography>
@@ -375,37 +375,42 @@ const Forum = ({ userId }) => {
                             )}
 
                             {/* Post Actions */}
-                            <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 2 }}>
+                            <Box sx={{display: 'flex', justifyContent: 'space-between', mt: 2}}>
                                 <ActionButton
-                                    startIcon={<ThumbUp color={post.userLiked ? 'primary' : 'inherit'} />}
+                                    startIcon={<ThumbUp color={post.userLiked ? 'primary' : 'inherit'}/>}
                                     onClick={() => handleLike(post.id)}
                                 >
                                     {post.likes}
                                 </ActionButton>
                                 <ActionButton
-                                    startIcon={<ThumbDown color={post.userDisliked ? 'error' : 'inherit'} />}
+                                    startIcon={<ThumbDown color={post.userDisliked ? 'error' : 'inherit'}/>}
                                     onClick={() => handleDislike(post.id)}
                                 >
                                     {post.dislikes}
                                 </ActionButton>
                                 <ActionButton
-                                    startIcon={<Comment />}
+                                    startIcon={<Comment/>}
                                     onClick={() => setActiveCommentPost(activeCommentPost === post.id ? null : post.id)}
                                 >
                                     {post.comments.length}
                                 </ActionButton>
-                                <ActionButton startIcon={<Share />}>
+                                <ActionButton startIcon={<Share/>}>
                                     Udostępnij
                                 </ActionButton>
                             </Box>
 
                             {/* Comments Section */}
                             {post.comments.length > 0 && (
-                                <Box sx={{ mt: 2, bgcolor: theme.palette.mode === 'light' ? '#f7f8fa' : '#242526', borderRadius: '8px', p: 2 }}>
+                                <Box sx={{
+                                    mt: 2,
+                                    bgcolor: theme.palette.mode === 'light' ? '#f7f8fa' : '#242526',
+                                    borderRadius: '8px',
+                                    p: 2
+                                }}>
                                     {post.comments.slice(0, 3).map(comment => (
-                                        <Box key={comment.id} sx={{ mb: 2 }}>
-                                            <Box sx={{ display: 'flex', gap: 1 }}>
-                                                <Avatar src={comment.authorAvatar} sx={{ width: 32, height: 32 }} />
+                                        <Box key={comment.id} sx={{mb: 2}}>
+                                            <Box sx={{display: 'flex', gap: 1}}>
+                                                <Avatar src={comment.authorAvatar} sx={{width: 32, height: 32}}/>
                                                 <Box>
                                                     <Typography variant="subtitle2" fontWeight={600}>
                                                         {comment.author}
@@ -419,7 +424,7 @@ const Forum = ({ userId }) => {
                                     ))}
 
                                     {post.comments.length > 3 && (
-                                        <Typography variant="body2" color="text.secondary" sx={{ ml: 6 }}>
+                                        <Typography variant="body2" color="text.secondary" sx={{ml: 6}}>
                                             Pokaż więcej komentarzy ({post.comments.length - 3})
                                         </Typography>
                                     )}
@@ -428,9 +433,9 @@ const Forum = ({ userId }) => {
 
                             {/* Comment Input */}
                             {activeCommentPost === post.id && (
-                                <Box sx={{ display: 'flex', gap: 1, mt: 2, position: 'relative' }}>
-                                    <Avatar sx={{ width: 32, height: 32 }} />
-                                    <Box sx={{ flexGrow: 1, position: 'relative' }}>
+                                <Box sx={{display: 'flex', gap: 1, mt: 2, position: 'relative'}}>
+                                    <Avatar sx={{width: 32, height: 32}}/>
+                                    <Box sx={{flexGrow: 1, position: 'relative'}}>
                                         <CommentInput
                                             fullWidth
                                             placeholder="Napisz komentarz..."
@@ -439,13 +444,14 @@ const Forum = ({ userId }) => {
                                             InputProps={{
                                                 endAdornment: (
                                                     <IconButton onClick={() => setShowEmojiPicker(!showEmojiPicker)}>
-                                                        <SentimentSatisfiedAlt />
+                                                        <SentimentSatisfiedAlt/>
                                                     </IconButton>
                                                 )
                                             }}
                                         />
                                         {showEmojiPicker && (
-                                            <Box ref={emojiPickerRef} sx={{ position: 'absolute', bottom: 50, zIndex: 10 }}>
+                                            <Box ref={emojiPickerRef}
+                                                 sx={{position: 'absolute', bottom: 50, zIndex: 10}}>
                                                 <EmojiPicker
                                                     onEmojiClick={(emojiData) => {
                                                         setCommentText(prev => prev + emojiData.emoji);
@@ -462,7 +468,7 @@ const Forum = ({ userId }) => {
                                         disabled={!commentText.trim()}
                                         onClick={() => handleAddComment(post.id)}
                                     >
-                                        <Send />
+                                        <Send/>
                                     </IconButton>
                                 </Box>
                             )}
@@ -478,11 +484,11 @@ const Forum = ({ userId }) => {
                 maxWidth="sm"
                 fullWidth
             >
-                <DialogContent sx={{ p: 3 }}>
+                <DialogContent sx={{p: 3}}>
                     <Typography variant="h6" gutterBottom>
                         Utwórz post
                     </Typography>
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    <Box sx={{display: 'flex', flexDirection: 'column', gap: 2}}>
                         <FormControl fullWidth>
                             <InputLabel>Wybierz grupę</InputLabel>
                             <Select
@@ -490,18 +496,18 @@ const Forum = ({ userId }) => {
                                 label="Wybierz grupę"
                                 onChange={(e) => setGroupId(e.target.value)}
                                 required
-                                sx={{ borderRadius: '8px' }}
+                                sx={{borderRadius: '8px'}}
                             >
                                 {groups.map(group => (
                                     <MenuItem key={group.id} value={group.id}>
-                                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                        <Box sx={{display: 'flex', alignItems: 'center'}}>
                                             <Box sx={{
                                                 width: 8,
                                                 height: 8,
                                                 bgcolor: group.color,
                                                 borderRadius: '50%',
                                                 mr: 1.5
-                                            }} />
+                                            }}/>
                                             {group.name}
                                         </Box>
                                     </MenuItem>
@@ -525,7 +531,7 @@ const Forum = ({ userId }) => {
                             fullWidth
                             multiline
                             minRows={4}
-                            sx={{ borderRadius: '8px' }}
+                            sx={{borderRadius: '8px'}}
                         />
 
                         {/* Image Upload */}
@@ -533,8 +539,8 @@ const Forum = ({ userId }) => {
                             <Button
                                 variant="outlined"
                                 component="label"
-                                startIcon={<Image />}
-                                sx={{ mb: 1 }}
+                                startIcon={<Image/>}
+                                sx={{mb: 1}}
                             >
                                 Dodaj zdjęcia
                                 <input
@@ -547,9 +553,9 @@ const Forum = ({ userId }) => {
                             </Button>
 
                             {/* Image Previews */}
-                            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mt: 1 }}>
+                            <Box sx={{display: 'flex', gap: 1, flexWrap: 'wrap', mt: 1}}>
                                 {imagePreviews.map((src, idx) => (
-                                    <Box key={idx} sx={{ position: 'relative' }}>
+                                    <Box key={idx} sx={{position: 'relative'}}>
                                         <img
                                             src={src}
                                             alt={`preview-${idx}`}
@@ -571,14 +577,14 @@ const Forum = ({ userId }) => {
                                             }}
                                             onClick={() => removeImage(idx)}
                                         >
-                                            <Close fontSize="small" />
+                                            <Close fontSize="small"/>
                                         </IconButton>
                                     </Box>
                                 ))}
                             </Box>
                         </Box>
 
-                        <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2, mt: 2 }}>
+                        <Box sx={{display: 'flex', justifyContent: 'flex-end', gap: 2, mt: 2}}>
                             <Button
                                 variant="outlined"
                                 onClick={() => setIsComposerOpen(false)}

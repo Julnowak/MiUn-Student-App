@@ -192,7 +192,7 @@ class NotificationsAPI(APIView):
     permission_classes = (permissions.IsAuthenticated,)  # Only authenticated users can log out
 
     def get(self, request):
-        notifications = Notification.objects.filter(user=request.user)
+        notifications = Notification.objects.filter(user=request.user).order_by("-created_at")
         serializer = NotificationSerializer(notifications, many=True)
         num = len(notifications.filter(isRead=False))
         return Response({"notifications": serializer.data, "num": num}, status=status.HTTP_200_OK)
@@ -231,6 +231,32 @@ class NotificationsAPI(APIView):
             {"message": "Notification deleted successfully"},
             status=status.HTTP_204_NO_CONTENT
         )
+
+
+class UserInviteAPI(APIView):
+    permission_classes = (permissions.IsAuthenticated,)  # Only authenticated users can log out
+
+    def get(self, request):
+        if 'query' in request.GET:
+            users = AppUser.objects.filter(username=request.GET.get('query'))
+            serializer = UserSerializer(users, many=True)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response( status=status.HTTP_200_OK)
+
+    def post(self, request):
+        print(request.data)
+        group = Group.objects.get(id=request.data['group_id'])
+        user = AppUser.objects.get(id=request.data['user_id'])
+        Notification.objects.create(
+            user=user, title=f"Zaproszenie do grupy {group.name}",
+            message=f"Cześć {user.username}!\n"
+                    f"Administrator zaprasza Cię do dołączenia do grupy {group.name}."
+                    f"Zaproszenie będzie ważne przez następne 7 dni. Możesz potwierdzić lub "
+                    f"odrzucić zaproszenie, wybierając jedną z odpowiedzi poniżej. Możesz również dołączyć ręcznie, wyszukując grupę poprzez wyszukiwarkę,"
+                    f"i podając kod grupy: {group.code}.", type="GROUP INVITATION", group=group)
+
+        return Response(status=status.HTTP_200_OK)
+
 
 
 class SourceAPI(APIView):
@@ -392,6 +418,25 @@ class OneGroupAPI(APIView):
 
     def post(self, request, group_id):
         group = Group.objects.get(id=group_id)
+        print(request.data)
+        if "type" in request.data:
+
+            n = Notification.objects.get(id=request.data['notification']["id"])
+            if request.data['type'] == "notification":
+
+                n.isAnswered = True
+                n.save()
+                if group.isPublic:
+                    return Response(status=status.HTTP_200_OK)
+                else:
+                    group.members.add(request.user)
+                    group.save()
+                    return Response(status=status.HTTP_200_OK)
+            elif request.data['type'] == "notification_refused":
+                n.isAnswered = True
+                n.save()
+                return Response(status=status.HTTP_200_OK)
+
         if group.isPublic:
             return Response(status=status.HTTP_200_OK)
         else:
@@ -430,6 +475,22 @@ class OneGroupAPI(APIView):
             group.avatar = request.FILES.get('avatar')
         if 'coverImage' in request.FILES:
             group.coverImage = request.FILES.get('coverImage')
+
+        group.save()
+        return Response(status=status.HTTP_200_OK)
+
+    def delete(self, request, group_id):
+        group = Group.objects.get(id=group_id)
+        print(request.data)
+        if "type" in request.data:
+            if request.data['type'] == 'member_delete':
+                member = AppUser.objects.get(id=request.data['user_id'])
+                group.members.remove(member)
+                group.save()
+
+                serializer = GroupSerializer(group)
+
+                return Response(serializer.data, status=status.HTTP_200_OK)
 
         group.save()
         return Response(status=status.HTTP_200_OK)

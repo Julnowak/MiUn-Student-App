@@ -20,6 +20,7 @@ urlpatterns = [
     path('courses/', views.CourseAPI.as_view(), name='courses'),
     path('groups/', views.GroupAPI.as_view(), name='groups'),
     path('forum/', views.ForumAPI.as_view(), name='forum'),
+    path('inviteUser/', views.UserInviteAPI.as_view(), name='inviteUser'),
     path('calendar/', views.CalendarAPI.as_view(), name='calendar'),
     path('group/<int:group_id>', views.OneGroupAPI.as_view(), name='group'),
     path('fieldByYear/', views.FieldByYearAPI.as_view(), name='fieldByYear'),
