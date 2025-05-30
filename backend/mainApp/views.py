@@ -365,6 +365,12 @@ class GroupAPI(APIView):
         userGroupsSerializer = GroupSerializer(userGroups, many=True)
         return Response({"groups": serializer.data, "newGroup": groupSerializer.data, "userGroups": userGroupsSerializer.data }, status=status.HTTP_200_OK)
 
+def str_to_bool(value):
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        return value.lower() == 'true'
+    return False
 
 class OneGroupAPI(APIView):
     permission_classes = (permissions.IsAuthenticated,)  # Only authenticated users can log out
@@ -395,6 +401,38 @@ class OneGroupAPI(APIView):
                 return Response(status=status.HTTP_200_OK)
 
         return Response(status=status.HTTP_406_NOT_ACCEPTABLE)
+
+    def put(self, request, group_id):
+        group = Group.objects.get(id=group_id)
+
+        def str_to_bool(value):
+            if isinstance(value, bool):
+                return value
+            if isinstance(value, str):
+                return value.lower() == 'true'
+            return False
+
+        if 'rules' in request.data:
+            group.rules = request.data['rules']
+        if 'code' in request.data:
+            group.code = request.data['code']
+        if 'isPublic' in request.data:
+            group.isPublic = str_to_bool(request.data['isPublic'])
+        if 'limit' in request.data:
+            group.limit = request.data['limit']
+        if 'name' in request.data:
+            group.name = request.data['name']
+        if 'description' in request.data:
+            group.description = request.data['description']
+        if 'isArchived' in request.data:
+            group.archived = str_to_bool(request.data['isArchived'])
+        if 'avatar' in request.FILES:
+            group.avatar = request.FILES.get('avatar')
+        if 'coverImage' in request.FILES:
+            group.coverImage = request.FILES.get('coverImage')
+
+        group.save()
+        return Response(status=status.HTTP_200_OK)
 
 
 def calculate_scores(data):
@@ -512,6 +550,19 @@ class ForumAPI(APIView):
     #     news = News.objects.get(pk=news_id)
     #     serializer = NewsSerializer(news)
     #     return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class CalendarAPI(APIView):
+    permission_classes = (permissions.IsAuthenticated,)  # Only authenticated users can log out
+
+    def get(self, request):
+        events = Event.objects.filter(user__id=request.user.id)
+        serializer = EventSerializer(events, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def post(self, request):
+        print(request.data)
+        return Response( status=status.HTTP_200_OK)
 
 
 class NewsAPI(APIView):

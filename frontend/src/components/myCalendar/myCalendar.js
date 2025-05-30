@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, {useEffect, useState} from 'react';
 import {
   Box,
   Button,
@@ -24,10 +24,13 @@ import {
   TableRow,
   useMediaQuery
 } from '@mui/material';
-import { Add, Event, Upload, Close, ChevronLeft, ChevronRight } from '@mui/icons-material';
-import { format, parseISO, addMonths, subMonths, isSameMonth, isSameDay } from 'date-fns';
+import {Add, Event, Upload, Close, ChevronLeft, ChevronRight, EventNote} from '@mui/icons-material';
+import { format, parseISO, addMonths, addWeeks,  subMonths, isSameMonth, isSameDay } from 'date-fns';
 import { pl } from 'date-fns/locale';
-import { isWithinInterval} from 'date-fns';
+import { isWithinInterval, eachDayOfInterval, differenceInMinutes, differenceInHours, startOfWeek, endOfWeek} from 'date-fns';
+import {alpha} from "@mui/material/styles";
+import client from "../../client";
+import {API_BASE_URL} from "../../config";
 
 const colorOptions = [
   { value: colors.blue[500], label: 'Niebieski' },
@@ -37,57 +40,376 @@ const colorOptions = [
   { value: colors.purple[500], label: 'Fioletowy' },
 ];
 
-const WeekView = ({ events, selectedDate, daysOfWeek, getEventsForDay }) => {
-  // Wyznacz pierwszy dzień tygodnia (poniedziałek)
-  const startOfWeek = new Date(selectedDate);
-  startOfWeek.setDate(selectedDate.getDate() - ((selectedDate.getDay() + 6) % 7));
-  const days = Array.from({length: 7}, (_, i) => {
-    const d = new Date(startOfWeek);
-    d.setDate(startOfWeek.getDate() + i);
-    return d;
+const WeekView = ({ events, selectedDate, onDateChange }) => {
+  const theme = useTheme();
+  const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
+
+  // Oblicz zakres tygodnia (od poniedziałku do niedzieli)
+  console.log(selectedDate)
+  const startof = startOfWeek(selectedDate, { weekStartsOn: 1 });
+  const endof = endOfWeek(selectedDate, { weekStartsOn: 1 });
+
+  // Generuj dni tygodnia
+  const days = eachDayOfInterval({
+    start: startof,
+    end: endof
   });
 
+  // Podziel dzień na przedziały godzinowe
+  const hours = Array.from({ length: 24 }, (_, i) => i);
+
+  // Funkcja do nawigacji między tygodniami
+  const navigateWeek = (direction) => {
+    const newDate = addWeeks(selectedDate, direction);
+    onDateChange(newDate);
+  };
+
+  // Funkcja do sprawdzania czy wydarzenie jest w danym przedziale czasowym
+  const isEventInSlot = (event, day, hour) => {
+    const eventStart = parseISO(event.start);
+    const eventEnd = parseISO(event.end);
+    const slotStart = new Date(day);
+    slotStart.setHours(hour, 0, 0, 0);
+    const slotEnd = new Date(day);
+    slotEnd.setHours(hour + 1, 0, 0, 0);
+
+    return (eventStart < slotEnd && eventEnd > slotStart);
+  };
+
   return (
-    <Table>
-      <TableHead>
-        <TableRow>
-          {days.map((day, idx) => (
-            <TableCell key={idx}>{daysOfWeek[idx]}<br/>{day.getDate()}</TableCell>
+    <Box sx={{
+      display: 'flex',
+      flexDirection: 'column',
+      height: '100%',
+      overflow: 'hidden'
+    }}>
+      {/* Nagłówek z nawigacją */}
+      <Box sx={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        p: 1,
+        borderBottom: `1px solid ${theme.palette.divider}`
+      }}>
+        <IconButton onClick={() => navigateWeek(-1)}>
+          <ChevronLeft />
+        </IconButton>
+
+        <Typography variant="h6" sx={{ textAlign: 'center' }}>
+          {format(startof, 'd MMM yyyy', { locale: pl })} - {format(endof, 'd MMM yyyy', { locale: pl })}
+        </Typography>
+
+        <IconButton onClick={() => navigateWeek(1)}>
+          <ChevronRight />
+        </IconButton>
+      </Box>
+
+      {/* Kontener główny */}
+      <Box sx={{
+        display: 'flex',
+        flex: 1,
+        overflow: 'auto'
+      }}>
+        {/* Kolumna z godzinami */}
+        <Box sx={{
+          width: 60,
+          borderRight: `1px solid ${theme.palette.divider}`,
+          position: 'sticky',
+          left: 0,
+          zIndex: 2,
+          bgcolor: 'background.paper'
+        }}>
+          {hours.map(hour => (
+            <Box key={hour} sx={{
+              height: 48,
+              display: 'flex',
+              alignItems: 'flex-start',
+              justifyContent: 'flex-end',
+              pr: 1,
+              borderBottom: `1px solid ${theme.palette.divider}`,
+              boxSizing: 'border-box'
+            }}>
+              <Typography variant="caption" color="text.secondary">
+                {`${hour}:00`}
+              </Typography>
+            </Box>
           ))}
-        </TableRow>
-      </TableHead>
-      <TableBody>
-        <TableRow>
-          {days.map((day, idx) => (
-            <TableCell key={idx}>
-              {getEventsForDay(day).map(event => (
-                <Box key={event.id} sx={{ bgcolor: event.color, color: '#fff', mb: 0.5, p: 0.5, borderRadius: 1 }}>
-                  {event.name}
+        </Box>
+
+        {/* Kolumny dni tygodnia */}
+        <Box sx={{ display: 'flex', flex: 1 }}>
+          {days.map(day => {
+            const dayEvents = events.filter(event =>
+              isSameDay(parseISO(event.start), day)
+            );
+
+            return (
+              <Box
+                key={day.toString()}
+                sx={{
+                  flex: 1,
+                  minWidth: 0,
+                  borderRight: `1px solid ${theme.palette.divider}`,
+                  bgcolor: isSameDay(day, selectedDate) ?
+                    alpha(theme.palette.primary.main, 0.05) :
+                    'inherit'
+                }}
+                onClick={() => onDateChange(day)}
+              >
+                {/* Nagłówek dnia */}
+                <Box sx={{
+                  position: 'sticky',
+                  top: 0,
+                  zIndex: 1,
+                  bgcolor: 'background.paper',
+                  borderBottom: `1px solid ${theme.palette.divider}`,
+                  p: 1,
+                  textAlign: 'center'
+                }}>
+                  <Typography variant="subtitle2">
+                    {format(day, 'EEE', { locale: pl })}
+                  </Typography>
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      fontWeight: isSameDay(day, new Date()) ? 'bold' : 'normal',
+                      color: isSameDay(day, new Date()) ?
+                        theme.palette.primary.main :
+                        'inherit'
+                    }}
+                  >
+                    {format(day, 'd', { locale: pl })}
+                  </Typography>
                 </Box>
-              ))}
-            </TableCell>
-          ))}
-        </TableRow>
-      </TableBody>
-    </Table>
+
+                {/* Komórki godzinowe */}
+                <Box>
+                  {hours.map(hour => {
+                    const slotEvents = dayEvents.filter(event =>
+                      isEventInSlot(event, day, hour)
+                    );
+
+                    return (
+                      <Box
+                        key={hour}
+                        sx={{
+                          height: 48,
+                          borderBottom: `1px solid ${theme.palette.divider}`,
+                          position: 'relative',
+                          '&:hover': {
+                            bgcolor: theme.palette.action.hover
+                          }
+                        }}
+                      >
+                        {slotEvents.map((event, idx) => {
+                          const eventStart = parseISO(event.start);
+                          const eventEnd = parseISO(event.end);
+                          const startHour = eventStart.getHours();
+                          const startMinute = eventStart.getMinutes();
+                          const durationHours = differenceInHours(eventEnd, eventStart);
+
+                          return (
+                            <Box
+                              key={event.id}
+                              sx={{
+                                position: 'absolute',
+                                top: `${(startMinute / 60) * 48}px`,
+                                left: 4,
+                                right: 4,
+                                height: `${Math.max(durationHours * 48 + (startMinute / 60) * 48, 24)}px`,
+                                bgcolor: event.color,
+                                color: 'white',
+                                borderRadius: 1,
+                                p: 0.5,
+                                overflow: 'hidden',
+                                zIndex: 1,
+                                cursor: 'pointer'
+                              }}
+                            >
+                              <Typography variant="caption" sx={{ fontWeight: 'bold' }}>
+                                {format(eventStart, 'HH:mm')} {event.name}
+                              </Typography>
+                            </Box>
+                          );
+                        })}
+                      </Box>
+                    );
+                  })}
+                </Box>
+              </Box>
+            );
+          })}
+        </Box>
+      </Box>
+    </Box>
   );
 };
 
-const DayView = ({ events, date }) => (
-  <Box>
-    <Typography variant="h6">
-      {format(date, "EEEE, d MMMM yyyy", { locale: pl })}
-    </Typography>
-    {events.map(event => (
-      <Box key={event.id} sx={{ bgcolor: event.color, color: '#fff', mb: 1, p: 1, borderRadius: 1 }}>
-        <b>{event.name}</b><br/>
-        {format(parseISO(event.start), "HH:mm")} - {format(parseISO(event.end), "HH:mm")}
-        <div>{event.additional_info}</div>
+const DayView = ({ events, date, onEventClick }) => {
+  const theme = useTheme();
+  const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
+
+  // Generuj przedziały godzinowe (6:00 - 22:00)
+  const hours = Array.from({ length: 17 }, (_, i) => i + 6);
+
+  // Wydarzenia dla wybranego dnia
+  const dayEvents = events.filter(event =>
+    isSameDay(parseISO(event.start), date)
+  ).sort((a, b) => new Date(a.start) - new Date(b.start));
+
+  return (
+    <Box sx={{
+      display: 'flex',
+      flexDirection: 'column',
+      height: '100%',
+      overflow: 'hidden'
+    }}>
+      {/* Nagłówek z datą */}
+      <Box sx={{
+        p: 2,
+        borderBottom: `1px solid ${theme.palette.divider}`,
+        bgcolor: 'background.paper',
+        position: 'sticky',
+        top: 0,
+        zIndex: 2
+      }}>
+        <Typography variant="h6" sx={{ fontWeight: 600 }}>
+          {format(date, "EEEE, d MMMM yyyy", { locale: pl })}
+        </Typography>
       </Box>
-    ))}
-    {events.length === 0 && <Typography>Brak wydarzeń</Typography>}
-  </Box>
-);
+
+      {/* Kontener główny */}
+      <Box sx={{
+        flex: 1,
+        overflow: 'auto',
+        position: 'relative'
+      }}>
+        {/* Linie czasu */}
+        {hours.map(hour => (
+          <Box
+            key={hour}
+            sx={{
+              display: 'flex',
+              height: 48,
+              borderBottom: `1px solid ${theme.palette.divider}`,
+              position: 'relative'
+            }}
+          >
+            <Typography
+              variant="caption"
+              sx={{
+                position: 'absolute',
+                left: 8,
+                top: -10,
+                color: 'text.secondary',
+                bgcolor: 'background.paper',
+                px: 1
+              }}
+            >
+              {`${hour}:00`}
+            </Typography>
+          </Box>
+        ))}
+
+        {/* Wydarzenia */}
+        {dayEvents.map(event => {
+          const start = parseISO(event.start);
+          const end = parseISO(event.end);
+          const startHour = start.getHours();
+          const startMinute = start.getMinutes();
+          const durationMinutes = differenceInMinutes(end, start);
+
+          return (
+            <Box
+              key={event.id}
+              onClick={() => onEventClick(event)}
+              sx={{
+                position: 'absolute',
+                left: 60,
+                right: 16,
+                top: `${((startHour - 6) * 48) + (startMinute * 48 / 60)}px`,
+                height: `${Math.max(durationMinutes * 48 / 60, 24)}px`,
+                bgcolor: event.color,
+                color: '#fff',
+                borderRadius: 2,
+                p: 1.5,
+                boxShadow: theme.shadows[1],
+                cursor: 'pointer',
+                '&:hover': {
+                  boxShadow: theme.shadows[3]
+                },
+                display: 'flex',
+                flexDirection: 'column',
+                overflow: 'hidden'
+              }}
+            >
+              <Typography variant="subtitle2" sx={{ fontWeight: 600, lineHeight: 1.2 }}>
+                {event.name}
+              </Typography>
+              <Typography variant="caption" sx={{ opacity: 0.9 }}>
+                {format(start, 'HH:mm')} - {format(end, 'HH:mm')}
+              </Typography>
+              {event.additional_info && (
+                <Typography
+                  variant="caption"
+                  sx={{
+                    mt: 0.5,
+                    display: '-webkit-box',
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis'
+                  }}
+                >
+                  {event.additional_info}
+                </Typography>
+              )}
+            </Box>
+          );
+        })}
+
+        {/* Brak wydarzeń */}
+        {dayEvents.length === 0 && (
+          <Box sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            height: '100%',
+            color: 'text.secondary'
+          }}>
+            <EventNote sx={{ fontSize: 64, mb: 2, opacity: 0.3 }} />
+            <Typography variant="h6">Brak wydarzeń</Typography>
+            <Typography variant="body2">Dodaj nowe wydarzenie</Typography>
+          </Box>
+        )}
+      </Box>
+
+      {/* Aktualna godzina - wskaźnik */}
+      {isSameDay(date, new Date()) && (
+        <Box sx={{
+          position: 'absolute',
+          left: 0,
+          right: 0,
+          top: `${((new Date().getHours() - 6) * 48) + (new Date().getMinutes() * 48 / 60)}px`,
+          height: '2px',
+          bgcolor: theme.palette.error.main,
+          zIndex: 1,
+          '&::before': {
+            content: '""',
+            position: 'absolute',
+            left: 0,
+            top: -4,
+            width: 8,
+            height: 8,
+            borderRadius: '50%',
+            bgcolor: theme.palette.error.main
+          }
+        }} />
+      )}
+    </Box>
+  );
+};
 
 const MyCalendar = () => {
   const theme = useTheme();
@@ -105,6 +427,26 @@ const MyCalendar = () => {
     recurrent: false,
     recurrency_details: null
   });
+
+      const token = localStorage.getItem("access")
+    useEffect(() => {
+        const fetchData = async () => {
+            try {
+                const response = await client.get(API_BASE_URL + "calendar/", {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                });
+                setEvents(response.data);
+            } catch (error) {
+                console.log("Nie udało się zalogować");
+            }
+        };
+
+        if (token) {
+            fetchData();
+        }
+    }, [token]);
 
   const generateCalendarDays = () => {
     const startDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
@@ -157,7 +499,7 @@ const MyCalendar = () => {
 
   const getEventsForDay = (day) => {
     if (!day) return [];
-    return events.filter(event => {
+    return events?.filter(event => {
       const start = parseISO(event.start);
       const end = parseISO(event.end);
       return isWithinInterval(day, { start, end });
@@ -201,11 +543,17 @@ const MyCalendar = () => {
             padding: isSmallScreen ? '6px 8px' : '8px 16px'
           }
         }}>
-          <Button
+
+        </Box>
+
+      </Box>
+
+       <Button
             variant="contained"
             startIcon={<Upload sx={{ fontSize: isSmallScreen ? '1rem' : '1.25rem' }} />}
             component="label"
-            sx={{ flex: isSmallScreen ? 1 : 0 }}
+            sx={{ flex: isSmallScreen ? 1 : 0 , m:1}}
+
           >
             {isSmallScreen ? 'Import' : 'Importuj z pliku'}
             <input type="file" hidden accept=".csv,.xlsx,.xls" />
@@ -214,12 +562,12 @@ const MyCalendar = () => {
             variant="contained"
             startIcon={<Add sx={{ fontSize: isSmallScreen ? '1rem' : '1.25rem' }} />}
             onClick={() => setOpenDialog(true)}
-            sx={{ flex: isSmallScreen ? 1 : 0 }}
+            sx={{ flex: isSmallScreen ? 1 : 0, m:1 }}
           >
             {isSmallScreen ? 'Dodaj' : 'Nowe wydarzenie'}
           </Button>
-        </Box>
-      </Box>
+
+
 
       <Box sx={{ mb: 2 }}>
         <Button onClick={() => setView('day')}>Dzień</Button>
@@ -284,7 +632,7 @@ const MyCalendar = () => {
                           p: 0.5,
                           border: `1px solid ${theme.palette.divider}`,
                           bgcolor: dayObj && isSameDay(dayObj, selectedDate)
-                            ? theme.palette.primary.main
+                            ? alpha(theme.palette.primary.main, 0.1)
                             : 'inherit',
                           cursor: dayObj ? 'pointer' : 'default',
                           overflow: 'hidden'

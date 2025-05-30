@@ -272,6 +272,7 @@ class Source(models.Model):
     field = models.ForeignKey(Field, on_delete=models.CASCADE)
     course = models.ForeignKey(Course, on_delete=models.CASCADE, null=True, blank=True)
     added_by = models.ForeignKey(AppUser, on_delete=models.CASCADE)
+    group = models.ForeignKey(Group, on_delete=models.CASCADE, blank=True, null=True)
     description = models.TextField(blank=True, null=True, max_length=300)
     date_added = models.DateTimeField(auto_now_add=True)
     verified = models.BooleanField(default=False)
