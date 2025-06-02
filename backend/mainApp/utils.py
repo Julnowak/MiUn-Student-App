@@ -13,8 +13,14 @@ def send_verification_email(user, student_id):
     # Save the code to the database
     VerificationCode.objects.create(user=user, student_id=student_id, code=code)
 
+    # Simulated email sending (no actual sending)
     email = f"{student_id}@student.agh.edu.pl"
     subject = "Your Verification Code"
     message = f"Your verification code is: {code}\nIt is valid for 1 hour."
 
-    send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [email])
+    # Uncomment the following line only if email settings configured:
+    # send_mail(subject, message, settings.DEFAULT_FROM_EMAIL, [email])
+
+    return code  # <-- Important: return the code directly
+
+

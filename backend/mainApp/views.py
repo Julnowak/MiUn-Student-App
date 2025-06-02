@@ -27,6 +27,12 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
 
+from rest_framework.decorators import permission_classes
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+from .utils import send_verification_email
+from .models import VerificationCode
+
 
 UserModel = get_user_model()
 
@@ -698,3 +704,27 @@ def ask_gemini(request):
         return Response({"response": response.text, "results": results})
     except Exception as e:
         return Response({"error": str(e)}, status=500)
+
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def generate_verification_code(request):
+    student_id = request.data.get("student_id")
+    if not student_id:
+        return Response({"message": "student_id is required."}, status=400)
+
+    code = send_verification_email(request.user, student_id)
+    return Response({"verification_code": code}, status=200)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def verify_account(request):
+    code = request.data.get("code")
+    verification_entry = VerificationCode.objects.filter(user=request.user, code=code).first()
+
+    if verification_entry and not verification_entry.is_expired():
+        request.user.is_verified = True
+        request.user.save()
+        return Response({"message": "Account verified."}, status=200)
+    else:
+        return Response({"message": "Invalid or expired code."}, status=400)

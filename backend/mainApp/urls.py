@@ -1,6 +1,7 @@
 from . import views
 from django.urls import path
 from rest_framework_simplejwt.views import TokenRefreshView
+from .views import generate_verification_code, verify_account
 
 urlpatterns = [
     path('register/', views.UserRegister.as_view(), name='register'),
@@ -31,4 +32,6 @@ urlpatterns = [
     path('verify-code/', views.RequestVerification.as_view(), name='verify-code'),
     path('calculation/', views.CalculationAPI.as_view(), name='calculation'),
     path('ask-gemini/', views.ask_gemini, name='ask_gemini'),
+    path('generate-verification-code/', generate_verification_code, name='generate-verification-code'),
+    path('verify-account/', verify_account, name='verify-account'),
 ]

@@ -136,6 +136,39 @@ export default function UserProfile() {
     const token = localStorage.getItem("access");
     const navigate = useNavigate()
 
+    // YOUR handleVerification FUNCTION GOES HERE
+    const handleVerification = async () => {
+        try {
+            const student_id = prompt("Podaj swój numer indeksu (student ID):");
+
+            const response = await client.post(API_BASE_URL + "generate-verification-code/", {
+                student_id: student_id,
+            }, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+
+            const generatedCode = response.data.verification_code;
+            alert(`Twój kod weryfikacyjny: ${generatedCode}`);
+
+            const enteredCode = prompt("Wpisz wygenerowany kod weryfikacyjny:");
+
+            const verifyResponse = await client.post(API_BASE_URL + "verify-account/", {
+                code: enteredCode,
+            }, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+
+            if (verifyResponse.status === 200) {
+                alert("Konto zostało zweryfikowane!");
+                setUser({ ...user, is_verified: true });
+            } else {
+                alert("Niepoprawny lub wygasły kod.");
+            }
+        } catch (error) {
+            console.error("Błąd podczas weryfikacji konta:", error);
+            alert("Wystąpił błąd podczas weryfikacji konta.");
+        }
+    };
 
     useEffect(() => {
         const fetchUserData = async () => {
@@ -325,6 +358,7 @@ export default function UserProfile() {
                                             px: 3,
                                             fontWeight: 600
                                         }}
+                                        onClick={handleVerification}
                                     >
                                         Zweryfikuj konto
                                     </Button>
