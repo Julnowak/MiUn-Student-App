@@ -20,11 +20,11 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from django.utils import timezone
 
 from mainApp.models import AppUser, Building, Notification, Source, Field, MaturaSubject, News, Course, Group, \
-    FieldByYear, Event, Round, EmailVerification, Post
+    FieldByYear, Event, Round, EmailVerification, Post, Comment, LikePost
 from mainApp.serializers import UserRegisterSerializer, UserSerializer, BuildingSerializer, NotificationSerializer, \
     SourceSerializer, FieldSerializer, MaturaSubjectSerializer, NewsSerializer, CourseSerializer, GroupSerializer, \
     FieldByYearSerializer, EventSerializer, RoundSerializer, EmailVerificationSerializer, VerifyCodeSerializer, \
-    PostSerializer
+    PostSerializer, CommentSerializer
 
 from .utils import send_verification_email
 from .calc_score.calc_score import calc_score_fun
@@ -357,8 +357,6 @@ class EventAPI(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
-
-
 class FieldByYearAPI(APIView):
     permission_classes = (permissions.IsAuthenticated,)  # Only authenticated users can log out
 
@@ -638,6 +636,21 @@ class ForumAPI(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
+class CommentAPI(APIView):
+    permission_classes = (permissions.IsAuthenticated,)  # Only authenticated users can log out
+
+    def get(self, request, post_id):
+        comments = Comment.objects.filter(post_id=post_id)
+        serializer = CommentSerializer(comments, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def post(self, request, post_id):
+        comment = Comment.objects.create(user=request.user, content=request.data["content"],
+                                         post_id=post_id)
+
+        serializer = PostSerializer(Post.objects.get(id=post_id))
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
 class CalendarAPI(APIView):
     permission_classes = (permissions.IsAuthenticated,)  # Only authenticated users can log out
 
@@ -649,6 +662,46 @@ class CalendarAPI(APIView):
     def post(self, request):
         print(request.data)
         return Response( status=status.HTTP_200_OK)
+
+
+class LikeDislikeAPI(APIView):
+    permission_classes = (permissions.IsAuthenticated,)  # Only authenticated users can log out
+
+    def post(self, request):
+        print(request.data)
+        print(request.data["type"])
+
+        if request.data["content_type"] == "post":
+            post_id = request.data["post_id"]
+            post = Post.objects.get(id=post_id)
+
+            # Try to get existing like/dislike
+            like_obj = LikePost.objects.filter(post_id=post_id, user_id=request.user.id).first()
+
+            if not like_obj:
+                # No existing like/dislike - create new one
+                if request.data["type"] == "like":
+                    LikePost.objects.create(post=post, user=request.user, value=True)
+                elif request.data["type"] == "dislike":
+                    LikePost.objects.create(post=post, user=request.user, value=False)
+            else:
+                # Existing like/dislike found
+                if request.data["type"] == "like":
+                    if like_obj.value:  # If already liked, remove it
+                        like_obj.delete()
+                    else:  # If disliked, change to like
+                        like_obj.value = True
+                        like_obj.save()
+                elif request.data["type"] == "dislike":
+                    if not like_obj.value:  # If already disliked, remove it
+                        like_obj.delete()
+                    else:  # If liked, change to dislike
+                        like_obj.value = False
+                        like_obj.save()
+        else:
+            comment_id = request.data["comment"]
+
+        return Response(status=status.HTTP_200_OK)
 
 
 class NewsAPI(APIView):

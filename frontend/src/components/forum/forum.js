@@ -63,21 +63,24 @@ const Forum = () => {
     const navigate = useNavigate()
 
     const token = localStorage.getItem("access")
+
+    const fetchGroupData = async () => {
+        try {
+            const response = await client.get(API_BASE_URL + "forum/", {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+            console.log(response.data.posts);
+            setGroups(response.data.groups);
+            setPosts(response.data.posts); // Add this line to set the posts from API
+        } catch (error) {
+            console.log("Nie udało się zalogować");
+        }
+    };
+
+
     useEffect(() => {
-        const fetchGroupData = async () => {
-            try {
-                const response = await client.get(API_BASE_URL + "forum/", {
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                    },
-                });
-                console.log(response.data.posts);
-                setGroups(response.data.groups);
-                setPosts(response.data.posts); // Add this line to set the posts from API
-            } catch (error) {
-                console.log("Nie udało się zalogować");
-            }
-        };
 
         if (token) {
             fetchGroupData();
@@ -122,94 +125,54 @@ const Forum = () => {
         }
     };
 
-    const handleLike = (postId) => {
-        setPosts(posts.map(post => {
-            if (post.id !== postId) return post;
+    const handleLikeDislike = async (postId, like_type, content_type) => {
 
-            // Jeśli użytkownik już polubił, to usuń like
-            if (post.userLiked) {
-                return {
-                    ...post,
-                    likes: post.likes - 1,
-                    userLiked: false
-                };
-            }
-            // Jeśli użytkownik już nie lubił, to usuń dislike i dodaj like
-            else if (post.userDisliked) {
-                return {
-                    ...post,
-                    likes: post.likes + 1,
-                    dislikes: post.dislikes - 1,
-                    userLiked: true,
-                    userDisliked: false
-                };
-            }
-            // Jeśli nie było reakcji, dodaj like
-            else {
-                return {
-                    ...post,
-                    likes: post.likes + 1,
-                    userLiked: true
-                };
-            }
-        }));
+        try {
+            const response = await client.post(API_BASE_URL + "like_dislike/", {
+                type: like_type,
+                content_type: content_type,
+                post_id: postId
+            }, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    "Content-Type": "multipart/form-data",
+                }
+            });
+
+        } catch (err) {
+            console.error("Błąd przy dodawaniu zasobu:", err);
+        }
+        fetchGroupData();
     };
 
-    const handleDislike = (postId) => {
-        setPosts(posts.map(post => {
-            if (post.id !== postId) return post;
 
-            // Jeśli użytkownik już nie lubił, to usuń dislike
-            if (post.userDisliked) {
-                return {
-                    ...post,
-                    dislikes: post.dislikes - 1,
-                    userDisliked: false
-                };
-            }
-            // Jeśli użytkownik już polubił, to usuń like i dodaj dislike
-            else if (post.userLiked) {
-                return {
-                    ...post,
-                    likes: post.likes - 1,
-                    dislikes: post.dislikes + 1,
-                    userLiked: false,
-                    userDisliked: true
-                };
-            }
-            // Jeśli nie było reakcji, dodaj dislike
-            else {
-                return {
-                    ...post,
-                    dislikes: post.dislikes + 1,
-                    userDisliked: true
-                };
-            }
-        }));
-    };
-
-    const handleAddComment = (postId) => {
+    const handleAddComment = async (postId) => {
         if (!commentText.trim()) return;
 
-        const updatedPosts = posts.map(post => {
-            if (post.id === postId) {
-                return {
-                    ...post,
-                    comments: [...post.comments, {
-                        id: post.comments?.length + 1,
-                        author: 'Current User',
-                        authorAvatar: 'https://randomuser.me/api/portraits/men/3.jpg',
-                        content: commentText,
-                        timestamp: new Date().toISOString()
-                    }]
-                };
-            }
-            return post;
-        });
+        try {
+            const response = await client.post(API_BASE_URL + `comment/${postId}/`, {
+                content: commentText
+            }, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    "Content-Type": "multipart/form-data",
+                }
+            });
 
-        setPosts(updatedPosts);
-        setCommentText('');
-        setActiveCommentPost(null);
+            const updatedPosts = posts.map(post => {
+                if (post.id === postId) {
+                    return response.data
+                }
+                return post;
+            });
+
+            setPosts(updatedPosts);
+            setCommentText('');
+            setActiveCommentPost(null);
+
+        } catch (err) {
+            console.error("Błąd przy dodawaniu zasobu:", err);
+        }
     };
 
     const handleImageUpload = (e) => {
@@ -324,13 +287,19 @@ const Forum = () => {
                                     <Typography variant="subtitle1" component="span" sx={{mx: 0.5}}>
                                         ➤
                                     </Typography>
-<Link
-  to={`/group/${post.group.id}`}
-  style={{ textDecoration: 'none', color: 'inherit', position: 'relative', zIndex: 10, pointerEvents: 'auto' }}
-  onClick={() => navigate(`/group/${post.group.id}`)}
->
-  {post.group.name}
-</Link>
+                                    <Link
+                                        to={`/group/${post.group.id}`}
+                                        style={{
+                                            textDecoration: 'none',
+                                            color: 'inherit',
+                                            position: 'relative',
+                                            zIndex: 10,
+                                            pointerEvents: 'auto'
+                                        }}
+                                        onClick={() => navigate(`/group/${post.group.id}`)}
+                                    >
+                                        {post.group.name}
+                                    </Link>
                                 </Box>
                             }
                             subheader={formatDate(post.timestamp)}
@@ -377,13 +346,13 @@ const Forum = () => {
                             <Box sx={{display: 'flex', justifyContent: 'space-between', mt: 2}}>
                                 <ActionButton
                                     startIcon={<ThumbUp color={post.userLiked ? 'primary' : 'inherit'}/>}
-                                    onClick={() => handleLike(post.id)}
+                                    onClick={() => handleLikeDislike(post.id, "like", "post")}
                                 >
                                     {post.likes}
                                 </ActionButton>
                                 <ActionButton
                                     startIcon={<ThumbDown color={post.userDisliked ? 'error' : 'inherit'}/>}
-                                    onClick={() => handleDislike(post.id)}
+                                    onClick={() => handleLikeDislike(post.id, "dislike", "post")}
                                 >
                                     {post.dislikes}
                                 </ActionButton>
@@ -409,10 +378,10 @@ const Forum = () => {
                                     {post.comments?.slice(0, 3).map(comment => (
                                         <Box key={comment.id} sx={{mb: 2}}>
                                             <Box sx={{display: 'flex', gap: 1}}>
-                                                <Avatar src={comment.authorAvatar} sx={{width: 32, height: 32}}/>
+                                                <Avatar src={comment.author.profile_picture} sx={{width: 32, height: 32}}/>
                                                 <Box>
                                                     <Typography variant="subtitle2" fontWeight={600}>
-                                                        {comment.author}
+                                                        {comment.author.username}
                                                     </Typography>
                                                     <Typography variant="body2">
                                                         {comment.content}

@@ -90,24 +90,17 @@ class AttachmentSerializer(serializers.ModelSerializer):
 
 class CommentSerializer(serializers.ModelSerializer):
     author = UserSerializer(source='user', read_only=True)
-    likes_count = serializers.SerializerMethodField()
-    dislikes_count = serializers.SerializerMethodField()
 
     class Meta:
         model = Comment
-        fields = ['id', 'author', 'content', 'created_at', 'likes_count', 'dislikes_count']
-
-    def get_likes_count(self, obj):
-        return obj.likes.filter(value=True).count()
-
-    def get_dislikes_count(self, obj):
-        return obj.likes.filter(value=False).count()
+        fields = ['id', 'author', 'content', 'created_at']
+        depth = 1
 
 
 class PostSerializer(serializers.ModelSerializer):
     author = UserSerializer(source='user', read_only=True)
     images = AttachmentSerializer(many=True, read_only=True)
-    comments = CommentSerializer(many=True, read_only=True)
+    comments = serializers.SerializerMethodField()  # Changed to SerializerMethodField
     likes_count = serializers.SerializerMethodField()
     dislikes_count = serializers.SerializerMethodField()
     userLiked = serializers.SerializerMethodField()
@@ -123,22 +116,27 @@ class PostSerializer(serializers.ModelSerializer):
         ]
         depth = 2
 
+    def get_comments(self, obj):
+        # Only include visible comments
+        comments = obj.comment_set.filter(visible=True)  # Note: use comment_set instead of comments
+        return CommentSerializer(comments, many=True, context=self.context).data
+
     def get_likes_count(self, obj):
-        return obj.likes.filter(value=True).count()
+        return obj.likepost_set.filter(value=True).count()  # Changed to likepost_set
 
     def get_dislikes_count(self, obj):
-        return obj.likes.filter(value=False).count()
+        return obj.likepost_set.filter(value=False).count()  # Changed to likepost_set
 
     def get_userLiked(self, obj):
         request = self.context.get('request')
         if request and request.user.is_authenticated:
-            return obj.likes.filter(user=request.user, value=True).exists()
+            return obj.likepost_set.filter(user=request.user, value=True).exists()  # Changed to likepost_set
         return False
 
     def get_userDisliked(self, obj):
         request = self.context.get('request')
         if request and request.user.is_authenticated:
-            return obj.likes.filter(user=request.user, value=False).exists()
+            return obj.likepost_set.filter(user=request.user, value=False).exists()  # Changed to likepost_set
         return False
 
 
