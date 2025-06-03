@@ -191,11 +191,20 @@ import os
 MEDIA_URL = '../frontend/public/images/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, '../frontend/public/images/media/')
 
+
+
+
 import os
+from dotenv import load_dotenv
+load_dotenv()
 
-# Add your Gemini API key to .env or environment
-GEMINI_API_KEY = "AIzaSyCkvRDN3r1-ilK-bN4uIfm-sHJ43W7svD8"
+GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
 
-
-# EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-# DEFAULT_FROM_EMAIL = 'no-reply@example.com'
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_USE_SSL = False
+EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
