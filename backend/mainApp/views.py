@@ -1,10 +1,15 @@
 import json
+import os
 import urllib.parse
-from datetime import datetime
+from datetime import datetime, timezone
+import random
 
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth import get_user_model
 from django.db.models import Q
+from django.core.mail import send_mail
+from django.template.loader import render_to_string
+from django.utils.html import strip_tags
 
 # Create your views here.
 from rest_framework import permissions, status
@@ -12,12 +17,13 @@ from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
+from django.utils import timezone
 
 from mainApp.models import AppUser, Building, Notification, Source, Field, MaturaSubject, News, Course, Group, \
-    FieldByYear, Event, Round
+    FieldByYear, Event, Round, EmailVerification
 from mainApp.serializers import UserRegisterSerializer, UserSerializer, BuildingSerializer, NotificationSerializer, \
     SourceSerializer, FieldSerializer, MaturaSubjectSerializer, NewsSerializer, CourseSerializer, GroupSerializer, \
-    FieldByYearSerializer, EventSerializer, RoundSerializer
+    FieldByYearSerializer, EventSerializer, RoundSerializer, EmailVerificationSerializer, VerifyCodeSerializer
 
 from .utils import send_verification_email
 from .calc_score.calc_score import calc_score_fun
@@ -27,20 +33,8 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 
 
-
 UserModel = get_user_model()
 
-class RequestVerification(APIView):
-    permission_classes = [permissions.IsAuthenticated]
-
-    def post(self, request):
-        student_id = request.data.get('student_id')
-
-        if not student_id or len(student_id) != 6 or not student_id.isdigit():
-            return Response({"error": "Invalid student ID."}, status=status.HTTP_400_BAD_REQUEST)
-
-        send_verification_email(request.user, student_id)
-        return Response({"message": "Verification code sent."}, status=status.HTTP_200_OK)
 
 class UserRegister(APIView):
     permission_classes = (permissions.AllowAny,)
@@ -638,6 +632,110 @@ class NewsAPI(APIView):
         news = News.objects.get(pk=news_id)
         serializer = NewsSerializer(news)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class VerificationAPI(APIView):
+    permission_classes = (permissions.IsAuthenticated,)  # Only authenticated users can log out
+
+    def post(self, request):
+        serializer = EmailVerificationSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(
+                {"error": serializer.errors},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        else:
+
+            email = serializer.validated_data['email']
+            verification_type = serializer.validated_data.get('verification_type', 'registration')
+
+            # Remove previous unused codes for this email
+            EmailVerification.objects.filter(
+                email=email,
+                is_verified=False,
+                expires_at__lt=timezone.now()
+            ).delete()
+
+            code = '{:06d}'.format(random.randint(0, 999999))
+            print(code)
+
+            # Create new verification
+            verification = EmailVerification.objects.create(
+                user=request.user,
+                email=email,
+                verification_type=verification_type,
+                verification_code=code,
+            )
+
+            print(verification.verification_code)
+            # Send email
+            self.send_verification_email(email, verification.verification_code)
+
+            return Response(
+                {
+                    "status": "Verification code sent",
+                    "email": email,
+                    "expires_at": verification.expires_at
+                },
+                status=status.HTTP_200_OK
+            )
+
+    def send_verification_email(self, email, code):
+        subject = "Twój kod weryfikacji do MiUn"
+        context = {
+            'code': code,
+            'expiry_minutes': 15
+        }
+
+        html_message = render_to_string(
+            'emails/verifiaction_email.html',
+            context
+        )
+
+        try:
+            # Render HTML email
+
+
+            print(html_message)
+            plain_message = strip_tags(html_message)
+
+            send_mail(
+                subject=subject,
+                message=plain_message,
+                from_email=None,  # Uses DEFAULT_FROM_EMAIL from settings
+                recipient_list=[email],
+                html_message=html_message,
+                fail_silently=False
+            )
+        except Exception as e:
+            # Log this error in production
+            raise Exception(f"Failed to send verification email: {str(e)}")
+
+
+class VerifyCodeView(APIView):
+    def post(self, request):
+        print(request.data)
+        email = request.data['email']
+        code = request.data['code']
+
+        user = AppUser.objects.get(email=email)
+
+        verification = EmailVerification.verify_code(email, code)
+
+        print(verification)
+        if verification:
+            user = user
+            user.is_verified = True
+            user.save()
+
+            return Response(
+                {'status': 'Email zweryfikowany pomyślnie'},
+                status=status.HTTP_200_OK
+            )
+        return Response(
+            {'error': 'Nieprawidłowy kod lub wygasł'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
 
 
 # Configure Gemini

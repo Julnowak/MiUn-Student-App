@@ -104,6 +104,20 @@ const GroupPage = () => {
     const [images, setImages] = useState([]);
     const [imagePreviews, setImagePreviews] = useState([]);
 
+
+    let avatarSrc = '';
+
+    if (group && group.avatar != null) {
+      if (group.avatar instanceof Blob || group.avatar instanceof File) {
+        avatarSrc = URL.createObjectURL(group.avatar);
+      } else if (typeof group.avatar === 'string' && group.avatar.length > 0) {
+        avatarSrc = group.avatar; // Already a URL
+      }
+    }
+
+
+
+
     const handleSearch = async () => {
         if (!searchQuery.trim()) return;
 
@@ -129,7 +143,7 @@ const GroupPage = () => {
         setImages(files);
 
         const previews = files.map(file => URL.createObjectURL(file));
-        setImagePreviews(previews);
+setImagePreviews(previews);
     };
 
     const removeImage = (index) => {
@@ -151,6 +165,17 @@ const GroupPage = () => {
             console.error('Invite error:', err);
         }
     };
+        useEffect(() => {
+  // Create previews
+  const previews = images.map(file => URL.createObjectURL(file));
+  setImagePreviews(previews);
+
+  // Cleanup
+  return () => {
+    previews.forEach(url => URL.revokeObjectURL(url));
+  };
+}, [images]);
+
 
     useEffect(() => {
         const fetchGroupData = async () => {
@@ -404,23 +429,43 @@ const GroupPage = () => {
     };
 
 
+function getBackgroundImageUrl(group) {
+  if (group.coverImage) {
+    if (typeof group.coverImage === 'string' && group.coverImage.length > 0) {
+      return `url(${group.coverImage})`;
+    }
+    if (group.coverImage instanceof Blob || group.coverImage instanceof File) {
+      try {
+        return `url(${URL.createObjectURL(group.coverImage)})`;
+      } catch (e) {
+        console.error('Failed to create object URL:', e);
+        return '';
+      }
+    }
+  }
+  return '';
+}
+
+    // Usage in style
+
+const bgUrl = getBackgroundImageUrl(group);
     // Widok admina/moderatora
 
     return (
         <Box>
             {/* Nagłówek grupy */}
             <Box sx={{position: 'relative', mb: 5, ml:"auto", mr:"auto",  maxWidth: 1200}}>
-                <Box
-                    sx={{
-                        height: 200,
-                        backgroundImage: `url(${group.coverImage?.toString().slice(15) || URL.createObjectURL(group.coverImage)})`,
-                        backgroundSize: 'cover',
-                        backgroundPosition: 'center',
-                        [theme.breakpoints.up('md')]: {
-                            height: 300
-                        }
-                    }}
-                />
+            <Box
+              sx={{
+                height: 200,
+                backgroundImage: bgUrl ? `url(${bgUrl})` : 'none',
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                [theme.breakpoints.up('md')]: {
+                  height: 300,
+                },
+              }}
+            />
 
                 <Box sx={{
                     position: 'absolute',
@@ -437,7 +482,7 @@ const GroupPage = () => {
                         border: '3px solid white',
                         bgcolor: theme.palette.primary.main
                     }}
-                            src={group.avatar?.toString().slice(15) || URL.createObjectURL(group.avatar)}
+                            src={avatarSrc}
                     />
 
                     <Box sx={{mb: 1}}>

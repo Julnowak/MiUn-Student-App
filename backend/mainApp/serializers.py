@@ -5,7 +5,7 @@ from rest_framework import serializers
 from django.contrib.auth import authenticate, get_user_model
 
 from mainApp.models import Building, Notification, Source, Field, MaturaSubject, News, Course, Group, FieldByYear, \
-    Event, Round
+    Event, Round, EmailVerification
 
 UserModel = get_user_model()
 
@@ -114,3 +114,14 @@ class RoundSerializer(serializers.ModelSerializer):
         model = Round
         fields = '__all__'
         depth = 1
+
+
+class EmailVerificationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EmailVerification
+        fields = ['email', 'verification_type']
+
+
+class VerifyCodeSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    code = serializers.CharField(max_length=6, min_length=6)

@@ -2,6 +2,8 @@ from . import views
 from django.urls import path
 from rest_framework_simplejwt.views import TokenRefreshView
 
+from .views import VerificationAPI, VerifyCodeView
+
 urlpatterns = [
     path('register/', views.UserRegister.as_view(), name='register'),
     path('login/', views.UserLogin.as_view(), name='login'),
@@ -27,8 +29,8 @@ urlpatterns = [
     path('maturasubjects/', views.MaturaSubjectsAPI.as_view(), name='maturasubjects'),
 
     # New verification endpoints
-    path('request-verification/', views.RequestVerification.as_view(), name='request-verification'),
-    path('verify-code/', views.RequestVerification.as_view(), name='verify-code'),
+    path('send-verification-email/', VerificationAPI.as_view(), name='send_verification'),
+    path('verify-code/', VerifyCodeView.as_view(), name='verify_code'),
     path('calculation/', views.CalculationAPI.as_view(), name='calculation'),
     path('ask-gemini/', views.ask_gemini, name='ask_gemini'),
 ]

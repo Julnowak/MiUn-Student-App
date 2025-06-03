@@ -27,6 +27,7 @@ import NotFoundPage from "./components/notFoundPage/notFoundPage";
 import Forum from "./components/forum/forum";
 import OfferPage from "./components/exchange/offerPage";
 import GroupPage from "./components/groups/groupPage";
+import EmailVerification from "./components/userProfile/verification";
 
 function App() {
     return (
@@ -45,6 +46,7 @@ function App() {
                         <Route path="/register" element={<Register/>}/>
                         <Route path="/logout" element={<Logout/>}/>
                         <Route path="/main" element={<Main/>}/>
+                        <Route path="/verify-email" element={<EmailVerification />} />
 
                         <Route path="/community" element={<Community/>}/>
                         <Route path="/calendar" element={<MyCalendar/>}/>

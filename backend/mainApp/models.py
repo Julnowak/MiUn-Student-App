@@ -1,4 +1,5 @@
 import datetime
+from random import random
 
 from django.db import models
 from django.contrib.auth.base_user import BaseUserManager
@@ -38,7 +39,8 @@ class AppUserManager(BaseUserManager):
 
 class AppUser(AbstractBaseUser, PermissionsMixin):
     id = models.AutoField(primary_key=True)
-    email = models.EmailField(max_length=50, unique=True)
+    email = models.EmailField(max_length=200, unique=True)
+    student_email = models.EmailField(max_length=200, blank=True, null=True)
     username = models.CharField(max_length=50)
     telephone = models.CharField(max_length=15,blank=True, null=True)
     address = models.CharField(max_length=200,blank=True, null=True)
@@ -192,17 +194,94 @@ class Round(models.Model):
         return f"Tura ID-{self.id}: {self.name} - {self.year}"
 
 
-class VerificationCode(models.Model):
-    user = models.ForeignKey(AppUser, on_delete=models.CASCADE)
-    student_id = models.CharField(max_length=6)
-    code = models.CharField(max_length=6)
-    created_at = models.DateTimeField(auto_now_add=True)
+# models.py
+from django.db import models
+from django.contrib.auth import get_user_model
+from django.utils import timezone
+from django.core.validators import MinLengthValidator
 
-    def is_expired(self):
-        return timezone.now() > self.created_at + timedelta(hours=1)
+User = get_user_model()
+
+
+class EmailVerification(models.Model):
+    class VerificationType(models.TextChoices):
+        REGISTRATION = 'registration', 'Rejestracja konta'
+        PASSWORD_RESET = 'password_reset', 'Reset hasła'
+        EMAIL_CHANGE = 'email_change', 'Zmiana adresu email'
+
+    user = models.ForeignKey(
+        AppUser,
+        on_delete=models.CASCADE,
+        related_name='email_verifications',
+        verbose_name='Użytkownik'
+    )
+    email = models.EmailField(
+        verbose_name='Email do weryfikacji'
+    )
+    verification_code = models.CharField(
+        max_length=6,
+        validators=[MinLengthValidator(6)],
+        verbose_name='Kod weryfikacyjny'
+    )
+    verification_type = models.CharField(
+        max_length=20,
+        choices=VerificationType.choices,
+        default=VerificationType.REGISTRATION,
+        verbose_name='Typ weryfikacji'
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='Data utworzenia'
+    )
+    expires_at = models.DateTimeField(
+        verbose_name='Data wygaśnięcia'
+    )
+    is_verified = models.BooleanField(
+        default=False,
+        verbose_name='Czy zweryfikowano'
+    )
+    verified_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name='Data weryfikacji'
+    )
+
+    class Meta:
+        verbose_name = 'Weryfikacja email'
+        verbose_name_plural = 'Weryfikacje email'
+        indexes = [
+            models.Index(fields=['email', 'verification_code']),
+            models.Index(fields=['expires_at']),
+        ]
+        ordering = ['-created_at']
 
     def __str__(self):
-        return f"{self.user.email} - {self.code}"
+        return f'Weryfikacja dla {self.email} ({self.verification_type})'
+
+    def save(self, *args, **kwargs):
+        if not self.expires_at:
+            self.expires_at = timezone.now() + timezone.timedelta(minutes=15)
+        super().save(*args, **kwargs)
+
+    @property
+    def is_expired(self):
+        return timezone.now() > self.expires_at
+
+    @classmethod
+    def verify_code(cls, email, code):
+        try:
+            verification = cls.objects.get(
+                email=email,
+                verification_code=code,
+                is_verified=False,
+                expires_at__gt=timezone.now()
+            )
+            verification.is_verified = True
+            verification.verified_at = timezone.now()
+            verification.save()
+            return True
+        except cls.DoesNotExist:
+            return False
 
 
 EVENT_CHOICES = (
