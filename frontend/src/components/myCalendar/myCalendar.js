@@ -25,7 +25,17 @@ import {
   useMediaQuery
 } from '@mui/material';
 import {Add, Event, Upload, Close, ChevronLeft, ChevronRight, EventNote} from '@mui/icons-material';
-import {format, parseISO, addMonths, addWeeks, subMonths, isSameMonth, isSameDay, differenceInDays} from 'date-fns';
+import {
+  format,
+  parseISO,
+  addMonths,
+  addWeeks,
+  subMonths,
+  isSameMonth,
+  isSameDay,
+  differenceInDays,
+  startOfDay, endOfDay
+} from 'date-fns';
 import { pl } from 'date-fns/locale';
 import { isWithinInterval, eachDayOfInterval, differenceInMinutes, differenceInHours, startOfWeek, endOfWeek} from 'date-fns';
 import {alpha} from "@mui/material/styles";
@@ -60,7 +70,7 @@ const MyCalendar = () => {
     recurrency_details: null
   });
 
-      const token = localStorage.getItem("access")
+    const token = localStorage.getItem("access")
     useEffect(() => {
         const fetchData = async () => {
             try {
@@ -109,6 +119,8 @@ const MyCalendar = () => {
       id: Date.now(),
       user: "current_user_id"
     };
+
+    console.log(event)
     setEvents([...events, event]);
     setOpenDialog(false);
     resetForm();
@@ -131,10 +143,22 @@ const MyCalendar = () => {
 
   const getEventsForDay = (day) => {
     if (!day) return [];
+
+    const dayStart = startOfDay(day);
+    const dayEnd = endOfDay(day);
+
     return events?.filter(event => {
-      const start = parseISO(event.start);
-      const end = parseISO(event.end);
-      return isWithinInterval(day, { start, end });
+      const eventStart = parseISO(event.start);
+      const eventEnd = parseISO(event.end);
+
+      return (
+        // Event starts during the day
+        (isWithinInterval(eventStart, { start: dayStart, end: dayEnd })) ||
+        // Event ends during the day
+        (isWithinInterval(eventEnd, { start: dayStart, end: dayEnd })) ||
+        // Event spans the entire day
+        (isBefore(eventStart, dayStart) && isAfter(eventEnd, dayEnd))
+      );
     });
   };
 
@@ -333,6 +357,7 @@ const MyCalendar = () => {
           </Table>
         </TableContainer>
       </Paper>)}
+
 {view === 'week' && (
   // Wyświetl tydzień zawierający selectedDate
   <WeekView
@@ -342,6 +367,7 @@ const MyCalendar = () => {
     getEventsForDay={getEventsForDay}
   />
 )}
+
 {view === 'day' && (
   // Wyświetl szczegóły dla wybranego dnia
   <DayView

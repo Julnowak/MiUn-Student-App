@@ -13,6 +13,7 @@ const HOUR_HEIGHT = 48; // px
 const START_HOUR = 0;   // earliest hour shown
 const END_HOUR = 24;    // latest hour shown
 
+
 function expandRecurringEvents(events, rangeStart, rangeEnd) {
     let expanded = [];
     events.forEach(event => {
@@ -40,6 +41,28 @@ function expandRecurringEvents(events, rangeStart, rangeEnd) {
 
 const WeekView = ({events}) => {
     const theme = useTheme();
+
+
+    events = [
+        {
+            id: 1,
+            name: "Wydarzenie całodniowe",
+            start: "2025-06-03T00:00:00.000Z",
+            end: "2025-06-03T23:59:59.000Z",
+            isAllDay: true,
+            color: "#1976d2"
+        },
+        {
+            id: 2,
+            name: "Spotkanie",
+            start: "2025-06-03T09:00:00.000Z",
+            end: "2025-06-03T10:00:00.000Z",
+            isAllDay: false,
+            color: "#388e3c"
+        }
+
+    ];
+
     const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
     const hoursContainerRef = useRef(null);
     const daysContainerRef = useRef(null);
@@ -61,6 +84,20 @@ const WeekView = ({events}) => {
     const navigateWeek = (direction) => {
         const newDate = addWeeks(selectedDate, direction);
         onDateChange(newDate);
+    };
+
+    // Zwraca wydarzenia całodniowe dla danego dnia
+    const getAllDayEventsForDay = (events, day) => {
+        return events.filter(event => {
+            const eventStart = parseISO(event.start);
+            const eventEnd = parseISO(event.end);
+            const isAllDay = event.isAllDay ||
+                (eventStart.getHours() === 0 &&
+                    eventStart.getMinutes() === 0 &&
+                    differenceInMinutes(eventEnd, eventStart) >= 1440);
+            // Sprawdź, czy wydarzenie obejmuje ten dzień
+            return isAllDay && isWithinInterval(day, {start: eventStart, end: eventEnd});
+        });
     };
 
     // Synchronizacja przewijania godzin i dni
@@ -110,7 +147,7 @@ const WeekView = ({events}) => {
                     flexDirection: 'column'
                 }}>
                     {/* Empty space matching days header */}
-                    <Box sx={{height: 60, borderBottom: `1px solid ${theme.palette.divider}`}}/>
+                    <Box sx={{height: 88, borderBottom: `1px solid ${theme.palette.divider}`}}/>
 
                     {/* Hours container with scroll sync */}
                     <Box
@@ -118,7 +155,7 @@ const WeekView = ({events}) => {
                         sx={{
                             overflowY: 'auto',
                             flex: 1,
-                            '&::-webkit-scrollbar': { display: 'none' } // Hide scrollbar
+                            '&::-webkit-scrollbar': {display: 'none'} // Hide scrollbar
                         }}
                     >
                         <Box sx={{height: `${totalHeight}px`}}>
@@ -181,6 +218,60 @@ const WeekView = ({events}) => {
                         ))}
                     </Box>
 
+                    <Box sx={{
+                        display: 'flex',
+                        borderBottom: `1px solid ${theme.palette.divider}`,
+                        bgcolor: 'background.paper',
+                        height: 28, // wysokość paska całodniowego
+                        position: 'relative',
+                        zIndex: 2
+                    }}>
+                        {days.map(day => {
+                            const allDayEvents = getAllDayEventsForDay(expandedEvents, day);
+                            return (
+                                <Box
+                                    key={day.toString()}
+                                    sx={{
+                                        flex: 1,
+                                        minWidth: 0,
+                                        borderRight: `1px solid ${theme.palette.divider}`,
+                                        px: 0.5,
+                                        position: 'relative',
+                                        height: '100%',
+                                        overflow: 'hidden'
+                                    }}
+                                >
+                                    {allDayEvents.map(event => (
+                                        <Box
+                                            key={event.id}
+                                            sx={{
+                                                bgcolor: event.color || theme.palette.secondary.main,
+                                                color: 'white',
+                                                borderRadius: 1,
+                                                px: 1,
+                                                py: 0.25,
+                                                fontSize: 12,
+                                                m: 0.25,
+                                                overflow: 'hidden',
+                                                whiteSpace: 'nowrap',
+                                                textOverflow: 'ellipsis',
+                                                boxShadow: 1,
+                                                cursor: 'pointer',
+                                                height: 20,
+                                                lineHeight: '20px'
+                                            }}
+                                            title={`Całodniowe: ${event.name}`}
+                                        >
+                                            <Typography variant="caption" sx={{fontWeight: 'bold'}}>
+                                                {event.name}
+                                            </Typography>
+                                        </Box>
+                                    ))}
+                                </Box>
+                            );
+                        })}
+                    </Box>
+
                     {/* Days content with scroll sync */}
                     <Box
                         ref={daysContainerRef}
@@ -191,7 +282,12 @@ const WeekView = ({events}) => {
                                 const dayEvents = expandedEvents.filter(event => {
                                     const start = parseISO(event.start);
                                     const end = parseISO(event.end);
-                                    return isWithinInterval(day, {start, end});
+                                    const isAllDay = event.isAllDay ||
+                                        (start.getHours() === 0 &&
+                                            start.getMinutes() === 0 &&
+                                            differenceInMinutes(end, start) >= 1440);
+                                    // Pokaż tylko nie-całodniowe
+                                    return !isAllDay && isWithinInterval(day, {start, end});
                                 });
 
                                 return (
@@ -215,8 +311,8 @@ const WeekView = ({events}) => {
                                             // Check if event is all-day
                                             const isAllDayEvent = event.isAllDay ||
                                                 (eventStart.getHours() === 0 &&
-                                                 eventStart.getMinutes() === 0 &&
-                                                 differenceInMinutes(eventEnd, eventStart) >= 1440);
+                                                    eventStart.getMinutes() === 0 &&
+                                                    differenceInMinutes(eventEnd, eventStart) >= 1440);
 
                                             // For all-day events, show at the top
                                             if (isAllDayEvent) {

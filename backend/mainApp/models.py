@@ -430,6 +430,7 @@ class Post(models.Model):
     content = models.TextField(blank=True, null=True)
     likes = models.ManyToManyField(Like)
     created_at = models.DateTimeField(auto_now_add=True)
+    images = models.ManyToManyField(Attachment)
 
     def __str__(self):
         return f"Post ID-{self.id}: {self.title}"
