@@ -9,7 +9,6 @@ import {
     Card,
     CardContent,
     IconButton,
-    Divider,
     useMediaQuery,
     Dialog,
     DialogTitle,
@@ -35,16 +34,11 @@ import {
     Settings,
     PersonRemove,
     Search,
-    Notifications,
-    NotificationsOff,
-    Share,
     GroupAdd,
     AdminPanelSettings,
     Event,
-    Poll,
     Edit,
     Check,
-    Add,
     ThumbUpAlt,
     ThumbDownAlt,
     Comment,
@@ -59,11 +53,10 @@ import {
 import {useTheme} from '@mui/material/styles';
 import client from "../../client";
 import {API_BASE_URL} from "../../config";
-import AddIcon from "@mui/icons-material/Add";
 import MediaTab from "./mediaTab";
-import {textAlign} from "@mui/system";
-import AddMemberModal from "./addMemberModal";
 import EventsTab from "./eventsTab";
+import PollsComponent from "./pollsTab";
+import DiscussionTab from "./discussionsTab";
 
 
 const GroupPage = () => {
@@ -77,8 +70,6 @@ const GroupPage = () => {
     const [activeTab, setActiveTab] = useState('discussions');
     const [showMemberList, setShowMemberList] = useState(false);
     const [showSettings, setShowSettings] = useState(false);
-    const [showNotificationsDialog, setShowNotificationsDialog] = useState(false);
-    const [notificationsEnabled, setNotificationsEnabled] = useState(true);
     const token = localStorage.getItem("access");
 
     const [isEditing, setIsEditing] = useState(false);
@@ -587,315 +578,13 @@ const bgUrl = getBackgroundImageUrl(group);
 
                     {/* Treść zakładek */}
                     <Box sx={{pt: 3}}>
-                        {activeTab === 'discussions' && (
-                            <div>
-                                {/* Formularz dodawania nowego posta */}
-                                <Card sx={{ mb: 3, borderRadius: '12px' }}>
-                                    <CardContent sx={{ display: 'flex', alignItems: 'center' }}>
-                                        <Avatar sx={{ mr: 2 }} />
-                                        <Button
-                                            fullWidth
-                                            variant="outlined"
-                                            onClick={() => setIsComposerOpen(true)}
-                                            sx={{
-                                                justifyContent: 'flex-start',
-                                                borderRadius: '20px',
-                                                textTransform: 'none',
-                                                color: 'text.secondary',
-                                                bgcolor: theme.palette.mode === 'light' ? '#f0f2f5' : '#3a3b3c'
-                                            }}
-                                        >
-                                            Co chcesz opublikować?
-                                        </Button>
-                                    </CardContent>
-                                </Card>
-
-                                {/* Lista postów */}
-                                <Typography variant="h6" gutterBottom sx={{mb: 2}}>
-                                    Najnowsze dyskusje
-                                </Typography>
-
-                                {posts.length === 0 ? (
-                                    <Card sx={{mb: 3}}>
-                                        <CardContent>
-                                            <Typography color="textSecondary">
-                                                Brak dyskusji. Bądź pierwszy który rozpocznie nowy wątek!
-                                            </Typography>
-                                        </CardContent>
-                                    </Card>
-                                ) : (
-                                    <div style={{maxHeight: '600px', overflowY: 'auto'}}>
-                                        {posts.map((post) => (
-                                            <Card key={post.id} sx={{mb: 3}}>
-                                                <CardContent>
-                                                    {/* Nagłówek posta */}
-                                                    <div style={{
-                                                        display: 'flex',
-                                                        justifyContent: 'space-between',
-                                                        alignItems: 'center'
-                                                    }}>
-                                                        <Typography variant="h6">{post.title}</Typography>
-                                                        <Typography color="textSecondary" variant="body2">
-                                                            {new Date(post.created_at).toLocaleString()}
-                                                        </Typography>
-                                                    </div>
-
-                                                    {/* Autor posta */}
-                                                    <Typography color="textSecondary" variant="subtitle2"
-                                                                gutterBottom>
-                                                        Autor: {post.user.username}
-                                                    </Typography>
-
-                                                    {/* Treść posta */}
-                                                    <Typography variant="body1" paragraph sx={{mt: 2}}>
-                                                        {post.content}
-                                                    </Typography>
-
-                                                    {/* Like/Dislike i komentarze */}
-                                                    <div style={{
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        gap: '16px',
-                                                        marginTop: '8px'
-                                                    }}>
-                                                        <div style={{display: 'flex', alignItems: 'center'}}>
-                                                            <IconButton
-                                                                onClick={() => handlePostLike(post.id, true)}
-                                                                color={post.user_like === true ? 'primary' : 'default'}
-                                                            >
-                                                                <ThumbUpAlt/>
-                                                            </IconButton>
-                                                            <Typography>{post.likes.filter(l => l.value === true).length}</Typography>
-                                                        </div>
-
-                                                        <div style={{display: 'flex', alignItems: 'center'}}>
-                                                            <IconButton
-                                                                onClick={() => handlePostLike(post.id, false)}
-                                                                color={post.user_like === false ? 'error' : 'default'}
-                                                            >
-                                                                <ThumbDownAlt/>
-                                                            </IconButton>
-                                                            <Typography>{post.likes.filter(l => l.value === false).length}</Typography>
-                                                        </div>
-
-                                                        <Button
-                                                            startIcon={<Comment/>}
-                                                            onClick={() => toggleComments(post.id)}
-                                                        >
-                                                            {post.showComments ? 'Ukryj komentarze' : `Pokaż komentarze (${post.comments.length})`}
-                                                        </Button>
-
-                                                        {post.user.id === currentUser.id && (
-                                                            <>
-                                                                <IconButton onClick={() => handleEditPost(post)}>
-                                                                    <Edit/>
-                                                                </IconButton>
-                                                                <IconButton
-                                                                    onClick={() => handleDeletePost(post.id)}>
-                                                                    <Delete/>
-                                                                </IconButton>
-                                                            </>
-                                                        )}
-                                                    </div>
-
-                                                    {/* Sekcja komentarzy */}
-                                                    {post.showComments && (
-                                                        <div style={{marginTop: '16px'}}>
-                                                            {/* Lista komentarzy */}
-                                                            {post.comments.map((comment) => (
-                                                                <Card key={comment.id} sx={{
-                                                                    mb: 2,
-                                                                    ml: 4,
-                                                                    backgroundColor: 'action.hover'
-                                                                }}>
-                                                                    <CardContent>
-                                                                        <div style={{
-                                                                            display: 'flex',
-                                                                            justifyContent: 'space-between'
-                                                                        }}>
-                                                                            <Typography variant="subtitle2">
-                                                                                {comment.user.username}
-                                                                            </Typography>
-                                                                            <Typography color="textSecondary"
-                                                                                        variant="body2">
-                                                                                {new Date(comment.created_at).toLocaleString()}
-                                                                            </Typography>
-                                                                        </div>
-
-                                                                        <Typography variant="body2" paragraph>
-                                                                            {comment.content}
-                                                                        </Typography>
-
-                                                                        <div style={{
-                                                                            display: 'flex',
-                                                                            alignItems: 'center',
-                                                                            gap: '8px'
-                                                                        }}>
-                                                                            <IconButton
-                                                                                size="small"
-                                                                                onClick={() => handleCommentLike(comment.id, true)}
-                                                                                color={comment.user_like === true ? 'primary' : 'default'}
-                                                                            >
-                                                                                <ThumbUpAlt fontSize="small"/>
-                                                                            </IconButton>
-                                                                            <Typography variant="body2">
-                                                                                {comment.likes.filter(l => l.value === true).length}
-                                                                            </Typography>
-
-                                                                            <IconButton
-                                                                                size="small"
-                                                                                onClick={() => handleCommentLike(comment.id, false)}
-                                                                                color={comment.user_like === false ? 'error' : 'default'}
-                                                                            >
-                                                                                <ThumbDownAlt fontSize="small"/>
-                                                                            </IconButton>
-                                                                            <Typography variant="body2">
-                                                                                {comment.likes.filter(l => l.value === false).length}
-                                                                            </Typography>
-
-                                                                            {comment.user.id === currentUser.id && (
-                                                                                <>
-                                                                                    <IconButton size="small"
-                                                                                                onClick={() => handleEditComment(comment)}>
-                                                                                        <Edit fontSize="small"/>
-                                                                                    </IconButton>
-                                                                                    <IconButton size="small"
-                                                                                                onClick={() => handleDeleteComment(comment.id)}>
-                                                                                        <Delete fontSize="small"/>
-                                                                                    </IconButton>
-                                                                                </>
-                                                                            )}
-                                                                        </div>
-                                                                    </CardContent>
-                                                                </Card>
-                                                            ))}
-
-                                                            {/* Formularz dodawania nowego komentarza */}
-                                                            <div style={{
-                                                                display: 'flex',
-                                                                alignItems: 'center',
-                                                                gap: '8px',
-                                                                marginTop: '8px'
-                                                            }}>
-                                                                <TextField
-                                                                    fullWidth
-                                                                    variant="outlined"
-                                                                    size="small"
-                                                                    placeholder="Dodaj komentarz..."
-                                                                    value={post.newComment || ''}
-                                                                    onChange={(e) => handleCommentChange(post.id, e.target.value)}
-                                                                />
-                                                                <Button
-                                                                    variant="contained"
-                                                                    size="small"
-                                                                    onClick={() => handleAddComment(post.id)}
-                                                                    disabled={!post.newComment?.trim()}
-                                                                >
-                                                                    Wyślij
-                                                                </Button>
-                                                            </div>
-                                                        </div>
-                                                    )}
-                                                </CardContent>
-                                            </Card>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-                        )}
+                        {activeTab === 'discussions' && (<DiscussionTab groupId={group.id} />)}
 
                         <Box sx={{pt: 1}}>
                             {activeTab === 'events' && <EventsTab groupId={group.id}/>}
                         </Box>
 
-                        {activeTab === 'polls' && (
-                            <Box>
-                                <Card sx={{mb: 3}}>
-                                    <CardContent>
-                                        <Box display="flex" justifyContent="space-between" alignItems="center"
-                                             mb={2}>
-                                            <Typography variant="h6" gutterBottom>
-                                                Najnowsze ankiety
-                                            </Typography>
-                                            <Button
-                                                variant="contained"
-                                                color="primary"
-                                                startIcon={<Add/>}
-                                                onClick={() => setShowPollDialog(true)}
-                                            >
-                                                Dodaj ankietę
-                                            </Button>
-                                        </Box>
-
-                                        {polls.length === 0 ? (
-                                            <Typography color="textSecondary">
-                                                Brak ankiet. Dodaj pierwszą ankietę!
-                                            </Typography>
-                                        ) : (
-                                            <List>
-                                                {polls.map((poll) => (
-                                                    <PollItem key={poll.id} poll={poll}/>
-                                                ))}
-                                            </List>
-                                        )}
-                                    </CardContent>
-                                </Card>
-
-                                {/* Dialog do dodawania nowej ankiety */}
-                                <Dialog open={showPollDialog} onClose={() => setShowPollDialog(false)}>
-                                    <DialogTitle>Dodaj nową ankietę</DialogTitle>
-                                    <DialogContent>
-                                        <Tabs value={pollType} onChange={(e, newValue) => setPollType(newValue)}>
-                                            <Tab label="Lokalna ankieta" value="local"/>
-                                            <Tab label="Microsoft Forms" value="forms"/>
-                                        </Tabs>
-
-                                        <Box mt={2}>
-                                            {pollType === 'local' ? (
-                                                <Box>
-                                                    <TextField
-                                                        fullWidth
-                                                        label="Pytanie"
-                                                        variant="outlined"
-                                                        value={newPollQuestion}
-                                                        onChange={(e) => setNewPollQuestion(e.target.value)}
-                                                        sx={{mb: 2}}
-                                                    />
-                                                    <TextField
-                                                        fullWidth
-                                                        label="Opcje (oddzielone przecinkami)"
-                                                        variant="outlined"
-                                                        value={newPollOptions}
-                                                        onChange={(e) => setNewPollOptions(e.target.value)}
-                                                        placeholder="Opcja 1, Opcja 2, Opcja 3"
-                                                    />
-                                                </Box>
-                                            ) : (
-                                                <TextField
-                                                    fullWidth
-                                                    label="Link do Microsoft Forms"
-                                                    variant="outlined"
-                                                    value={formsLink}
-                                                    onChange={(e) => setFormsLink(e.target.value)}
-                                                    placeholder="https://forms.office.com/..."
-                                                />
-                                            )}
-                                        </Box>
-                                    </DialogContent>
-                                    <DialogActions>
-                                        <Button onClick={() => setShowPollDialog(false)}>Anuluj</Button>
-                                        <Button
-                                            onClick={handleAddPoll}
-                                            color="primary"
-                                            variant="contained"
-                                            disabled={pollType === 'local' ? !newPollQuestion || !newPollOptions : !formsLink}
-                                        >
-                                            Dodaj
-                                        </Button>
-                                    </DialogActions>
-                                </Dialog>
-                            </Box>
-                        )}
+                        {activeTab === 'polls' && (<PollsComponent />)}
 
                         <Box sx={{pt: 3}}>
                             {activeTab === 'rules' && (
@@ -941,7 +630,7 @@ const bgUrl = getBackgroundImageUrl(group);
                         <Box sx={{pt: 1}}>
                             {activeTab === 'media' && (
                                 <Card sx={{mb: 3}}>
-                                    <MediaTab/>
+                                    <MediaTab groupId={group.id} />
                                 </Card>
                             )}
                         </Box>
@@ -1006,7 +695,7 @@ const bgUrl = getBackgroundImageUrl(group);
                                 {group.moderators?.map(mod => (
                                     <ListItem key={mod.id}>
                                         <ListItemAvatar>
-                                            <Avatar>{mod.profile_picture?.toString().slice(15)}</Avatar>
+                                            <Avatar src={mod.profile_picture?.toString().slice(15)}/>
                                         </ListItemAvatar>
                                         <ListItemText primary={mod.username} secondary="Moderator"/>
                                     </ListItem>
@@ -1036,7 +725,7 @@ const bgUrl = getBackgroundImageUrl(group);
                                         <img
                                             src={group.coverImage?.toString().slice(15)}
                                             alt="Cover"
-                                            style={{width: 100, height: 60, objectFit: 'cover', borderRadius: 4}}
+                                            style={{width: 80, height: 60, objectFit: 'cover', borderRadius: 4}}
                                         />
                                     ) : (
                                         // Jeśli to nowy plik

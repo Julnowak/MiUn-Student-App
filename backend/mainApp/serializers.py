@@ -122,21 +122,21 @@ class PostSerializer(serializers.ModelSerializer):
         return CommentSerializer(comments, many=True, context=self.context).data
 
     def get_likes_count(self, obj):
-        return obj.likepost_set.filter(value=True).count()  # Changed to likepost_set
+        return obj.likes.filter(value=True).count()  # Changed to likepost_set
 
     def get_dislikes_count(self, obj):
-        return obj.likepost_set.filter(value=False).count()  # Changed to likepost_set
+        return obj.likes.filter(value=False).count()  # Changed to likepost_set
 
     def get_userLiked(self, obj):
         request = self.context.get('request')
         if request and request.user.is_authenticated:
-            return obj.likepost_set.filter(user=request.user, value=True).exists()  # Changed to likepost_set
+            return obj.likes.filter(user=request.user, value=True).count() > 0
         return False
 
     def get_userDisliked(self, obj):
         request = self.context.get('request')
         if request and request.user.is_authenticated:
-            return obj.likepost_set.filter(user=request.user, value=False).exists()  # Changed to likepost_set
+            return obj.likes.filter(user=request.user, value=False).count() > 0
         return False
 
 

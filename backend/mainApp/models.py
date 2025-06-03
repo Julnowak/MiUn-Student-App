@@ -444,7 +444,7 @@ class LikePost(models.Model):
     id = models.AutoField(primary_key=True)
     user = models.ForeignKey(AppUser, on_delete=models.CASCADE)
     value = models.BooleanField(null=True, blank=True)
-    post = models.ForeignKey(Post, on_delete=models.CASCADE)
+    post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='likes')
 
     class Meta:
         unique_together = ('post', 'user')

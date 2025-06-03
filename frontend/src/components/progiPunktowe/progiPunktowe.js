@@ -497,7 +497,6 @@ const ProgiPunktowe = () => {
                             borderRadius: 4
                         }}>
                             <Container maxWidth="sm" sx={{mt: 6}}>
-                                <Paper elevation={4} sx={{p: 4, borderRadius: 4}}>
                                     <Typography variant="h5" sx={{textAlign: "left"}} gutterBottom>
                                         Cześć!
                                     </Typography>
@@ -515,9 +514,6 @@ const ProgiPunktowe = () => {
                                         variant="outlined"
                                         sx={{mb: 2}}
                                     />
-
-
-                                </Paper>
                             </Container>
                         </Box>
                     )}
@@ -709,7 +705,7 @@ const ProgiPunktowe = () => {
             )}
 
             {selectedTab === 0 &&
-                (<Box sx={{margin: " 3 auto"}}>
+                (<Box sx={{margin: " 3 auto", textAlign: "center"}}>
                     <Button variant="contained" onClick={handleCalculate}>Oblicz</Button>
                 </Box>)
             }

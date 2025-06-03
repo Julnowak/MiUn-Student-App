@@ -20,7 +20,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from django.utils import timezone
 
 from mainApp.models import AppUser, Building, Notification, Source, Field, MaturaSubject, News, Course, Group, \
-    FieldByYear, Event, Round, EmailVerification, Post, Comment, LikePost
+    FieldByYear, Event, Round, EmailVerification, Post, Comment, LikePost, Attachment
 from mainApp.serializers import UserRegisterSerializer, UserSerializer, BuildingSerializer, NotificationSerializer, \
     SourceSerializer, FieldSerializer, MaturaSubjectSerializer, NewsSerializer, CourseSerializer, GroupSerializer, \
     FieldByYearSerializer, EventSerializer, RoundSerializer, EmailVerificationSerializer, VerifyCodeSerializer, \
@@ -299,6 +299,7 @@ class SourceAPI(APIView):
         serializer = SourceSerializer(combined_sources, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+
     def post(self, request):
         print(request.data)
 
@@ -319,6 +320,32 @@ class SourceAPI(APIView):
 
         return Response( status=status.HTTP_200_OK)
 
+
+class GroupSourceAPI(APIView):
+    permission_classes = (permissions.IsAuthenticated,)  # Only authenticated users can log out
+
+    def get(self, request, group_id):
+        group = Group.objects.get(id=group_id)
+        combined_sources = Source.objects.filter(group=group)
+        name = request.query_params.get('name', None)
+        field_id = request.query_params.get('kierunek', None)
+        subject_id = request.query_params.get('przedmiot', None)
+        zweryfikowane = request.query_params.get('zweryfikowane', None)
+        ordering = request.query_params.get('ordering', '-date_added')
+
+        if name:
+            combined_sources = combined_sources.filter(title__icontains=name)
+        if field_id:
+            combined_sources = combined_sources.filter(field__id=field_id)
+        if subject_id:
+            combined_sources = combined_sources.filter(course__id=subject_id)
+        if zweryfikowane and zweryfikowane.lower() == 'true':
+            combined_sources = combined_sources.filter(verified=True)
+
+        combined_sources = combined_sources.order_by(ordering)
+
+        serializer = SourceSerializer(combined_sources, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 class MaturaSubjectsAPI(APIView):
     permission_classes = (permissions.IsAuthenticated,)  # Only authenticated users can log out
@@ -352,8 +379,15 @@ class EventAPI(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def post(self, request):
-        events = Event.objects.filter(user=request.user)
-        serializer = EventSerializer(events, many=True)
+        print(request.data)
+
+        event = Event.objects.create(name=request.data['event']['name'],
+                                     start=request.data['event']['start'],
+                                     end=request.data['event']['end'],
+                                     color=request.data['event']['color'], additional_info=request.data['event']['additional_info'],
+                                     recurrent=request.data['event']['recurrent'], recurrency_details=request.data['event']['recurrency_details'],
+                                     user=request.user, type="USER EVENT")
+        serializer = EventSerializer(event)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
@@ -611,6 +645,7 @@ class CalculationAPI(APIView):
 
 class ForumAPI(APIView):
     permission_classes = (permissions.IsAuthenticated,)  # Only authenticated users can log out
+    parser_classes = (MultiPartParser, FormParser)
 
     def get(self, request):
         # Pobierz grupy użytkownika
@@ -619,7 +654,7 @@ class ForumAPI(APIView):
 
         # Pobierz posty z grup użytkownika
         posts = Post.objects.filter(group__in=my_groups).order_by('-created_at')
-        post_serializer = PostSerializer(posts, many=True)
+        post_serializer = PostSerializer(posts, many=True, context={'request': request})
 
         return Response({
             "groups": serializer.data,
@@ -628,13 +663,53 @@ class ForumAPI(APIView):
 
     def post(self, request):
         group = Group.objects.get(id=request.data["group_id"])
-
         post = Post.objects.create(user=request.user, group=group,
                                    title=request.data["title"],
                                    content=request.data["content"])
-        serializer = PostSerializer(post)
+        for file in request.FILES.getlist('images'):
+            a = Attachment.objects.create(
+                file=file,
+                file_type="PHOTO"
+            )
+            post.images.add(a)
+        post.save()
+        serializer = PostSerializer(post, context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+    def delete(self, request):
+        post = Post.objects.get(id=int(request.GET['post_id']))
+        post.delete()
+        return Response(status=status.HTTP_200_OK)
+
+    def put(self, request):
+        group_id = request.data["group_id"]
+        title = request.data["title"]
+        content = request.data["content"]
+        post = Post.objects.get(id=int(request.data['post_id']))
+        group = Group.objects.get(id=group_id)
+
+        post.group = group
+        post.title = title
+        post.content = content
+        post.save()
+
+        serializer = PostSerializer(post, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class ForumGroupAPI(APIView):
+    permission_classes = (permissions.IsAuthenticated,)  # Only authenticated users can log out
+    parser_classes = (MultiPartParser, FormParser)
+
+    def get(self, request, group_id):
+        group = Group.objects.get(id=group_id)
+        posts = Post.objects.filter(group=group).order_by('-created_at')
+        post_serializer = PostSerializer(posts, many=True, context={'request': request})
+
+        return Response({
+            "groups": "",
+            "posts": post_serializer.data
+        }, status=status.HTTP_200_OK)
 
 class CommentAPI(APIView):
     permission_classes = (permissions.IsAuthenticated,)  # Only authenticated users can log out
@@ -648,7 +723,7 @@ class CommentAPI(APIView):
         comment = Comment.objects.create(user=request.user, content=request.data["content"],
                                          post_id=post_id)
 
-        serializer = PostSerializer(Post.objects.get(id=post_id))
+        serializer = PostSerializer(Post.objects.get(id=post_id), context={'request': request})
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 class CalendarAPI(APIView):

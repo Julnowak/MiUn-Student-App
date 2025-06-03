@@ -113,17 +113,22 @@ const MyCalendar = () => {
     setNewEvent(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleAddEvent = () => {
-    const event = {
-      ...newEvent,
-      id: Date.now(),
-      user: "current_user_id"
-    };
+  const handleAddEvent = async () => {
 
-    console.log(event)
-    setEvents([...events, event]);
-    setOpenDialog(false);
-    resetForm();
+    try {
+      const resp = await client.post(`event/`, {
+        event: newEvent
+      });
+
+      setEvents([...events, resp.data]);
+      setOpenDialog(false);
+      resetForm();
+
+    } catch (error) {
+      console.error('Error liking post:', error);
+    }
+
+
   };
 
   const resetForm = () => {

@@ -64,7 +64,7 @@ const ResultsStep = ({results, response, setActiveStep}) => {
                                     <Link
                                         component="button"
                                         variant="body2"
-                                        onClick={() => navigate(`https://rekrutacja.agh.edu.pl/kierunki-studiow/automatyka-i-robotyka/`)}
+                                        onClick={() => navigate(`https://rekrutacja.agh.edu.pl/kierunki-studiow/automatyka-i-robotyka`)}
                                         sx={{textDecoration: 'underline'}}
                                     >
                                         Szczegóły
@@ -81,6 +81,7 @@ const ResultsStep = ({results, response, setActiveStep}) => {
                     <Pagination
                         count={pageCount}
                         page={page}
+                        size={"small"}
                         onChange={(_, value) => setPage(value)}
                         color="primary"
                     />

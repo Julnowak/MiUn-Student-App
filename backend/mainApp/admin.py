@@ -1,6 +1,6 @@
 from django.contrib import admin
 from .models import (AppUser, Building, Notification, Faculty, Field, Source, Course, Event, FieldByYear,
-                     EmailVerification, Semester, Group, MaturaSubject, News, Round, Attachment)
+                     EmailVerification, Semester, Group, MaturaSubject, News, Round, Attachment, Comment, Post)
 
 # Register your models here.
 admin.site.register(AppUser)
@@ -19,3 +19,5 @@ admin.site.register(MaturaSubject)
 admin.site.register(News)
 admin.site.register(Round)
 admin.site.register(Attachment)
+admin.site.register(Comment)
+admin.site.register(Post)

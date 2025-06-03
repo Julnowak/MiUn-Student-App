@@ -2,11 +2,11 @@ import React, {useState, useEffect, useRef} from 'react';
 import {
     Box, Card, CardContent, CardHeader, Avatar, Typography, TextField, Button,
     IconButton, MenuItem, Select, FormControl, InputLabel, Dialog,
-    DialogContent, useMediaQuery, Link
+    DialogContent, useMediaQuery, Link, DialogTitle, DialogActions, Pagination
 } from '@mui/material';
 import {
     Comment, ThumbUp, ThumbDown, Close, SentimentSatisfiedAlt, Image,
-    MoreHoriz, Share, Send, Search
+    MoreHoriz, Share, Send, Search, Delete, Instagram, Facebook
 } from '@mui/icons-material';
 import {useTheme, styled, alpha} from '@mui/material/styles';
 import {motion} from 'framer-motion';
@@ -14,6 +14,7 @@ import client from "../../client";
 import {API_BASE_URL} from "../../config";
 import EmojiPicker from 'emoji-picker-react';
 import {useNavigate} from "react-router-dom";
+import LinkIcon from "@mui/icons-material/Link";
 
 // Stylizowane komponenty
 const PostCard = styled(Card)(({theme}) => ({
@@ -43,6 +44,7 @@ const CommentInput = styled(TextField)(({theme}) => ({
     }
 }));
 
+
 const Forum = () => {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -61,8 +63,105 @@ const Forum = () => {
     const [commentText, setCommentText] = useState('');
     const emojiPickerRef = useRef();
     const navigate = useNavigate()
+    const [currentPage, setCurrentPage] = useState(1);
+    const [postsPerPage] = useState(5); // Liczba postów na stronę
 
     const token = localStorage.getItem("access")
+const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
+    const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+    const [currentPost, setCurrentPost] = useState(null);
+    const [shareUrl, setShareUrl] = useState('');
+
+    // Funkcja do udostępniania posta
+    const handleSharePost = (post) => {
+        setCurrentPost(post);
+        setShareUrl(`${window.location.origin}/post/${post.id}`);
+        setIsShareDialogOpen(true);
+    };
+
+    const copyToClipboard = () => {
+        navigator.clipboard.writeText(shareUrl)
+            .then(() => alert('Link skopiowany do schowka!'))
+            .catch(() => alert('Błąd kopiowania'));
+        setIsShareDialogOpen(false);
+    };
+
+    // Funkcja do otwierania edycji posta
+    const handleEditPost = (post) => {
+        setCurrentPost(post);
+        setTitle(post.title);
+        setContent(post.content);
+        setGroupId(post.group.id);
+        setIsEditDialogOpen(true);
+    };
+
+    // Funkcja do zapisywania edytowanego posta
+    const handleSaveEditedPost = async () => {
+        try {
+            const response = await client.put(API_BASE_URL + `forum/`, {
+                group_id: groupId,
+                title: title,
+                content: content,
+                post_id: currentPost.id
+            }, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                }
+            });
+
+            const updatedPosts = posts.map(post =>
+                post.id === currentPost.id ? response.data : post
+            );
+
+            setPosts(updatedPosts);
+            setIsEditDialogOpen(false);
+            setCurrentPost(null);
+        } catch (err) {
+            console.error("Błąd przy edycji posta:", err);
+        }
+    };
+
+        const filteredPosts = posts.filter(post => {
+        const matchesGroup = selectedGroup === 'all' || post.group.id === Number(selectedGroup);
+        const matchesSearch = post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            post.content.toLowerCase().includes(searchQuery.toLowerCase());
+        return matchesGroup && matchesSearch;
+    });
+
+     const indexOfLastPost = currentPage * postsPerPage;
+    const indexOfFirstPost = indexOfLastPost - postsPerPage;
+    const currentPosts = filteredPosts.slice(indexOfFirstPost, indexOfLastPost);
+    const totalPages = Math.ceil(filteredPosts.length / postsPerPage);
+
+    const handlePageChange = (event, value) => {
+        setCurrentPage(value);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+     useEffect(() => {
+        setCurrentPage(1);
+    }, [selectedGroup, searchQuery]);
+
+    // Funkcja do usuwania posta
+    const handleDeletePost = async (postId) => {
+        if (window.confirm('Czy na pewno chcesz usunąć ten post?')) {
+            try {
+                await client.delete(API_BASE_URL + `forum/`, {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                    params: {
+                        post_id: postId
+                    }
+                });
+
+                setPosts(posts.filter(post => post.id !== postId));
+            } catch (err) {
+                console.error("Błąd przy usuwaniu posta:", err);
+            }
+        }
+    };
+
 
     const fetchGroupData = async () => {
         try {
@@ -87,43 +186,57 @@ const Forum = () => {
         }
     }, [token]); // Remove 'posts' from dependencies to avoid infinite loop
 
-    const filteredPosts = posts.filter(post => {
-        const matchesGroup = selectedGroup === 'all' || post.groupId === Number(selectedGroup);
-        const matchesSearch = post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            post.content.toLowerCase().includes(searchQuery.toLowerCase());
-        return matchesGroup && matchesSearch;
-    });
+
 
 
     const handleAddPost = async () => {
-        if (!title.trim() || !content.trim() || !groupId) return;
+  if (!title.trim() || !content.trim() || !groupId) return;
 
+  try {
+    // 1. Create FormData object
+    const formData = new FormData();
 
-        try {
-            const response = await client.post(API_BASE_URL + "forum/", {
-                group_id: groupId,
-                title: title,
-                content: content
-            }, {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                    "Content-Type": "multipart/form-data",
-                }
-            });
+    // 2. Append regular fields
+    formData.append('group_id', groupId);
+    formData.append('title', title);
+    formData.append('content', content);
 
-            const newPost = response.data
-            console.log(newPost)
-            setPosts([newPost, ...posts]);
-            setIsComposerOpen(false);
-            setImages([]);
-            setImagePreviews([]);
-            setTitle('');
-            setContent('');
-            setGroupId('');
-        } catch (err) {
-            console.error("Błąd przy dodawaniu zasobu:", err);
-        }
-    };
+    // 3. Convert and append images
+    for (let i = 0; i < imagePreviews.length; i++) {
+      const blobUrl = imagePreviews[i];
+
+      // Fetch the blob URL
+      const response = await fetch(blobUrl);
+      const blob = await response.blob();
+
+      // Create a File object with a proper name
+      const file = new File([blob], `image-${Date.now()}-${i}.jpeg`, { type: blob.type });
+
+      // Append to FormData (use 'images' as key for Django to recognize multiple files)
+      formData.append('images', file);
+    }
+
+    // 4. Send the request with FormData
+    const response = await client.post(API_BASE_URL + "forum/", formData, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        // Let the browser set the Content-Type with boundary automatically
+        'Content-Type': 'multipart/form-data',
+      }
+    });
+
+    const newPost = response.data;
+    setPosts([newPost, ...posts]);
+    setIsComposerOpen(false);
+    setImages([]);
+    setImagePreviews([]);
+    setTitle('');
+    setContent('');
+    setGroupId('');
+  } catch (err) {
+    console.error("Error adding post:", err);
+  }
+};
 
     const handleLikeDislike = async (postId, like_type, content_type) => {
 
@@ -187,6 +300,8 @@ const Forum = () => {
         setImages(images.filter((_, i) => i !== index));
         setImagePreviews(imagePreviews.filter((_, i) => i !== index));
     };
+
+
 
     const formatDate = (dateString) => {
         const date = new Date(dateString);
@@ -263,8 +378,157 @@ const Forum = () => {
                 </FormControl>
             </Box>
 
+                        {/* Dialog udostępniania */}
+<Dialog open={isShareDialogOpen} onClose={() => setIsShareDialogOpen(false)}>
+    <DialogTitle>Udostępnij post</DialogTitle>
+    <DialogContent>
+        <Typography variant="body1" sx={{mb: 2}}>
+            Udostępnij ten post poprzez:
+        </Typography>
+        <Box sx={{textAlign: "center", display: 'flex', flexDirection: 'column', gap: 1}}>
+            <Button
+                variant="outlined"
+                onClick={copyToClipboard}
+                startIcon={<LinkIcon />}
+                sx={{justifyContent: 'flex-start'}}
+            >
+                Kopiuj link
+            </Button>
+
+            {/* Przycisk udostępniania na Facebook */}
+            <Button
+                variant="contained"
+                sx={{
+                    justifyContent: 'flex-start',
+                    backgroundColor: '#1877F2',
+                    color: 'white',
+                    '&:hover': { backgroundColor: '#166FE5' }
+                }}
+                startIcon={<Facebook />}
+                onClick={() => {
+                    window.open(
+                        `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`,
+                        '_blank',
+                        'width=600,height=400'
+                    );
+                }}
+            >
+                Udostępnij na Facebooku
+            </Button>
+
+            {/* Przycisk udostępniania na Instagram */}
+            <Button
+                variant="contained"
+                sx={{
+                    justifyContent: 'flex-start',
+                    background: 'linear-gradient(45deg, #405DE6, #5851DB, #833AB4, #C13584, #E1306C, #FD1D1D)',
+                    color: 'white',
+                    '&:hover': { opacity: 0.9 }
+                }}
+                startIcon={<Instagram />}
+                onClick={() => {
+                    // Instagram nie ma oficjalnego API do udostępniania, więc otwieramy nową zakładkę
+                    window.open('https://www.instagram.com/', '_blank');
+                    // Można dodać informację dla użytkownika
+                    alert('Skopiuj link i wklej go w swoim poście na Instagramie');
+                    copyToClipboard();
+                }}
+            >
+                Udostępnij na Instagramie
+            </Button>
+        </Box>
+    </DialogContent>
+    <DialogActions>
+        <Button onClick={() => setIsShareDialogOpen(false)}>Anuluj</Button>
+    </DialogActions>
+</Dialog>
+
+            {/* Dialog edycji posta */}
+            <Dialog
+                open={isEditDialogOpen}
+                onClose={() => setIsEditDialogOpen(false)}
+                maxWidth="sm"
+                fullWidth
+            >
+                <DialogTitle>Edytuj post</DialogTitle>
+                <DialogContent sx={{p: 3}}>
+                    <Box sx={{display: 'flex', flexDirection: 'column', gap: 2}}>
+                        <FormControl fullWidth sx={{mt: 2}}>
+                            <InputLabel>Grupa</InputLabel>
+                            <Select
+                                value={groupId}
+                                label="Grupa"
+                                onChange={(e) => setGroupId(e.target.value)}
+                                required
+                            >
+                                {groups.map(group => (
+                                    <MenuItem key={group.id} value={group.id}>
+                                        <Box sx={{display: 'flex', alignItems: 'center'}}>
+                                            <Box sx={{
+                                                width: 8,
+                                                height: 8,
+                                                bgcolor: group.color,
+                                                borderRadius: '50%',
+                                                mr: 1.5
+                                            }}/>
+                                            {group.name}
+                                        </Box>
+                                    </MenuItem>
+                                ))}
+                            </Select>
+                        </FormControl>
+
+                        <TextField
+                            label="Tytuł"
+                            value={title}
+                            onChange={(e) => setTitle(e.target.value)}
+                            required
+                            fullWidth
+                        />
+
+                        <TextField
+                            label="Treść posta"
+                            value={content}
+                            onChange={(e) => setContent(e.target.value)}
+                            required
+                            fullWidth
+                            multiline
+                            minRows={4}
+                        />
+
+                        <Box sx={{display: 'flex', justifyContent: 'space-between', mt: 2}}>
+                            <Button
+                                color="error"
+                                startIcon={<Delete/>}
+                                onClick={() => {
+                                    setIsEditDialogOpen(false);
+                                    handleDeletePost(currentPost.id);
+                                }}
+                            >
+                                Usuń
+                            </Button>
+                            <Box sx={{display: 'flex', gap: 2}}>
+                                <Button
+                                    variant="outlined"
+                                    onClick={() => setIsEditDialogOpen(false)}
+                                >
+                                    Anuluj
+                                </Button>
+                                <Button
+                                    variant="contained"
+                                    onClick={handleSaveEditedPost}
+                                    disabled={!title.trim() || !content.trim() || !groupId}
+                                >
+                                    Zapisz
+                                </Button>
+                            </Box>
+                        </Box>
+                    </Box>
+                </DialogContent>
+            </Dialog>
+
             {/* Posts */}
-            {filteredPosts.map(post => (
+            {currentPosts.map(post => (
                 <motion.div
                     key={post.id}
                     initial={{opacity: 0, y: 20}}
@@ -273,9 +537,10 @@ const Forum = () => {
                 >
                     <PostCard>
                         <CardHeader
-                            avatar={<Avatar src={post.author.profile_picture?.slice(15)}/>}
+                            avatar={<Avatar src={post.author.profile_picture?.slice(47)}/>}
                             action={
-                                <IconButton>
+                                <IconButton onClick={(e) => {handleEditPost(post);
+                                }}>
                                     <MoreHoriz/>
                                 </IconButton>
                             }
@@ -328,7 +593,7 @@ const Forum = () => {
                                     {post.images.map((src, idx) => (
                                         <img
                                             key={idx}
-                                            src={src}
+                                            src={src.file.slice(48)}
                                             alt={`post-${post.id}-img-${idx}`}
                                             style={{
                                                 width: '100%',
@@ -348,13 +613,13 @@ const Forum = () => {
                                     startIcon={<ThumbUp color={post.userLiked ? 'primary' : 'inherit'}/>}
                                     onClick={() => handleLikeDislike(post.id, "like", "post")}
                                 >
-                                    {post.likes}
+                                    {post.likes_count}
                                 </ActionButton>
                                 <ActionButton
                                     startIcon={<ThumbDown color={post.userDisliked ? 'error' : 'inherit'}/>}
                                     onClick={() => handleLikeDislike(post.id, "dislike", "post")}
                                 >
-                                    {post.dislikes}
+                                    {post.dislikes_count}
                                 </ActionButton>
                                 <ActionButton
                                     startIcon={<Comment/>}
@@ -362,9 +627,15 @@ const Forum = () => {
                                 >
                                     {post.comments?.length}
                                 </ActionButton>
-                                <ActionButton startIcon={<Share/>}>
-                                    Udostępnij
-                                </ActionButton>
+                                        <ActionButton
+                                            startIcon={<Share/>}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleSharePost(post);
+                                            }}
+                                        >
+                                            Udostępnij
+                                        </ActionButton>
                             </Box>
 
                             {/* Comments Section */}
@@ -378,7 +649,7 @@ const Forum = () => {
                                     {post.comments?.slice(0, 3).map(comment => (
                                         <Box key={comment.id} sx={{mb: 2}}>
                                             <Box sx={{display: 'flex', gap: 1}}>
-                                                <Avatar src={comment.author.profile_picture} sx={{width: 32, height: 32}}/>
+                                                <Avatar src={comment.author.profile_picture?.slice(47)} sx={{width: 32, height: 32}}/>
                                                 <Box>
                                                     <Typography variant="subtitle2" fontWeight={600}>
                                                         {comment.author.username}
@@ -444,6 +715,22 @@ const Forum = () => {
                     </PostCard>
                 </motion.div>
             ))}
+
+            {filteredPosts.length > postsPerPage && (
+                <Box sx={{display: 'flex', justifyContent: 'center', mt: 3}}>
+                    <Pagination
+                        count={totalPages}
+                        page={currentPage}
+                        onChange={handlePageChange}
+                        color="primary"
+                        sx={{
+                            '& .MuiPaginationItem-root': {
+                                borderRadius: '8px'
+                            }
+                        }}
+                    />
+                </Box>
+            )}
 
             {/* Post Composer Dialog */}
             <Dialog

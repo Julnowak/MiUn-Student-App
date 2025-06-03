@@ -27,6 +27,7 @@ import {
   Message,
   Assignment
 } from '@mui/icons-material';
+import {useNavigate} from "react-router-dom";
 
 const Main = () => {
   const [notifications] = useState([
@@ -47,18 +48,10 @@ const Main = () => {
     { id: 3, date: '2023-10-17', title: 'Kolokwium z Bazy Danych', time: '09:00-10:30' }
   ]);
 
-  const [anchorEl, setAnchorEl] = useState(null);
-
-  const handleNotificationsClick = (event) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleNotificationsClose = () => {
-    setAnchorEl(null);
-  };
+  const navigate = useNavigate()
 
   return (
-    <Box sx={{ flexGrow: 1 }}>
+    <Box sx={{ flexGrow: 1, mb: 3 }}>
       <Container maxWidth="lg" sx={{ mt: 4 }}>
         <Grid container spacing={3}>
           {/* Sekcja grup */}
@@ -82,7 +75,7 @@ const Main = () => {
                 </List>
               </CardContent>
               <CardActions>
-                <Button size="small" endIcon={<ArrowForward />}>Zobacz więcej</Button>
+                <Button size="small" onClick={() => navigate("/groups")} endIcon={<ArrowForward />}>Zobacz więcej</Button>
               </CardActions>
             </Card>
           </Grid>
@@ -108,7 +101,7 @@ const Main = () => {
                 </List>
               </CardContent>
               <CardActions>
-                <Button size="small" endIcon={<ArrowForward />}>Zobacz więcej</Button>
+                <Button size="small" onClick={() => navigate("/calendar")} endIcon={<ArrowForward />}>Zobacz więcej</Button>
               </CardActions>
             </Card>
           </Grid>
@@ -123,45 +116,14 @@ const Main = () => {
                   </Button>
                 </Grid>
                 <Grid item xs={12} sm={6} md={3}>
-                  <Button fullWidth variant="contained" startIcon={<Message />} sx={{ p: 2 }}>
-                    Wiadomości
-                  </Button>
-                </Grid>
-                <Grid item xs={12} sm={6} md={3}>
                   <Button fullWidth variant="contained" startIcon={<Assignment />} sx={{ p: 2 }}>
                     Oceny
-                  </Button>
-                </Grid>
-                <Grid item xs={12} sm={6} md={3}>
-                  <Button fullWidth variant="contained" startIcon={<Group />} sx={{ p: 2 }}>
-                    Nowa grupa
                   </Button>
                 </Grid>
               </Grid>
             </Card>
           </Grid>
 
-          {/* Dodatkowe informacje */}
-          <Grid item xs={12}>
-            <Card sx={{ p: 2 }}>
-              <Typography variant="h6" sx={{ mb: 2 }}>Ostatnie aktywności</Typography>
-              <Divider />
-              <List>
-                <ListItem>
-                  <ListItemText
-                    primary="Zaliczenie projektu React"
-                    secondary="Dodano nowy komentarz • 2 godziny temu"
-                  />
-                </ListItem>
-                <ListItem>
-                  <ListItemText
-                    primary="Nowy materiał na platformie"
-                    secondary="Wykład 15: Zaawansowane wzorce projektowe • Wczoraj"
-                  />
-                </ListItem>
-              </List>
-            </Card>
-          </Grid>
         </Grid>
       </Container>
     </Box>
