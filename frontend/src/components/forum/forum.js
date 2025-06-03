@@ -2,7 +2,7 @@ import React, {useState, useEffect, useRef} from 'react';
 import {
     Box, Card, CardContent, CardHeader, Avatar, Typography, TextField, Button,
     IconButton, MenuItem, Select, FormControl, InputLabel, Dialog,
-    DialogContent, useMediaQuery
+    DialogContent, useMediaQuery, Link
 } from '@mui/material';
 import {
     Comment, ThumbUp, ThumbDown, Close, SentimentSatisfiedAlt, Image,
@@ -13,6 +13,7 @@ import {motion} from 'framer-motion';
 import client from "../../client";
 import {API_BASE_URL} from "../../config";
 import EmojiPicker from 'emoji-picker-react';
+import {useNavigate} from "react-router-dom";
 
 // Stylizowane komponenty
 const PostCard = styled(Card)(({theme}) => ({
@@ -42,7 +43,7 @@ const CommentInput = styled(TextField)(({theme}) => ({
     }
 }));
 
-const Forum = ({userId}) => {
+const Forum = () => {
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
     const [selectedGroup, setSelectedGroup] = useState('all');
@@ -59,37 +60,7 @@ const Forum = ({userId}) => {
     const [activeCommentPost, setActiveCommentPost] = useState(null);
     const [commentText, setCommentText] = useState('');
     const emojiPickerRef = useRef();
-
-    // Mock danych - w rzeczywistej aplikacji pobierane z API
-    useEffect(() => {
-        const mockPosts = [
-            {
-                id: 1,
-                groupId: 1,
-                title: 'Problem z komponentem Suspense',
-                author: 'Jan Kowalski',
-                authorAvatar: 'https://randomuser.me/api/portraits/men/1.jpg',
-                content: 'Jak prawidłowo implementować ładowanie danych z API przy użyciu Suspense?',
-                timestamp: '2023-08-15T14:30:00Z',
-                comments: [
-                    {id: 1, author: 'Anna Nowak', content: 'Użyj React Query', timestamp: '2023-08-15T15:00:00Z'},
-                    {id: 2, author: 'Piotr Wiśniewski', content: 'Spróbuj z SWR', timestamp: '2023-08-15T15:30:00Z'}
-                ],
-                likes: 5,
-                userLiked: false,
-                userDisliked: false,
-                images: ["https://omegakarmy.pl/wp-content/uploads/2024/06/Oblizujacy-sie-kot.jpg", "https://omegakarmy.pl/wp-content/uploads/2024/06/Oblizujacy-sie-kot.jpg", "https://omegakarmy.pl/wp-content/uploads/2024/06/Oblizujacy-sie-kot.jpg", "https://omegakarmy.pl/wp-content/uploads/2024/06/Oblizujacy-sie-kot.jpg", "https://omegakarmy.pl/wp-content/uploads/2024/06/Oblizujacy-sie-kot.jpg"]
-            },
-        ];
-        setPosts(mockPosts);
-    }, []);
-
-    const filteredPosts = posts.filter(post => {
-        const matchesGroup = selectedGroup === 'all' || post.groupId === Number(selectedGroup);
-        const matchesSearch = post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            post.content.toLowerCase().includes(searchQuery.toLowerCase());
-        return matchesGroup && matchesSearch;
-    });
+    const navigate = useNavigate()
 
     const token = localStorage.getItem("access")
     useEffect(() => {
@@ -100,7 +71,9 @@ const Forum = ({userId}) => {
                         Authorization: `Bearer ${token}`,
                     },
                 });
+                console.log(response.data.posts);
                 setGroups(response.data.groups);
+                setPosts(response.data.posts); // Add this line to set the posts from API
             } catch (error) {
                 console.log("Nie udało się zalogować");
             }
@@ -109,34 +82,44 @@ const Forum = ({userId}) => {
         if (token) {
             fetchGroupData();
         }
-    }, [token]);
+    }, [token]); // Remove 'posts' from dependencies to avoid infinite loop
 
-    const handleAddPost = () => {
+    const filteredPosts = posts.filter(post => {
+        const matchesGroup = selectedGroup === 'all' || post.groupId === Number(selectedGroup);
+        const matchesSearch = post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            post.content.toLowerCase().includes(searchQuery.toLowerCase());
+        return matchesGroup && matchesSearch;
+    });
+
+
+    const handleAddPost = async () => {
         if (!title.trim() || !content.trim() || !groupId) return;
 
-        const newPost = {
-            id: Date.now(),
-            groupId: Number(groupId),
-            title,
-            author: "Ty",
-            authorAvatar: 'https://randomuser.me/api/portraits/men/2.jpg',
-            content,
-            images: imagePreviews,
-            timestamp: new Date().toISOString(),
-            comments: [],
-            likes: 0,
-            dislikes: 0,
-            userLiked: false,
-            userDisliked: false
-        };
 
-        setPosts([newPost, ...posts]);
-        setIsComposerOpen(false);
-        setImages([]);
-        setImagePreviews([]);
-        setTitle('');
-        setContent('');
-        setGroupId('');
+        try {
+            const response = await client.post(API_BASE_URL + "forum/", {
+                group_id: groupId,
+                title: title,
+                content: content
+            }, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    "Content-Type": "multipart/form-data",
+                }
+            });
+
+            const newPost = response.data
+            console.log(newPost)
+            setPosts([newPost, ...posts]);
+            setIsComposerOpen(false);
+            setImages([]);
+            setImagePreviews([]);
+            setTitle('');
+            setContent('');
+            setGroupId('');
+        } catch (err) {
+            console.error("Błąd przy dodawaniu zasobu:", err);
+        }
     };
 
     const handleLike = (postId) => {
@@ -213,7 +196,7 @@ const Forum = ({userId}) => {
                 return {
                     ...post,
                     comments: [...post.comments, {
-                        id: post.comments.length + 1,
+                        id: post.comments?.length + 1,
                         author: 'Current User',
                         authorAvatar: 'https://randomuser.me/api/portraits/men/3.jpg',
                         content: commentText,
@@ -327,15 +310,31 @@ const Forum = ({userId}) => {
                 >
                     <PostCard>
                         <CardHeader
-                            avatar={<Avatar src={post.authorAvatar}/>}
+                            avatar={<Avatar src={post.author.profile_picture?.slice(15)}/>}
                             action={
                                 <IconButton>
                                     <MoreHoriz/>
                                 </IconButton>
                             }
-                            title={post.author}
+                            title={
+                                <Box sx={{display: 'flex', alignItems: 'center'}}>
+                                    <Typography variant="subtitle1" component="span">
+                                        {post.author.username}
+                                    </Typography>
+                                    <Typography variant="subtitle1" component="span" sx={{mx: 0.5}}>
+                                        ➤
+                                    </Typography>
+<Link
+  to={`/group/${post.group.id}`}
+  style={{ textDecoration: 'none', color: 'inherit', position: 'relative', zIndex: 10, pointerEvents: 'auto' }}
+  onClick={() => navigate(`/group/${post.group.id}`)}
+>
+  {post.group.name}
+</Link>
+                                </Box>
+                            }
                             subheader={formatDate(post.timestamp)}
-                            titleTypographyProps={{fontWeight: 600}}
+                            titleTypographyProps={{component: 'div'}}
                             subheaderTypographyProps={{variant: 'caption'}}
                         />
 
@@ -348,10 +347,10 @@ const Forum = ({userId}) => {
                             </Typography>
 
                             {/* Post Images */}
-                            {post.images && post.images.length > 0 && (
+                            {post.images && post.images?.length > 0 && (
                                 <Box sx={{
                                     display: 'grid',
-                                    gridTemplateColumns: post.images.length === 1 ? '1fr' : '1fr 1fr',
+                                    gridTemplateColumns: post.images?.length === 1 ? '1fr' : '1fr 1fr',
                                     gap: 1,
                                     mb: 2,
                                     borderRadius: '8px',
@@ -392,7 +391,7 @@ const Forum = ({userId}) => {
                                     startIcon={<Comment/>}
                                     onClick={() => setActiveCommentPost(activeCommentPost === post.id ? null : post.id)}
                                 >
-                                    {post.comments.length}
+                                    {post.comments?.length}
                                 </ActionButton>
                                 <ActionButton startIcon={<Share/>}>
                                     Udostępnij
@@ -400,14 +399,14 @@ const Forum = ({userId}) => {
                             </Box>
 
                             {/* Comments Section */}
-                            {post.comments.length > 0 && (
+                            {post.comments?.length > 0 && (
                                 <Box sx={{
                                     mt: 2,
                                     bgcolor: theme.palette.mode === 'light' ? '#f7f8fa' : '#242526',
                                     borderRadius: '8px',
                                     p: 2
                                 }}>
-                                    {post.comments.slice(0, 3).map(comment => (
+                                    {post.comments?.slice(0, 3).map(comment => (
                                         <Box key={comment.id} sx={{mb: 2}}>
                                             <Box sx={{display: 'flex', gap: 1}}>
                                                 <Avatar src={comment.authorAvatar} sx={{width: 32, height: 32}}/>

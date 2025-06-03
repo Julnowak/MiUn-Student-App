@@ -5,7 +5,7 @@ from rest_framework import serializers
 from django.contrib.auth import authenticate, get_user_model
 
 from mainApp.models import Building, Notification, Source, Field, MaturaSubject, News, Course, Group, FieldByYear, \
-    Event, Round, EmailVerification
+    Event, Round, EmailVerification, Post, Comment, Attachment
 
 UserModel = get_user_model()
 
@@ -79,6 +79,67 @@ class EventSerializer(serializers.ModelSerializer):
         model = Event
         fields = '__all__'
         depth = 1
+
+
+class AttachmentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Attachment
+        fields = '__all__'
+        depth = 1
+
+
+class CommentSerializer(serializers.ModelSerializer):
+    author = UserSerializer(source='user', read_only=True)
+    likes_count = serializers.SerializerMethodField()
+    dislikes_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Comment
+        fields = ['id', 'author', 'content', 'created_at', 'likes_count', 'dislikes_count']
+
+    def get_likes_count(self, obj):
+        return obj.likes.filter(value=True).count()
+
+    def get_dislikes_count(self, obj):
+        return obj.likes.filter(value=False).count()
+
+
+class PostSerializer(serializers.ModelSerializer):
+    author = UserSerializer(source='user', read_only=True)
+    images = AttachmentSerializer(many=True, read_only=True)
+    comments = CommentSerializer(many=True, read_only=True)
+    likes_count = serializers.SerializerMethodField()
+    dislikes_count = serializers.SerializerMethodField()
+    userLiked = serializers.SerializerMethodField()
+    userDisliked = serializers.SerializerMethodField()
+    timestamp = serializers.DateTimeField(source='created_at', read_only=True)
+
+    class Meta:
+        model = Post
+        fields = [
+            'id', 'group', 'title', 'author', 'content',
+            'images', 'timestamp', 'comments', 'likes_count',
+            'dislikes_count', 'userLiked', 'userDisliked'
+        ]
+        depth = 2
+
+    def get_likes_count(self, obj):
+        return obj.likes.filter(value=True).count()
+
+    def get_dislikes_count(self, obj):
+        return obj.likes.filter(value=False).count()
+
+    def get_userLiked(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            return obj.likes.filter(user=request.user, value=True).exists()
+        return False
+
+    def get_userDisliked(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            return obj.likes.filter(user=request.user, value=False).exists()
+        return False
 
 
 class CourseSerializer(serializers.ModelSerializer):

@@ -109,9 +109,9 @@ const GroupPage = () => {
 
     if (group && group.avatar != null) {
       if (group.avatar instanceof Blob || group.avatar instanceof File) {
-        avatarSrc = URL.createObjectURL(group.avatar);
+        avatarSrc = URL.createObjectURL(group.avatar?.slice(15));
       } else if (typeof group.avatar === 'string' && group.avatar.length > 0) {
-        avatarSrc = group.avatar; // Already a URL
+        avatarSrc = group.avatar?.slice(15); // Already a URL
       }
     }
 
@@ -430,18 +430,18 @@ setImagePreviews(previews);
 
 
 function getBackgroundImageUrl(group) {
-  if (group.coverImage) {
-    if (typeof group.coverImage === 'string' && group.coverImage.length > 0) {
-      return `url(${group.coverImage})`;
-    }
-    if (group.coverImage instanceof Blob || group.coverImage instanceof File) {
-      try {
-        return `url(${URL.createObjectURL(group.coverImage)})`;
-      } catch (e) {
-        console.error('Failed to create object URL:', e);
-        return '';
-      }
-    }
+    if (group.coverImage) {
+        if (typeof group.coverImage === 'string') {
+          return `url(${group.coverImage.slice(15)})`;
+        }
+        if (group.coverImage instanceof Blob || group.coverImage instanceof File) {
+          try {
+            return `url(${URL.createObjectURL(group.coverImage)})`;
+          } catch (e) {
+            console.error('Failed to create object URL:', e);
+            return '';
+          }
+        }
   }
   return '';
 }
@@ -458,7 +458,7 @@ const bgUrl = getBackgroundImageUrl(group);
             <Box
               sx={{
                 height: 200,
-                backgroundImage: bgUrl ? `url(${bgUrl})` : 'none',
+                backgroundImage: bgUrl ? `${bgUrl}` : 'none',
                 backgroundSize: 'cover',
                 backgroundPosition: 'center',
                 [theme.breakpoints.up('md')]: {

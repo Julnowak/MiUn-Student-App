@@ -20,10 +20,11 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from django.utils import timezone
 
 from mainApp.models import AppUser, Building, Notification, Source, Field, MaturaSubject, News, Course, Group, \
-    FieldByYear, Event, Round, EmailVerification
+    FieldByYear, Event, Round, EmailVerification, Post
 from mainApp.serializers import UserRegisterSerializer, UserSerializer, BuildingSerializer, NotificationSerializer, \
     SourceSerializer, FieldSerializer, MaturaSubjectSerializer, NewsSerializer, CourseSerializer, GroupSerializer, \
-    FieldByYearSerializer, EventSerializer, RoundSerializer, EmailVerificationSerializer, VerifyCodeSerializer
+    FieldByYearSerializer, EventSerializer, RoundSerializer, EmailVerificationSerializer, VerifyCodeSerializer, \
+    PostSerializer
 
 from .utils import send_verification_email
 from .calc_score.calc_score import calc_score_fun
@@ -342,6 +343,22 @@ class EventAPI(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
+class EventAPI(APIView):
+    permission_classes = (permissions.IsAuthenticated,)  # Only authenticated users can log out
+
+    def get(self, request):
+        events = Event.objects.filter(user=request.user)
+        serializer = EventSerializer(events, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def post(self, request):
+        events = Event.objects.filter(user=request.user)
+        serializer = EventSerializer(events, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+
+
 class FieldByYearAPI(APIView):
     permission_classes = (permissions.IsAuthenticated,)  # Only authenticated users can log out
 
@@ -391,6 +408,7 @@ def str_to_bool(value):
     if isinstance(value, str):
         return value.lower() == 'true'
     return False
+
 
 class OneGroupAPI(APIView):
     permission_classes = (permissions.IsAuthenticated,)  # Only authenticated users can log out
@@ -597,14 +615,27 @@ class ForumAPI(APIView):
     permission_classes = (permissions.IsAuthenticated,)  # Only authenticated users can log out
 
     def get(self, request):
+        # Pobierz grupy użytkownika
         my_groups = Group.objects.filter(members__id=request.user.id)
         serializer = GroupSerializer(my_groups, many=True)
-        return Response({"groups": serializer.data}, status=status.HTTP_200_OK)
 
-    # def post(self, request, news_id):
-    #     news = News.objects.get(pk=news_id)
-    #     serializer = NewsSerializer(news)
-    #     return Response(serializer.data, status=status.HTTP_200_OK)
+        # Pobierz posty z grup użytkownika
+        posts = Post.objects.filter(group__in=my_groups).order_by('-created_at')
+        post_serializer = PostSerializer(posts, many=True)
+
+        return Response({
+            "groups": serializer.data,
+            "posts": post_serializer.data
+        }, status=status.HTTP_200_OK)
+
+    def post(self, request):
+        group = Group.objects.get(id=request.data["group_id"])
+
+        post = Post.objects.create(user=request.user, group=group,
+                                   title=request.data["title"],
+                                   content=request.data["content"])
+        serializer = PostSerializer(post)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class CalendarAPI(APIView):
@@ -714,7 +745,6 @@ class VerificationAPI(APIView):
 
 class VerifyCodeView(APIView):
     def post(self, request):
-        print(request.data)
         email = request.data['email']
         code = request.data['code']
 
@@ -722,7 +752,6 @@ class VerifyCodeView(APIView):
 
         verification = EmailVerification.verify_code(email, code)
 
-        print(verification)
         if verification:
             user = user
             user.is_verified = True
