@@ -1,4 +1,5 @@
 import datetime
+from random import random
 
 from django.db import models
 from django.contrib.auth.base_user import BaseUserManager
@@ -38,7 +39,8 @@ class AppUserManager(BaseUserManager):
 
 class AppUser(AbstractBaseUser, PermissionsMixin):
     id = models.AutoField(primary_key=True)
-    email = models.EmailField(max_length=50, unique=True)
+    email = models.EmailField(max_length=200, unique=True)
+    student_email = models.EmailField(max_length=200, blank=True, null=True)
     username = models.CharField(max_length=50)
     telephone = models.CharField(max_length=15,blank=True, null=True)
     address = models.CharField(max_length=200,blank=True, null=True)
@@ -46,12 +48,14 @@ class AppUser(AbstractBaseUser, PermissionsMixin):
     surname = models.CharField(max_length=200,blank=True, null=True)
     profile_picture = models.ImageField(blank=True, null=True, upload_to="images")
     is_verified = models.BooleanField(default=False)
+    joined_at = models.DateTimeField(default=timezone.now)
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username']
     objects = AppUserManager()
 
     is_staff = models.BooleanField(default=False)
     is_superuser = models.BooleanField(default=False)
+    is_online = models.BooleanField(default=False)
 
     def __str__(self):
         return self.username
@@ -70,18 +74,6 @@ class Building(models.Model):
     def __str__(self):
         return f"Budynek ID-{self.id}: {self.name}"
 
-
-class Notification(models.Model):
-    id = models.AutoField(primary_key=True)
-    user = models.ForeignKey(AppUser, on_delete=models.CASCADE)
-    title = models.CharField(max_length=300)
-    isRead = models.BooleanField(default=False)
-    message = models.CharField(max_length=1000)
-    time_triggered = models.DateTimeField()
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"Powiadomienie ID-{self.id}: {self.title}"
 
 
 class Faculty(models.Model):
@@ -109,8 +101,8 @@ class MaturaSubject(models.Model):
 
 
 STUDIES_CHOICES = (
-    ("STACJONARNE", "for all users"),
-    ("NIESTACJONARNE", "for me and my group-mates"),
+    ("stacjonarne", "stacjonarne"),
+    ("niestacjonarne", "niestacjonarne"),
 )
 
 
@@ -129,7 +121,7 @@ class Field(models.Model):
     isActive = models.BooleanField(default=True)
 
     def __str__(self):
-        return f"Kierunek ID-{self.id}: {self.name}"
+        return f"Kierunek ID-{self.id}: {self.name} ({self.type}, {self.level}, spec: {self.specialization})"
 
 
 class Semester(models.Model):
@@ -202,17 +194,101 @@ class Round(models.Model):
         return f"Tura ID-{self.id}: {self.name} - {self.year}"
 
 
-class VerificationCode(models.Model):
-    user = models.ForeignKey(AppUser, on_delete=models.CASCADE)
-    student_id = models.CharField(max_length=6)
-    code = models.CharField(max_length=6)
-    created_at = models.DateTimeField(auto_now_add=True)
+# models.py
+from django.db import models
+from django.contrib.auth import get_user_model
+from django.utils import timezone
+from django.core.validators import MinLengthValidator
 
-    def is_expired(self):
-        return timezone.now() > self.created_at + timedelta(hours=1)
+User = get_user_model()
+
+
+class EmailVerification(models.Model):
+    class VerificationType(models.TextChoices):
+        REGISTRATION = 'registration', 'Rejestracja konta'
+        PASSWORD_RESET = 'password_reset', 'Reset hasła'
+        EMAIL_CHANGE = 'email_change', 'Zmiana adresu email'
+
+    user = models.ForeignKey(
+        AppUser,
+        on_delete=models.CASCADE,
+        related_name='email_verifications',
+        verbose_name='Użytkownik'
+    )
+    email = models.EmailField(
+        verbose_name='Email do weryfikacji'
+    )
+    verification_code = models.CharField(
+        max_length=6,
+        validators=[MinLengthValidator(6)],
+        verbose_name='Kod weryfikacyjny'
+    )
+    verification_type = models.CharField(
+        max_length=20,
+        choices=VerificationType.choices,
+        default=VerificationType.REGISTRATION,
+        verbose_name='Typ weryfikacji'
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name='Data utworzenia'
+    )
+    expires_at = models.DateTimeField(
+        verbose_name='Data wygaśnięcia'
+    )
+    is_verified = models.BooleanField(
+        default=False,
+        verbose_name='Czy zweryfikowano'
+    )
+    verified_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name='Data weryfikacji'
+    )
+
+    class Meta:
+        verbose_name = 'Weryfikacja email'
+        verbose_name_plural = 'Weryfikacje email'
+        indexes = [
+            models.Index(fields=['email', 'verification_code']),
+            models.Index(fields=['expires_at']),
+        ]
+        ordering = ['-created_at']
 
     def __str__(self):
-        return f"{self.user.email} - {self.code}"
+        return f'Weryfikacja dla {self.email} ({self.verification_type})'
+
+    def save(self, *args, **kwargs):
+        if not self.expires_at:
+            self.expires_at = timezone.now() + timezone.timedelta(minutes=15)
+        super().save(*args, **kwargs)
+
+    @property
+    def is_expired(self):
+        return timezone.now() > self.expires_at
+
+    @classmethod
+    def verify_code(cls, email, code):
+        try:
+            verification = cls.objects.get(
+                email=email,
+                verification_code=code,
+                is_verified=False,
+                expires_at__gt=timezone.now()
+            )
+            verification.is_verified = True
+            verification.verified_at = timezone.now()
+            verification.save()
+            return True
+        except cls.DoesNotExist:
+            return False
+
+
+EVENT_CHOICES = (
+    ("GROUP EVENT", "group event"),
+    ("USER EVENT", "user event"),
+    ("FIELD EVENT", "field by year event"),
+)
 
 
 class Event(models.Model):
@@ -225,6 +301,7 @@ class Event(models.Model):
     recurrent = models.BooleanField(default=False)
     recurrency_details = models.JSONField(blank=True, null=True) # {'num': 2, 'type': "days", until: DATE}
     user = models.ForeignKey(AppUser, on_delete=models.CASCADE)
+    type = models.CharField(max_length=300, choices=EVENT_CHOICES, default="USER EVENT")
 
     def __str__(self):
         return f"Wydarzenie ID-{self.id}: {self.name}"
@@ -238,14 +315,43 @@ class Group(models.Model):
     code = models.CharField(max_length=300, default=get_random_string(32))
     isPublic = models.BooleanField(default=False)
     members = models.ManyToManyField(AppUser, related_name="members")
+    moderators = models.ManyToManyField(AppUser, related_name="moderators", blank=True)
+    recentActivity = models.ManyToManyField(Event, related_name="recentActivity", blank=True)
+    rules = models.TextField(blank=True, null=True)
     description = models.TextField(blank=True, null=True, max_length=400)
     limit = models.IntegerField(default=150, blank=True, null=True)
     archived = models.BooleanField(default=False)
     isOfficial = models.BooleanField(default=False)
     date_created = models.DateTimeField(auto_now_add=True)
+    coverImage = models.ImageField(blank=True, null=True, upload_to="group_files_cover")
+    avatar = models.ImageField(blank=True, null=True, upload_to="group_files_avatar")
 
     def __str__(self):
         return f"Grupa ID-{self.id}: {self.name}"
+
+
+NOTIFICATION_CHOICES = (
+    ("NORMAL", "normal"),
+    ("GROUP INVITATION", "group invitation"),
+)
+
+
+class Notification(models.Model):
+    id = models.AutoField(primary_key=True)
+    user = models.ForeignKey(AppUser, on_delete=models.CASCADE)
+    title = models.CharField(max_length=300)
+    isRead = models.BooleanField(default=False)
+    message = models.CharField(max_length=1000)
+    time_triggered = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    type = models.CharField(max_length=100, choices=NOTIFICATION_CHOICES, default="NORMAL")
+    group = models.ForeignKey(Group, on_delete=models.CASCADE, blank=True, null=True)
+    isAnswered = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"Powiadomienie ID-{self.id}: {self.title}"
+
+
 
 
 AVAILABILTY_CHOICES = (
@@ -266,6 +372,7 @@ class Source(models.Model):
     field = models.ForeignKey(Field, on_delete=models.CASCADE)
     course = models.ForeignKey(Course, on_delete=models.CASCADE, null=True, blank=True)
     added_by = models.ForeignKey(AppUser, on_delete=models.CASCADE)
+    group = models.ForeignKey(Group, on_delete=models.CASCADE, blank=True, null=True)
     description = models.TextField(blank=True, null=True, max_length=300)
     date_added = models.DateTimeField(auto_now_add=True)
     verified = models.BooleanField(default=False)
@@ -304,3 +411,39 @@ class News(models.Model):
 
     def __str__(self):
         return f"News ID-{self.id}: {self.name}"
+
+
+class Like(models.Model):
+    id = models.AutoField(primary_key=True)
+    user = models.ForeignKey(AppUser, on_delete=models.CASCADE)
+    value = models.BooleanField(null=True, blank=True)
+
+    def __str__(self):
+        return f"Like ID-{self.id}: {self.user.username}"
+
+
+class Post(models.Model):
+    id = models.AutoField(primary_key=True)
+    user = models.ForeignKey(AppUser, on_delete=models.CASCADE)
+    title = models.CharField(max_length=300)
+    group = models.ForeignKey(Group, on_delete=models.CASCADE)
+    content = models.TextField(blank=True, null=True)
+    likes = models.ManyToManyField(Like)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Post ID-{self.id}: {self.title}"
+
+
+class Comment(models.Model):
+    id = models.AutoField(primary_key=True)
+    user = models.ForeignKey(AppUser, on_delete=models.CASCADE)
+    content = models.TextField(blank=True, null=True)
+    likes = models.ManyToManyField(Like)
+    created_at = models.DateTimeField(auto_now_add=True)
+    visible = models.BooleanField(default=True)
+    post = models.ForeignKey(Post, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return f"Like ID-{self.id}: {self.user.username}"
+

@@ -4,7 +4,8 @@ from rest_framework import serializers
 # from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, get_user_model
 
-from mainApp.models import Building, Notification, Source, Field, MaturaSubject, News, Course, Group, FieldByYear, Event
+from mainApp.models import Building, Notification, Source, Field, MaturaSubject, News, Course, Group, FieldByYear, \
+    Event, Round, EmailVerification
 
 UserModel = get_user_model()
 
@@ -90,7 +91,7 @@ class GroupSerializer(serializers.ModelSerializer):
     class Meta:
         model = Group
         fields = '__all__'
-        depth = 1
+        depth = 2
 
 
 class FieldSerializer(serializers.ModelSerializer):
@@ -106,3 +107,21 @@ class FieldByYearSerializer(serializers.ModelSerializer):
         model = FieldByYear
         fields = '__all__'
         depth = 1
+
+
+class RoundSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Round
+        fields = '__all__'
+        depth = 1
+
+
+class EmailVerificationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EmailVerification
+        fields = ['email', 'verification_type']
+
+
+class VerifyCodeSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    code = serializers.CharField(max_length=6, min_length=6)
