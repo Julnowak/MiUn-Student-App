@@ -237,7 +237,7 @@ export default function UserProfile() {
                                     }}
                                 />
                                 <EditOverlay>
-                                    <FaEdit />
+                                    <FaEdit/>
                                 </EditOverlay>
                                 <input
                                     id="fileInput"
@@ -262,14 +262,20 @@ export default function UserProfile() {
                                 textAlign: "center",
                             }}>
                                 {user?.is_verified ? (
-                                    <Box sx={{ maxWidth: 300, m: "auto", borderRadius: 2, p:2}}>
+                                    <Box sx={{maxWidth: 300, m: "auto", borderRadius: 2, p: 2}}>
                                         <FaCheckCircle size={24} color={theme.palette.success.main}/>
                                         <Typography variant="body2" sx={{mt: 1, fontWeight: 500}}>
                                             Konto zweryfikowane
                                         </Typography>
                                     </Box>
                                 ) : (
-                                    <Box sx={{backgroundColor: "rgba(225,225,225,0.53)", maxWidth: 300, m: "auto", borderRadius: 2, p:2}}>
+                                    <Box sx={{
+                                        backgroundColor: "rgba(225,225,225,0.53)",
+                                        maxWidth: 300,
+                                        m: "auto",
+                                        borderRadius: 2,
+                                        p: 2
+                                    }}>
                                         <FaExclamationTriangle size={24} color={"gray"}/>
                                         <Typography variant="body2" sx={{mt: 1, fontWeight: 500}}>
                                             Wymagana weryfikacja
@@ -320,7 +326,7 @@ export default function UserProfile() {
                                         size="small"
                                     />
                                 </Grid>
-                                <Grid item xs={12}>
+                                <Grid item xs={12} sm={6}>
                                     <TextField
                                         fullWidth
                                         label="Email"
@@ -332,48 +338,102 @@ export default function UserProfile() {
                                         size="small"
                                     />
                                 </Grid>
+                                <Grid item xs={12} sm={6}>
+                                    <TextField
+                                        fullWidth
+                                        label="Nr telefonu"
+                                        name="telephone"
+                                        value={user?.telephone || ""}
+                                        onChange={handleChange}
+                                        disabled={!isEditing}
+                                        variant="outlined"
+                                        size="small"
+                                    />
+                                </Grid>
+                                <Grid item xs={12} sm={6}>
+                                    <TextField
+                                        fullWidth
+                                        label="LinkedIn"
+                                        name="linkedin"
+                                        value={user?.linkedin || ""}
+                                        onChange={handleChange}
+                                        disabled={!isEditing}
+                                        variant="outlined"
+                                        size="small"
+                                        placeholder="https://linkedin.com/in/..."
+                                    />
+                                </Grid>
+                                <Grid item xs={12} sm={6}>
+                                    <TextField
+                                        fullWidth
+                                        label="GitHub"
+                                        name="github"
+                                        value={user?.github || ""}
+                                        onChange={handleChange}
+                                        disabled={!isEditing}
+                                        variant="outlined"
+                                        size="small"
+                                        placeholder="https://github.com/..."
+                                    />
+                                </Grid>
+
+                                <Grid item xs={12}>
+                                    <TextField
+                                        fullWidth
+                                        label="Facebook"
+                                        name="facebook"
+                                        value={user?.facebook || ""}
+                                        onChange={handleChange}
+                                        disabled={!isEditing}
+                                        variant="outlined"
+                                        size="small"
+                                        placeholder="https://facebook.com/..."
+                                    />
+                                </Grid>
+
+
                             </Grid>
                         </Box>
 
                         {/* University Info */}
                         {user?.is_verified && (
                             <Box sx={{mb: 4}}>
-                            <SectionHeader variant="h2">
-                                Informacje uczelniane
-                            </SectionHeader>
-                            <Grid container spacing={2}>
-                                <Grid item xs={12} sm={6}>
-                                    <TextField
-                                        fullWidth
-                                        label="Wydział"
-                                        value="EAIIB"
-                                        variant="outlined"
-                                        disabled
-                                        size="small"
-                                    />
+                                <SectionHeader variant="h2">
+                                    Informacje uczelniane
+                                </SectionHeader>
+                                <Grid container spacing={2}>
+                                    <Grid item xs={12} sm={6}>
+                                        <TextField
+                                            fullWidth
+                                            label="Wydział"
+                                            value="EAIIB"
+                                            variant="outlined"
+                                            disabled
+                                            size="small"
+                                        />
+                                    </Grid>
+                                    <Grid item xs={12} sm={6}>
+                                        <TextField
+                                            fullWidth
+                                            label="Kierunek"
+                                            value="AiR"
+                                            variant="outlined"
+                                            disabled
+                                            size="small"
+                                        />
+                                    </Grid>
+                                    <Grid item xs={12}>
+                                        <TextField
+                                            fullWidth
+                                            label="Email uczelniany"
+                                            value="student@aaa.edu.pl"
+                                            variant="outlined"
+                                            disabled
+                                            size="small"
+                                        />
+                                    </Grid>
                                 </Grid>
-                                <Grid item xs={12} sm={6}>
-                                    <TextField
-                                        fullWidth
-                                        label="Kierunek"
-                                        value="AiR"
-                                        variant="outlined"
-                                        disabled
-                                        size="small"
-                                    />
-                                </Grid>
-                                <Grid item xs={12}>
-                                    <TextField
-                                        fullWidth
-                                        label="Email uczelniany"
-                                        value="student@aaa.edu.pl"
-                                        variant="outlined"
-                                        disabled
-                                        size="small"
-                                    />
-                                </Grid>
-                            </Grid>
-                        </Box>
+                            </Box>
                         )}
 
 
@@ -408,7 +468,8 @@ export default function UserProfile() {
                             <ActionButton
                                 variant="contained"
                                 color="primary"
-                                sx={{mt:1}}
+                                sx={{mt: 1}}
+                                onClick={() => navigate("/donations")}
                             >
                                 Postaw kawę
                             </ActionButton>

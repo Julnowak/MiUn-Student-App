@@ -117,7 +117,7 @@ const MediaTab = ({groupId}) => {
 
     const applyFilters = async () => {
         setAppliedFilters({...filters});
-        const response = await client.get(API_BASE_URL + "sources/", {
+        const response = await client.get(API_BASE_URL + `groupsources/${groupId}`, {
             headers: {
                 Authorization: `Bearer ${token}`,
             },

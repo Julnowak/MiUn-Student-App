@@ -96,16 +96,16 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 
 DATABASES = {
 
-    'default': dj_database_url.config(
-        # Replace this value with your local database's connection string.
-        default='postgresql://miundb_t3x2_user:DHQjSEibDwrkr5iMdHrGbQxwd6UpFMZZ@dpg-d0vn580gjchc739v5cqg-a.frankfurt-postgres.render.com/miundb_t3x2',
-        conn_max_age=600
-    ),
+    # 'default': dj_database_url.config(
+    #     # Replace this value with your local database's connection string.
+    #     default='postgresql://miundb_t3x2_user:DHQjSEibDwrkr5iMdHrGbQxwd6UpFMZZ@dpg-d0vn580gjchc739v5cqg-a.frankfurt-postgres.render.com/miundb_t3x2',
+    #     conn_max_age=600
+    # ),
 
-    # 'default': {
-    #     'ENGINE': 'django.db.backends.sqlite3',
-    #     'NAME': BASE_DIR / 'db.sqlite3',
-    # }
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
+    }
 
     # 'sqlite': {
     #     'ENGINE': 'django.db.backends.sqlite3',

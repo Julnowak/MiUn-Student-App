@@ -535,7 +535,7 @@ const DiscussionTab = ({groupId}) => {
                                     {post.images.map((src, idx) => (
                                         <img
                                             key={idx}
-                                            src={src.file.slice(48)}
+                                            src={src.file.slice(47)}
                                             alt={`post-${post.id}-img-${idx}`}
                                             style={{
                                                 width: '100%',

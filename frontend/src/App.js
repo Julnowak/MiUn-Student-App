@@ -28,6 +28,9 @@ import Forum from "./components/forum/forum";
 import OfferPage from "./components/exchange/offerPage";
 import GroupPage from "./components/groups/groupPage";
 import EmailVerification from "./components/userProfile/verification";
+import StudentGradesPage from "./components/grades/studentGradesPage";
+import SchedulePage from "./components/plan/plan";
+import StudentChecklist from "./components/checklist/studentCheclist";
 
 function App() {
     return (
@@ -52,11 +55,15 @@ function App() {
                         <Route path="/calendar" element={<MyCalendar/>}/>
                         <Route path="/pierogi" element={<ProgiPunktowe/>}/>
                         <Route path="/localizations" element={<Locations/>}/>
+                        <Route path="/localizations/:id" element={<Locations />} />
                         <Route path="/learning" element={<Learning/>}/>
 
                         <Route path="/about" element={<About/>}/>
                         <Route path="/contact" element={<Contact/>}/>
+                        <Route path="/grades" element={<StudentGradesPage/>}/>
                         <Route path="/donations" element={<Donations/>}/>
+                        <Route path="/schedule" element={<SchedulePage/>}/>
+                        <Route path="/studentCheclist" element={<StudentChecklist/>}/>
 
                         <Route path="/exchanges" element={<Exchange />} />
                         <Route path="/my-offers" element={<MyOffers />} />
@@ -66,7 +73,7 @@ function App() {
 
                         <Route path="/actual-info" element={<Actualities />} />
                         <Route path="/forum" element={<Forum />} />
-                        <Route path="/offer-page/:id" element={<OfferPage />} />
+                        <Route path="/offer/:id" element={<OfferPage />} />
                         <Route path="*" element={<NotFoundPage />} />
 
                     </Routes>

@@ -78,7 +78,7 @@ class EventSerializer(serializers.ModelSerializer):
     class Meta:
         model = Event
         fields = '__all__'
-        depth = 1
+        depth = 2
 
 
 class AttachmentSerializer(serializers.ModelSerializer):

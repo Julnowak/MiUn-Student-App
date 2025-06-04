@@ -284,12 +284,33 @@ class EmailVerification(models.Model):
             return False
 
 
+class Group(models.Model):
+    id = models.AutoField(primary_key=True)
+    name = models.CharField(max_length=300)
+    fieldByYear = models.ForeignKey(FieldByYear, on_delete=models.CASCADE, blank=True, null=True)
+    admin = models.ForeignKey(AppUser, on_delete=models.CASCADE, blank=True, null=True)
+    code = models.CharField(max_length=300, default=get_random_string(32))
+    isPublic = models.BooleanField(default=False)
+    members = models.ManyToManyField(AppUser, related_name="members")
+    moderators = models.ManyToManyField(AppUser, related_name="moderators", blank=True)
+    rules = models.TextField(blank=True, null=True)
+    description = models.TextField(blank=True, null=True, max_length=400)
+    limit = models.IntegerField(default=150, blank=True, null=True)
+    archived = models.BooleanField(default=False)
+    isOfficial = models.BooleanField(default=False)
+    date_created = models.DateTimeField(auto_now_add=True)
+    coverImage = models.ImageField(blank=True, null=True, upload_to="group_files_cover")
+    avatar = models.ImageField(blank=True, null=True, upload_to="group_files_avatar")
+
+    def __str__(self):
+        return f"Grupa ID-{self.id}: {self.name}"
+
+
 EVENT_CHOICES = (
     ("GROUP EVENT", "group event"),
     ("USER EVENT", "user event"),
     ("FIELD EVENT", "field by year event"),
 )
-
 
 class Event(models.Model):
     id = models.AutoField(primary_key=True)
@@ -302,32 +323,10 @@ class Event(models.Model):
     recurrency_details = models.JSONField(blank=True, null=True) # {'num': 2, 'type': "days", until: DATE}
     user = models.ForeignKey(AppUser, on_delete=models.CASCADE)
     type = models.CharField(max_length=300, choices=EVENT_CHOICES, default="USER EVENT")
+    group = models.ForeignKey(Group, on_delete=models.CASCADE, blank=True, null=True)
 
     def __str__(self):
         return f"Wydarzenie ID-{self.id}: {self.name}"
-
-
-class Group(models.Model):
-    id = models.AutoField(primary_key=True)
-    name = models.CharField(max_length=300)
-    fieldByYear = models.ForeignKey(FieldByYear, on_delete=models.CASCADE, blank=True, null=True)
-    admin = models.ForeignKey(AppUser, on_delete=models.CASCADE, blank=True, null=True)
-    code = models.CharField(max_length=300, default=get_random_string(32))
-    isPublic = models.BooleanField(default=False)
-    members = models.ManyToManyField(AppUser, related_name="members")
-    moderators = models.ManyToManyField(AppUser, related_name="moderators", blank=True)
-    recentActivity = models.ManyToManyField(Event, related_name="recentActivity", blank=True)
-    rules = models.TextField(blank=True, null=True)
-    description = models.TextField(blank=True, null=True, max_length=400)
-    limit = models.IntegerField(default=150, blank=True, null=True)
-    archived = models.BooleanField(default=False)
-    isOfficial = models.BooleanField(default=False)
-    date_created = models.DateTimeField(auto_now_add=True)
-    coverImage = models.ImageField(blank=True, null=True, upload_to="group_files_cover")
-    avatar = models.ImageField(blank=True, null=True, upload_to="group_files_avatar")
-
-    def __str__(self):
-        return f"Grupa ID-{self.id}: {self.name}"
 
 
 NOTIFICATION_CHOICES = (
@@ -411,8 +410,6 @@ class News(models.Model):
 
     def __str__(self):
         return f"News ID-{self.id}: {self.name}"
-
-
 
 
 class Post(models.Model):

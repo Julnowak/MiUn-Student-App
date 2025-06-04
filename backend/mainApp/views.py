@@ -365,20 +365,6 @@ class EventAPI(APIView):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     def post(self, request):
-        events = Event.objects.filter(user=request.user)
-        serializer = EventSerializer(events, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-
-class EventAPI(APIView):
-    permission_classes = (permissions.IsAuthenticated,)  # Only authenticated users can log out
-
-    def get(self, request):
-        events = Event.objects.filter(user=request.user)
-        serializer = EventSerializer(events, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-    def post(self, request):
         print(request.data)
 
         event = Event.objects.create(name=request.data['event']['name'],
@@ -390,6 +376,24 @@ class EventAPI(APIView):
         serializer = EventSerializer(event)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+    def put(self, request, event_id):
+        event = Event.objects.get(id=event_id)
+        event.name = request.data['event']['name']
+        event.start = request.data['event']['start']
+        event.end = request.data['event']['end']
+        event.color = request.data['event']['color']
+        event.additional_info = request.data['event']['additional_info']
+        event.recurrent = request.data['event']['recurrent']
+        event.recurrency_details = request.data['event']['recurrency_details']
+        event.save()
+
+        serializer = EventSerializer(event)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def delete(self, request, event_id):
+        event = Event.objects.get(id=event_id)
+        event.delete()
+        return Response(status=status.HTTP_200_OK)
 
 class FieldByYearAPI(APIView):
     permission_classes = (permissions.IsAuthenticated,)  # Only authenticated users can log out
@@ -737,6 +741,48 @@ class CalendarAPI(APIView):
     def post(self, request):
         print(request.data)
         return Response( status=status.HTTP_200_OK)
+
+
+class GroupEventAPI(APIView):
+    permission_classes = (permissions.IsAuthenticated,)  # Only authenticated users can log out
+
+    def get(self, request, group_id):
+        events = Event.objects.filter(group__id=group_id)
+        serializer = EventSerializer(events, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def post(self, request, group_id):
+        print(request.data)
+        group = Group.objects.get(id=group_id)
+        event = Event.objects.create(name=request.data['name'],
+                                     start=request.data['start'],
+                                     end=request.data['end'],
+                                     color=request.data['color'], additional_info=request.data['additional_info'],
+                                     recurrent=request.data['recurrent'], recurrency_details=request.data['recurrency_details'],
+                                     user=request.user, group=group, type="GROUP EVENT")
+        serializer = EventSerializer(event)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def put(self, request, group_id):
+        # group_id to event_id
+        event = Event.objects.get(id=group_id)
+        event.name = request.data['name']
+        event.start = request.data['start']
+        event.end = request.data['end']
+        event.color = request.data['color']
+        event.additional_info = request.data['additional_info']
+        event.recurrent = request.data['recurrent']
+        event.recurrency_details = request.data['recurrency_details']
+        event.save()
+
+        serializer = EventSerializer(event)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def delete(self, request, group_id):
+        # group_id to event_id
+        event = Event.objects.get(id=group_id)
+        event.delete()
+        return Response(status=status.HTTP_200_OK)
 
 
 class LikeDislikeAPI(APIView):

@@ -21,7 +21,11 @@ import {
     MenuItem,
     Switch,
     FormControlLabel,
-    colors, CircularProgress
+    colors,
+    CircularProgress,
+    Radio,
+    RadioGroup,
+    FormLabel
 } from '@mui/material';
 import { Add, CalendarToday, FilterList, Sort, Event } from '@mui/icons-material';
 import { DateTimePicker } from '@mui/x-date-pickers';
@@ -29,6 +33,15 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import pl from 'date-fns/locale/pl';
 import client from "../../client";
+
+// Lista dostępnych kolorów
+const COLOR_OPTIONS = [
+  { name: 'Niebieski', value: colors.blue[500] },
+  { name: 'Zielony', value: colors.green[500] },
+  { name: 'Czerwony', value: colors.red[500] },
+  { name: 'Fioletowy', value: colors.purple[500] },
+  { name: 'Pomarańczowy', value: colors.orange[500] }
+];
 
 const EventsTab = ({ groupId }) => {
   const [events, setEvents] = useState([]);
@@ -44,7 +57,7 @@ const EventsTab = ({ groupId }) => {
     name: '',
     start: new Date(),
     end: new Date(Date.now() + 3600000), // +1 godzina
-    color: colors.blue[500],
+    color: COLOR_OPTIONS[0].value, // Domyślnie pierwszy kolor z listy
     additional_info: '',
     recurrent: false,
     recurrency_details: null
@@ -54,7 +67,7 @@ const EventsTab = ({ groupId }) => {
   const fetchEvents = async () => {
     setLoading(true);
     try {
-      const response = await client.get(`/groups/${groupId}/events/`);
+      const response = await client.get(`/groupEvent/${groupId}/`);
       setEvents(response.data);
     } catch (error) {
       console.error('Error fetching events:', error);
@@ -92,16 +105,33 @@ const EventsTab = ({ groupId }) => {
     setNewEvent(prev => ({ ...prev, [name]: value }));
   };
 
+  const handleColorChange = (value) => {
+    if (currentEvent) {
+      setCurrentEvent({...currentEvent, color: value});
+    } else {
+      setNewEvent({...newEvent, color: value});
+    }
+  };
+
   const handleSubmit = async () => {
     try {
       if (currentEvent) {
         // Edycja istniejącego wydarzenia
-        await client.put(`/events/${currentEvent.id}/`, currentEvent);
+        await client.put(`/groupEvent/${currentEvent.id}/`, currentEvent);
       } else {
         // Dodanie nowego wydarzenia
-        await client.post(`/groups/${groupId}/events/`, newEvent);
+        await client.post(`/groupEvent/${groupId}/`, newEvent);
       }
       setOpenModal(false);
+      setNewEvent({
+        name: '',
+        start: new Date(),
+        end: new Date(Date.now() + 3600000), // +1 godzina
+        color: COLOR_OPTIONS[0].value, // Domyślnie pierwszy kolor z listy
+        additional_info: '',
+        recurrent: false,
+        recurrency_details: null
+      });
       fetchEvents();
     } catch (error) {
       console.error('Error saving event:', error);
@@ -110,8 +140,9 @@ const EventsTab = ({ groupId }) => {
 
   const handleDelete = async (id) => {
     try {
-      await client.delete(`/events/${id}/`);
+      await client.delete(`/groupEvent/${id}/`);
       fetchEvents();
+      setOpenModal(false)
     } catch (error) {
       console.error('Error deleting event:', error);
     }
@@ -228,7 +259,6 @@ const EventsTab = ({ groupId }) => {
           </CardContent>
         </Card>
 
-
       {/* Modal wydarzenia */}
       <Dialog open={openModal} onClose={() => setOpenModal(false)} maxWidth="sm" fullWidth>
         <DialogTitle>
@@ -272,18 +302,38 @@ const EventsTab = ({ groupId }) => {
               />
             </Box>
 
-            <TextField
-              fullWidth
-              label="Kolor (hex)"
-              name="color"
-              value={currentEvent?.color || newEvent.color}
-              onChange={(e) =>
-                currentEvent
-                  ? setCurrentEvent({...currentEvent, color: e.target.value})
-                  : handleInputChange(e)
-              }
-              sx={{ mb: 2 }}
-            />
+            <FormControl component="fieldset" sx={{ mb: 2 }}>
+              <FormLabel component="legend">Wybierz kolor</FormLabel>
+              <RadioGroup
+                row
+                value={currentEvent?.color || newEvent.color}
+                onChange={(e) => handleColorChange(e.target.value)}
+              >
+                {COLOR_OPTIONS.map((color) => (
+                  <Box key={color.value} sx={{ display: 'flex', alignItems: 'center', mr: 2 }}>
+                    <Radio
+                      value={color.value}
+                      sx={{
+                        color: color.value,
+                        '&.Mui-checked': {
+                          color: color.value,
+                        },
+                      }}
+                    />
+                    <Box
+                      sx={{
+                        width: 20,
+                        height: 20,
+                        bgcolor: color.value,
+                        borderRadius: '50%',
+                        border: '1px solid #ddd'
+                      }}
+                    />
+                    <Typography sx={{ ml: 1 }}>{color.name}</Typography>
+                  </Box>
+                ))}
+              </RadioGroup>
+            </FormControl>
 
             <TextField
               fullWidth
@@ -300,19 +350,6 @@ const EventsTab = ({ groupId }) => {
               sx={{ mb: 2 }}
             />
 
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={currentEvent?.recurrent || newEvent.recurrent}
-                  onChange={(e) =>
-                    currentEvent
-                      ? setCurrentEvent({...currentEvent, recurrent: e.target.checked})
-                      : setNewEvent({...newEvent, recurrent: e.target.checked})
-                  }
-                />
-              }
-              label="Wydarzenie cykliczne"
-            />
           </LocalizationProvider>
         </DialogContent>
         <DialogActions>

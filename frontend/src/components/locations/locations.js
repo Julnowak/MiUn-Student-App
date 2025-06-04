@@ -8,6 +8,7 @@ import { API_BASE_URL } from "../../config";
 import Alert from '@mui/material/Alert';
 import { Autocomplete, TextField, Button, Box, Typography, Container } from "@mui/material";
 import { LocationOn, Search, Directions } from "@mui/icons-material";
+import {useParams} from "react-router-dom";
 
 // Fix for default marker icons
 delete L.Icon.Default.prototype._getIconUrl;
@@ -27,8 +28,9 @@ const Locations = () => {
     const token = localStorage.getItem("access");
     const mapRef = useRef(null);
     const [bounds, setBounds] = useState(null);
+    const locationParam = useParams();
 
-    useEffect(() => {
+     useEffect(() => {
         const fetchLocations = async () => {
             try {
                 const response = await client.get(API_BASE_URL + "buildings/", {
@@ -39,8 +41,27 @@ const Locations = () => {
                 setLocations(response.data);
                 setAllLocations(response.data);
 
-                // Calculate bounds to fit all markers
-                if (response.data.length > 0) {
+                console.log(locationParam.id[0] + "-" + locationParam.id[1])
+
+                // Jeśli jest parametr w URL, wyszukaj odpowiedni budynek
+                if (locationParam.id) {
+                    const foundLocation = response.data.find(loc =>
+                        loc.name.includes(locationParam.id[0] + "-" + locationParam.id[1]) ||
+                        loc.abbreviation.includes(locationParam.id[0] + "-" + locationParam.id[1])
+                    );
+
+                    if (foundLocation) {
+                        console.log(foundLocation)
+                        setQuery(foundLocation.id);
+                        setLocations([foundLocation]);
+                        const newBounds = L.latLngBounds([
+                            [foundLocation.latitude, foundLocation.longitude]
+                        ]);
+
+                        setBounds(newBounds.pad(0.5));
+                    }
+                } else if (response.data.length > 0) {
+                    // Standardowe zachowanie - pokaż wszystkie lokalizacje
                     const coords = response.data.map(loc => [loc.latitude, loc.longitude]);
                     const newBounds = L.latLngBounds(coords);
                     setBounds(newBounds);
@@ -53,7 +74,7 @@ const Locations = () => {
         if (locations.length < 1 && token) {
             fetchLocations();
         }
-    }, [token]);
+    }, [token, locationParam]); // Dodaj locationParam do zależności
 
     useEffect(() => {
         navigator.geolocation.getCurrentPosition(
@@ -125,7 +146,7 @@ const Locations = () => {
             if (bounds) {
                 map.fitBounds(bounds, { padding: [50, 50] });
             }
-        }, [bounds, map]);
+        }, [map]);
 
         return null;
     };
@@ -286,7 +307,7 @@ const Locations = () => {
                 </Typography>
                 <Box
                     component="img"
-                    src="images/basic/mapa_agh.jpg"
+                    src="/images/basic/mapa_agh.jpg"
                     alt="Mapa miasteczka AGH"
                     sx={{
 

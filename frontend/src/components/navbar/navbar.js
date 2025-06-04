@@ -23,7 +23,7 @@ import {
     Person,
     ExpandMore,
     CloseRounded,
-    ExpandLess, CalendarMonth, Groups, Sync, Forum, Newspaper, School, LocationOn, ListAlt, LocalLibrary,
+    ExpandLess, CalendarMonth, Groups, Sync, Forum, Newspaper, School, LocationOn, ListAlt, LocalLibrary, Checklist,
 } from '@mui/icons-material';
 import {AuthContext} from "../../AuthContext";
 import client from "../../client";
@@ -244,6 +244,21 @@ const CustomNavbar = () => {
                             <LocationOn sx={{fontSize: 20, mr: 1.5}}/>
                             Lokalizacje
                         </MenuItem>
+
+                        <MenuItem
+                            href="/studentCheclist"
+                            component="a"
+                            sx={{
+                                py: 1.5,
+                                '&:hover': {
+                                    bgcolor: 'primary.light',
+                                    color: 'primary.main'
+                                }
+                            }}
+                        >
+                            <Checklist sx={{fontSize: 20, mr: 1.5}}/>
+                            Checklista
+                        </MenuItem>
                     </Menu>
 
 
@@ -450,6 +465,13 @@ const CustomNavbar = () => {
                                         <LocationOn/>
                                     </ListItemIcon>
                                     <ListItemText sx={{color: 'black'}} primary="Lokalizacje"/>
+                                </ListItem>
+
+                                <ListItem button href="/studentCheclist" component="a" sx={{pl: 4}}>
+                                    <ListItemIcon>
+                                        <Checklist/>
+                                    </ListItemIcon>
+                                    <ListItemText sx={{color: 'black'}} primary="Checklista"/>
                                 </ListItem>
                             </List>
                         </Collapse>
